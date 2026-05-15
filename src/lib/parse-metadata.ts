@@ -1,7 +1,7 @@
 /**
  * metadata.json パーサー
  * 
- * Nano Banana Pro が出力した metadata.json を読み込み、
+ * Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System が出力した metadata.json を読み込み、
  * Remotion用の scriptData.json に変換する。
  * 
  * Phase 2 統合版:

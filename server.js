@@ -92,7 +92,7 @@ const sessions = new Map();
 
 // ランタイムで設定されたAPIキー（.envより優先）
 let runtimeApiKey = '';
-let runtimeModel = 'gemini-1.5-flash';
+let runtimeModel = 'gemini-2.5-flash';
 
 // ファイルアップロード設定（画像のみ）
 const storage = multer.diskStorage({
@@ -144,11 +144,9 @@ app.post('/api/gemini/key', async (req, res) => {
     const genAI = new GoogleGenerativeAI(apiKey.trim());
     
     const modelsToTry = [
-      'gemini-1.5-flash',
-      'gemini-1.5-pro',
-      'gemini-2.0-flash',
       'gemini-2.5-flash',
-      'gemini-2.5-pro'
+      'gemini-2.5-pro',
+      'gemini-2.0-flash',
     ];
     
     let workingModel = null;
@@ -282,9 +280,6 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
       
       // 動的に判定したモデルを使用（画像入力非対応のgemini-proなどが選ばれた場合のフォールバックも考慮）
       let modelToUse = runtimeModel;
-      if (modelToUse === 'gemini-pro') {
-        modelToUse = 'gemini-pro-vision'; // 画像用
-      }
       const model = genAI.getGenerativeModel({ model: modelToUse });
 
       // 画像をBase64に変換

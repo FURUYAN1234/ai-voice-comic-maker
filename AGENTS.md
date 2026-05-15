@@ -19,7 +19,6 @@
 ```
 short_movie/
 ├── start_ai-voice-comic-maker.bat  # Entry point
-├── scripts/bootstrap.ps1  # 全自動環境構築
 ├── run_pipeline.js        # 統合パイプライン
 ├── generate-voiceover.ts  # VOICEVOX音声生成
 ├── src/                   # Remotion ソース
@@ -37,3 +36,9 @@ short_movie/
 3. **カスケードタイムアウト**: パイプライン全体30分 + 各ステージ個別
 4. **UTF-8強制**: 全コマンドで `chcp 65001` / `[Console]::OutputEncoding`
 5. **出力タイムスタンプ命名**: `voice_comic_YYYYMMDDHHMMSS.mp4`
+
+## デプロイ時の必須監査項目
+1. **Gemini モデル監査**: `server.js` 内の `modelsToTry` リストが最新かチェック。廃止されたモデル (例: gemini-1.5-flash, gemini-1.5-pro) が残っていないか、リネームされたモデルがないか確認する。
+2. **呼称統一チェック**: README等に「Nano Banana Pro」の短縮呼称が残っていないか確認。正式名称は「Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System」。
+3. **SYSTEM_VERSION 同期**: `src/App.jsx` の `SYSTEM_VERSION` が他の全バージョン表記と一致しているか確認。
+

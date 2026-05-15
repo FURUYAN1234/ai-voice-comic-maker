@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.1.8-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.1.9-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%201.5-orange.svg" alt="Gemini">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.1.8 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.1.9 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 **[Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System](https://github.com/FURUYAN1234/nano-banana-pro)** Integration / 連携対応  
 The generated voice comic videos provide overwhelming immersion for TikTok, Shorts, and social media platforms. / 生成された声付き動画は、TikTokやYouTube Shorts向けの動画素材として圧倒的な没入感を提供します。
@@ -20,9 +20,9 @@ It provides seamless video assets for platforms like TikTok and YouTube Shorts, 
 Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System などの漫画制作システムによって生成されたフォーマットに特化し、TikTokなどのプラットフォーム向けの動画素材として没入感のある表現をサポートします。
 
 ## ⚠️ Local Execution Only / ローカル実行専用
-> **This application does NOT work as a hosted web demo.** It requires a local Node.js backend server and the VOICEVOX desktop application running on your machine. Unlike browser-only apps (e.g., Nano Banana Pro), this system performs server-side video rendering via Remotion (headless Chromium) and communicates with the local VOICEVOX engine on `localhost:50021`, which are impossible from a static hosting service like GitHub Pages.
+> **This application does NOT work as a hosted web demo.** It requires a local Node.js backend server and the VOICEVOX desktop application running on your machine. Unlike browser-only apps (e.g., Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System), this system performs server-side video rendering via Remotion (headless Chromium) and communicates with the local VOICEVOX engine on `localhost:50021`, which are impossible from a static hosting service like GitHub Pages.
 
-> **本アプリはWebデモとしては動作しません。** ローカルのNode.jsバックエンドサーバーと、VOICEVOXデスクトップアプリの起動が必須です。他のブラウザ完結型アプリ（Nano Banana Pro等）とは異なり、本システムはRemotionによるサーバーサイド動画レンダリング（ヘッドレスChromium）と、`localhost:50021` で動作するVOICEVOXエンジンとの通信を行うため、GitHub Pagesのような静的ホスティングでは動作できません。
+> **本アプリはWebデモとしては動作しません。** ローカルのNode.jsバックエンドサーバーと、VOICEVOXデスクトップアプリの起動が必須です。他のブラウザ完結型アプリ（Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System等）とは異なり、本システムはRemotionによるサーバーサイド動画レンダリング（ヘッドレスChromium）と、`localhost:50021` で動作するVOICEVOXエンジンとの通信を行うため、GitHub Pagesのような静的ホスティングでは動作できません。
 
 ## ✨ Features / 機能
 
@@ -53,8 +53,9 @@ Following the philosophy of Nano Banana 2 and ChatGPT Images 2.0 Powered Super A
 Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System の思想を踏襲し、APIエラー時や制限到達時、あるいは安全フィルタでのブロック時に自動的に最適な別モデルへフォールバックする仕組み（Zenith Protocol）を搭載しています。
 
 **画像解析 / Vision Analysis Fallback Pipeline:**
-1. `gemini-1.5-flash` (Primary / 安定・高速)
-2. `gemini-1.5-pro` (Backup / 高精度)
+1. `gemini-2.5-flash` (Primary / 安定・高速)
+2. `gemini-2.5-pro` (Backup / 高精度)
+3. `gemini-2.0-flash` (Fallback / 追加フォールバック)
 
 ## 📝 Setup & Launch / セットアップと起動
 
@@ -141,8 +142,15 @@ This project is part of an integrated ecosystem designed to support AI-powered m
 *Developed by FURU*
 
 ## 📋 ChangeLog
+**v1.1.9 (2026-05-16)**
+- [Fix] Gemini model list updated: removed deprecated 1.5 models, set `gemini-2.5-flash` as primary. / Geminiモデルリストを更新。廃止された1.5系を削除、`gemini-2.5-flash` をプライマリに設定。
+- [Fix] BGM volume increased from 0.05 to 0.25 (was inaudible). / BGM音量を0.05→0.25に引き上げ（聴こえなかった問題を修正）。
+- [Fix] Fixed all "Nano Banana Pro" references to official name. / 全箇所「Nano Banana Pro」の短縮呼称を正式名称に修正。
+- [Docs] Zenith Protocol model list updated in README. / READMEのZenith Protocolモデルリストを更新。
+- [Docs] Added deploy-time model audit rule to AGENTS.md. / AGENTS.mdにデプロイ時モデル監査ルールを追加。
+
 **v1.1.8 (2026-05-16)**
-- [Fix] Batch launcher rewritten to `start_ai-voice-comic-maker.bat` (English-only, matching PanoForge/Nano Banana Pro pattern). / バッチファイルを英語専用に書き直し、他アプリと同一コード形式に統一。旧 `start_app.bat` を削除。
+- [Fix] Batch launcher rewritten to `start_ai-voice-comic-maker.bat` (English-only, matching ecosystem app pattern). / バッチファイルを英語専用に書き直し、他アプリと同一コード形式に統一。旧 `start_app.bat` を削除。
 - [Feature] VOICEVOX Engine auto-detection + Remotion dependency check added to batch launcher. / バッチランチャーにVOICEVOXエンジン自動検出とRemotionの依存チェックを追加。
 
 **v1.1.7 (2026-05-16)**
