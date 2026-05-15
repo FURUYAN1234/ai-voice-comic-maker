@@ -167,7 +167,7 @@ export const VoiceComic: React.FC<VoiceComicProps> = ({ scriptData }) => {
               textAlign: "right"
             }}>
               AI Voice Comic Maker<br/>
-              <span style={{ fontSize: 20 }}>v1.1.4</span>
+              <span style={{ fontSize: 20 }}>v1.1.5</span>
             </div>
           </AbsoluteFill>
         </Sequence>
@@ -187,7 +187,7 @@ export const VoiceComic: React.FC<VoiceComicProps> = ({ scriptData }) => {
         >
           <div>
             <div style={{ fontSize: 64, marginBottom: 20 }}>🎬</div>
-            <div>AI Voice Comic Maker v1.1.4</div>
+            <div>AI Voice Comic Maker v1.1.5</div>
             <div style={{ fontSize: 20, opacity: 0.6, marginTop: 10 }}>
               input/ フォルダに漫画画像とJSONを配置して
               <br />
