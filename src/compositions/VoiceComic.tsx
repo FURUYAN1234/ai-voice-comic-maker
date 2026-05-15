@@ -156,32 +156,37 @@ export const VoiceComic: React.FC<VoiceComicProps> = ({ scriptData }) => {
               </span>
             </div>
             
-            {/* クレジット表記 */}
+            {/* クレジット表記 - 視認性向上 */}
             <div style={{
               position: "absolute",
-              bottom: 40,
-              left: 40,
-              color: "rgba(255,255,255,0.4)",
-              fontSize: 24,
-              fontWeight: "bold",
-              textAlign: "left"
+              bottom: 30,
+              left: 0,
+              right: 0,
+              backgroundColor: "rgba(0,0,0,0.6)",
+              padding: "16px 40px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-end",
             }}>
-              Created with Remotion<br/>
-              <span style={{ fontSize: 20 }}>音声：VOICEVOX</span>
-            </div>
-
-            {/* バージョン ウォーターマーク */}
-            <div style={{
-              position: "absolute",
-              bottom: 40,
-              right: 40,
-              color: "rgba(255,255,255,0.4)",
-              fontSize: 24,
-              fontWeight: "bold",
-              textAlign: "right"
-            }}>
-              AI Voice Comic Maker<br/>
-              <span style={{ fontSize: 20 }}>v1.1.9</span>
+              <div style={{
+                color: "rgba(255,255,255,0.9)",
+                fontSize: 22,
+                fontWeight: "bold",
+                textShadow: "0px 2px 4px rgba(0,0,0,0.8)",
+              }}>
+                Created with Remotion<br/>
+                <span style={{ fontSize: 20 }}>音声：VOICEVOX</span>
+              </div>
+              <div style={{
+                color: "rgba(255,255,255,0.9)",
+                fontSize: 22,
+                fontWeight: "bold",
+                textAlign: "right",
+                textShadow: "0px 2px 4px rgba(0,0,0,0.8)",
+              }}>
+                AI Voice Comic Maker<br/>
+                <span style={{ fontSize: 18 }}>v1.1.9</span>
+              </div>
             </div>
           </AbsoluteFill>
         </Sequence>
