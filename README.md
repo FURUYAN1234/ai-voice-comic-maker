@@ -148,19 +148,42 @@ This project is part of an integrated ecosystem designed to support AI-powered m
 本プロジェクトは、AIを活用した漫画・ストーリー制作を支援する統合エコシステムの一部です。
 
 ### Ecosystem Components / 構成システム
-1. **Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System**
-   A system specialized in creating 4-panel manga with AI. / AIを活用した4コマ漫画制作に特化したシステムです。
-2. **AI Story Maker**
-   A tool for generating creative stories and plots using AI. / AIを用いてクリエイティブなストーリーやプロットを生成するツールです。
-3. **AI Character Sheet Maker**
-   An assistant for designing detailed character sheets and settings. / 詳細なキャラクターシートや設定をデザインするための支援ツールです。
-4. **AI Comic Translation Tool**
-   A tool for translating manga into 10 languages using AI. / AIを使って漫画を10言語に翻訳するツールです。
-5. **360° AI Panorama Generator**
-   A tool that generates seamless 360-degree spatial backgrounds to provide background assets for manga and video. / シームレスな360度空間の背景を生成し、漫画や動画の背景素材として提供するツールです。
+
+#### 1. Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System
+A system specialized in creating 4-panel manga with AI. / AIを活用した4コマ漫画制作に特化したシステムです。
+- [Explanation / 解説](https://note.com/happy_duck780/n/ndf063558c1f5)
+- [Demo / デモ](https://furuyan1234.github.io/nano-banana-pro/)
+- [Code / コード](https://github.com/FURUYAN1234/nano-banana-pro)
+
+#### 2. AI Story Maker
+A tool for generating creative stories and plots using AI. / AIを用いてクリエイティブなストーリーやプロットを生成するツールです。
+- [Explanation / 解説](https://note.com/happy_duck780/n/nd3d972922868)
+- [Demo / デモ](https://furuyan1234.github.io/story-maker/)
+- [Code / コード](https://github.com/FURUYAN1234/story-maker)
+
+#### 3. AI Character Sheet Maker
+An assistant for designing detailed character sheets and settings. / 詳細なキャラクターシートや設定をデザインするための支援ツールです。
+- [Explanation / 解説](https://note.com/happy_duck780/n/neccbebd7d957)
+- [Demo / デモ](https://furuyan1234.github.io/character-sheet-maker/)
+- [Code / コード](https://github.com/FURUYAN1234/character-sheet-maker)
+
+#### 4. AI Comic Translation Tool
+A tool for translating manga into 10 languages using AI. / AIを使って漫画を10言語に翻訳するツールです。
+- [Explanation / 解説](https://note.com/happy_duck780/n/nbdf826604ce7)
+- [Demo / デモ](https://furuyan1234.github.io/comic-translation/)
+- [Code / コード](https://github.com/FURUYAN1234/comic-translation)
+
+#### 5. 360° AI Panorama Generator
+A tool that generates seamless 360-degree spatial backgrounds to provide background assets for manga and video. / シームレスな360度空間の背景を生成し、漫画や動画の背景素材として提供するツールです。
+- [Explanation / 解説](https://note.com/happy_duck780/n/nb53b121fef88)
+- [Demo / デモ](https://furuyan1234.github.io/panoforge/)
+- [Code / コード](https://github.com/FURUYAN1234/panoforge)
+
 6. **AI Voice Comic Maker (This Repository)**
    A tool to automatically convert static 4-koma manga into fully voiced animated videos. / 静止画の4コマ漫画をフルボイスの動画に自動変換するツールです。
-
+- [Explanation / 解説](https://note.com/happy_duck780/n/ndc6533c1512f)
+- [Code / コード](https://github.com/FURUYAN1234/ai-voice-comic-maker)
+- 
 ---
 *Developed by FURU*
 
