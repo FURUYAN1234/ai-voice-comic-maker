@@ -1,9 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react()],
-  base: '/ai-voice-comic-maker/',
+  base: command === 'build' ? '/ai-voice-comic-maker/' : '/',
   server: {
     port: 5173,
     // バックエンドAPIへのプロキシ設定
@@ -17,4 +17,4 @@ export default defineConfig({
   build: {
     outDir: 'dist',
   },
-});
+}));
