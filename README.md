@@ -183,7 +183,6 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
    A tool to automatically convert static 4-koma manga into fully voiced animated videos. / 静止画の4コマ漫画をフルボイスの動画に自動変換するツールです。
 - [Explanation / 解説](https://note.com/happy_duck780/n/ndc6533c1512f)
 - [Code / コード](https://github.com/FURUYAN1234/ai-voice-comic-maker)
-- 
 ---
 *Developed by FURU*
 
