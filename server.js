@@ -95,7 +95,7 @@ const sessionLogs = new Map();
 function sessionLog(sessionId, message) {
   console.log(`[BE] ${message}`);
   if (!sessionLogs.has(sessionId)) sessionLogs.set(sessionId, []);
-  sessionLogs.get(sessionId).push({ time: Date.now(), message });
+  sessionLogs.get(sessionId).push(message);
 }
 
 // ランタイムで設定されたAPIキー（.envより優先）
@@ -142,10 +142,10 @@ app.get('/api/gemini/status', (req, res) => {
 // ──────────────────────────────────────
 app.get('/api/logs/:sessionId', (req, res) => {
   const { sessionId } = req.params;
-  const since = parseInt(req.query.since || '0', 10);
+  const sinceIndex = parseInt(req.query.sinceIndex || '0', 10);
   const logs = sessionLogs.get(sessionId) || [];
-  const newLogs = logs.filter(l => l.time > since);
-  res.json({ logs: newLogs });
+  const newLogs = logs.slice(sinceIndex);
+  res.json({ logs: newLogs, nextIndex: logs.length });
 });
 
 // ──────────────────────────────────────

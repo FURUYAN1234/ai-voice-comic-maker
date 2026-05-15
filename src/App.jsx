@@ -54,18 +54,20 @@ export default function App() {
       return;
     }
     
-    let lastTime = 0;
-    const interval = setInterval(async () => {
+    let lastIndex = 0;
+    let isActive = true;
+
+    const fetchLogs = async () => {
+      if (!isActive) return;
       try {
-        const res = await fetch(`/api/logs/${currentSessionId}?since=${lastTime}`);
+        const res = await fetch(`/api/logs/${currentSessionId}?sinceIndex=${lastIndex}`);
         if (res.ok) {
           const data = await res.json();
           if (data.logs && data.logs.length > 0) {
-            lastTime = data.logs[data.logs.length - 1].time;
+            lastIndex = data.nextIndex;
             setTerminalLogs(prev => {
-              const newLogs = data.logs.map(l => l.message);
-              // 重複を防ぐための簡易フィルター（通常はsinceで担保されるが念のため）
-              const combined = [...prev, ...newLogs];
+              // 念のため重複排除
+              const combined = [...prev, ...data.logs];
               return Array.from(new Set(combined));
             });
           }
@@ -73,9 +75,15 @@ export default function App() {
       } catch (err) {
         // ポーリングエラーは無視
       }
-    }, 1000);
+    };
+
+    fetchLogs(); // 即時実行
+    const interval = setInterval(fetchLogs, 1000);
     
-    return () => clearInterval(interval);
+    return () => {
+      isActive = false;
+      clearInterval(interval);
+    };
   }, [phase, currentSessionId]);
 
   // ── 初期化 ──
