@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.1.5-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.1.6-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%201.5-orange.svg" alt="Gemini">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.1.5 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.1.6 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 **[Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System](https://github.com/FURUYAN1234/nano-banana-pro)** Integration / 連携対応  
 The generated voice comic videos provide overwhelming immersion for TikTok, Shorts, and social media platforms. / 生成された声付き動画は、TikTokやYouTube Shorts向けの動画素材として圧倒的な没入感を提供します。
@@ -92,6 +92,10 @@ This project uses a hybrid license to balance technology sharing and intellectua
 - **Source Code**: **MIT License** Applies to software logic and implementation code. / ソフトウェアの動作ロジックや実装コードに適用。
 - **Logic & Prompts**: **CC BY-NC-SA 4.0** Applies to original design philosophy and prompt structure. / 設計思想およびプロンプト構造に適用。
 
+### Third-Party Licenses / サードパーティ・ライセンス
+- **Remotion**: Free for non-commercial or individual use. For corporate commercial use, a separate Company License is required. Please check [Remotion License](https://www.remotion.dev/license). / 個人利用および非営利目的では無料で利用可能ですが、法人による商用利用には別途ライセンスが必要です。
+- **VOICEVOX**: Free for commercial and non-commercial use, provided credit is given. This tool automatically embeds the required credit in the video outtro. / 商用・非商用問わず無料で利用可能ですが、クレジット表記（例：「VOICEVOX」等）が必須です。本ツールでは動画のアウトロ画面にクレジットを自動表示する仕様になっています。
+
 ### Commercial Use and Paid Seminars / 商用利用・有料セミナーについて
 Usage of this system (including prompts and logic) in high-priced information products, paid seminars, or any "get-rich-quick" schemes is strictly prohibited under the CC BY-NC-SA 4.0 license.  
 本システム（プロンプトおよびロジックを含む）を、高額な情報商材、有料セミナー、または「副業・稼げる」等の謳い文句を伴うビジネスに無断で使用することは、CC BY-NC-SA 4.0ライセンスに基づき、固く禁じます。
@@ -131,6 +135,9 @@ This project is part of an integrated ecosystem designed to support AI-powered m
 
 ## 📋 ChangeLog
 
+**v1.1.6 (2026-05-15)**
+- [Feature] 動画の最後（アウトロ画面）にRemotionとVOICEVOXのクレジット表記を自動挿入する機能を追加。 / Added automatic credit insertion for Remotion and VOICEVOX at the video's outtro screen.
+- [Docs] サードパーティ・ライセンスに関する詳細を明記。 / Clarified third-party licenses for Remotion and VOICEVOX.
 **v1.1.5 (2026-05-15)**
 - [Docs] READMEのマークダウン構造を完全修正し、デモサイトのリンク (`https://furuyan1234.github.io/ai-voice-comic-maker/`) を正式に追記しました。 / Completely fixed README markdown structure and added the official demo site link.
 
