@@ -90,6 +90,14 @@ setInterval(cleanupOldFiles, 60 * 60 * 1000);
 // セッション管理用（インメモリ）
 const sessions = new Map();
 
+// セッションごとのログ蓄積（フロントエンドポーリング用）
+const sessionLogs = new Map();
+function sessionLog(sessionId, message) {
+  console.log(`[BE] ${message}`);
+  if (!sessionLogs.has(sessionId)) sessionLogs.set(sessionId, []);
+  sessionLogs.get(sessionId).push({ time: Date.now(), message });
+}
+
 // ランタイムで設定されたAPIキー（.envより優先）
 let runtimeApiKey = '';
 let runtimeModel = 'gemini-2.5-flash';
@@ -127,6 +135,17 @@ app.get('/api/gemini/status', (req, res) => {
   const key = runtimeApiKey || process.env.GEMINI_API_KEY || '';
   const configured = key.length > 0 && key !== 'your_gemini_api_key_here';
   res.json({ configured });
+});
+
+// ──────────────────────────────────────
+// API: セッションログ取得（フロントエンドポーリング用）
+// ──────────────────────────────────────
+app.get('/api/logs/:sessionId', (req, res) => {
+  const { sessionId } = req.params;
+  const since = parseInt(req.query.since || '0', 10);
+  const logs = sessionLogs.get(sessionId) || [];
+  const newLogs = logs.filter(l => l.time > since);
+  res.json({ logs: newLogs });
 });
 
 // ──────────────────────────────────────
@@ -237,8 +256,8 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
       createdAt: Date.now(),
     });
 
-    console.log(`📂 [Upload] セッション ${sessionId} 作成完了`);
-    console.log(`   📷 画像: ${imageFile.originalname}`);
+    sessionLog(sessionId, `📂 [Upload] セッション作成完了`);
+    sessionLog(sessionId, `📷 画像: ${imageFile.originalname}`);
 
     res.json({ sessionId });
   } catch (err) {
@@ -259,7 +278,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
   }
 
   try {
-    console.log(`\n🔍 [Analyze] Gemini Vision OCR 開始: ${sessionId}`);
+    sessionLog(sessionId, `🔍 [Analyze] Gemini Vision OCR 開始...`);
     session.status = 'analyzing';
 
     const apiKey = runtimeApiKey || process.env.GEMINI_API_KEY;
@@ -340,7 +359,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
       ]);
 
       const responseText = result.response.text();
-      console.log(`  📝 Gemini レスポンス受信 (${responseText.length}文字)`);
+      sessionLog(sessionId, `📝 Gemini レスポンス受信 (${responseText.length}文字)`);
 
       // JSONパース
       let cleaned = responseText.trim();
@@ -428,7 +447,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
         }
       }
       const dominantEmotion = Object.keys(emotionCounts).reduce((a, b) => emotionCounts[a] > emotionCounts[b] ? a : b);
-      console.log(`🎵 Dominant Emotion detected: ${dominantEmotion}`);
+      sessionLog(sessionId, `🎵 Dominant Emotion detected: ${dominantEmotion}`);
       execSync(`node generate_bgm.js ${dominantEmotion}`, { cwd: process.cwd() });
     } catch (e) {
       console.error('BGMの生成に失敗しました:', e);
@@ -437,9 +456,9 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
     const totalDialogues = metadata.panels.reduce((s, p) => s + p.dialogues.length, 0);
     const speakers = [...new Set(metadata.panels.flatMap(p => p.dialogues.map(d => d.speaker)))];
 
-    console.log(`  ✅ OCR完了: "${metadata.title}"`);
-    console.log(`     コマ数: ${metadata.panels.length}, セリフ数: ${totalDialogues}`);
-    console.log(`     話者: ${speakers.join(', ')}`);
+    sessionLog(sessionId, `✅ OCR完了: "${metadata.title}"`);
+    sessionLog(sessionId, `コマ数: ${metadata.panels.length}, セリフ数: ${totalDialogues}`);
+    sessionLog(sessionId, `話者: ${speakers.join(', ')}`);
 
     res.json({ metadata });
 
@@ -466,7 +485,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
   }
 
   try {
-    console.log(`\n🎬 [Generate] 動画生成を開始: ${sessionId}`);
+    sessionLog(sessionId, `🎬 [Generate] 動画生成を開始...`);
     session.status = 'generating';
 
     const metadata = session.metadata;
@@ -487,11 +506,11 @@ app.post('/api/generate/:sessionId', async (req, res) => {
       }
     }
 
-    console.log(`  📖 タイトル: ${title}`);
-    console.log(`  💬 セリフ数: ${dialogues.length}`);
+    sessionLog(sessionId, `📖 タイトル: ${title}`);
+    sessionLog(sessionId, `💬 セリフ数: ${dialogues.length}`);
 
     // ── 画像分割 (sharp) ──
-    console.log('  ✂️ 画像をコマごとに分割中...');
+    sessionLog(sessionId, '✂️ 画像をコマごとに分割中...');
     const publicPanelsDir = path.join(__dirname, 'public', 'panels');
     if (!fs.existsSync(publicPanelsDir)) fs.mkdirSync(publicPanelsDir, { recursive: true });
 
@@ -565,7 +584,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
       await sharp(session.imagePath).extract(extractRegion).png({ quality: 95 }).toFile(outputPath);
       panelPaths.push(`panels/${outputFileName}`);
     }
-    console.log(`    ✅ ${panelCount}コマに分割完了 (${layout})`);
+    sessionLog(sessionId, `✅ ${panelCount}コマに分割完了 (${layout})`);
 
     // アウトロ用にオリジナル画像全体もコピー
     const originalImageName = `${sessionId}_full.png`;
@@ -574,7 +593,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     const originalImagePublicPath = `panels/${originalImageName}`;
 
     // ── VOICEVOX 音声合成 ──
-    console.log('  🎙️ VOICEVOX 音声合成...');
+    sessionLog(sessionId, '🎙️ VOICEVOX 音声合成...');
     const publicVoiceDir = path.join(__dirname, 'public', 'voiceover', sessionId);
     if (!fs.existsSync(publicVoiceDir)) fs.mkdirSync(publicVoiceDir, { recursive: true });
 
@@ -586,7 +605,8 @@ app.post('/api/generate/:sessionId', async (req, res) => {
       const filepath = path.join(publicVoiceDir, filename);
 
       const displayText = d.text.length > 25 ? d.text.substring(0, 25) + '...' : d.text;
-      console.log(`    [${i + 1}/${dialogues.length}] "${displayText}" → Speaker ${speakerId}`);
+      sessionLog(sessionId, `🎤 [Casting] ${d.speaker} (${d.gender}, ${d.age}) → Voice ID: ${speakerId}`);
+      sessionLog(sessionId, `  [${i + 1}/${dialogues.length}] "${displayText}"`);
 
       try {
         // audio_query
@@ -632,7 +652,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
         // WAVからduration取得
         const durationSec = getWavDuration(wavBuffer);
         audioFiles.push({ filename, publicPath: `voiceover/${sessionId}/${filename}`, durationSec, dialogue: d });
-        console.log(`      ✅ ${durationSec.toFixed(2)}s → ${filename}`);
+        sessionLog(sessionId, `  ✅ ${durationSec.toFixed(2)}s → ${filename}`);
       } catch (err) {
         console.error(`      ❌ 音声生成失敗: ${err.message}`);
         audioFiles.push({ filename, publicPath: null, durationSec: 3, dialogue: d });
@@ -640,7 +660,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     }
 
     // ── タイトルコール音声 ──
-    console.log('  📢 タイトルコール音声生成...');
+    sessionLog(sessionId, '📢 タイトルコール音声生成...');
     const titleAudioPath = path.join(publicVoiceDir, 'title_call.wav');
     let titleAudioPublicPath = null;
     try {
@@ -665,7 +685,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
       titleAudioPublicPath = `voiceover/${sessionId}/title_call.wav`;
       const titleDurationSec = getWavDuration(titleWav);
       var titleDurationFrames = Math.ceil(titleDurationSec * 30) + 15;
-      console.log(`    ✅ タイトルコール音声生成完了 (${titleDurationSec.toFixed(2)}s)`);
+      sessionLog(sessionId, `✅ タイトルコール音声生成完了 (${titleDurationSec.toFixed(2)}s)`);
     } catch (err) {
       console.log(`    ⚠️ タイトルコール生成スキップ: ${err.message}`);
       var titleDurationFrames = 90; // フォールバック
@@ -702,17 +722,17 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     const outputPath = path.join(outDir, `voice_comic_${timestamp}.mp4`);
 
     // ── Remotion レンダリング ──
-    console.log('  🎬 Remotion 動画レンダリングを開始...');
+    sessionLog(sessionId, '🎬 Remotion 動画レンダリングを開始...');
     const compositionId = 'VoiceComic';
 
     // Vite経由でバンドル
-    console.log('    📦 プロジェクトをバンドル中...');
+    sessionLog(sessionId, '📦 プロジェクトをバンドル中...');
     const bundledPath = await bundle({
       entryPoint: path.join(__dirname, 'src', 'index.ts'),
       webpackOverride: (config) => config,
     });
 
-    console.log('    🎥 コンポジションを抽出中...');
+    sessionLog(sessionId, '🎥 コンポジションを抽出中...');
     const composition = await selectComposition({
       serveUrl: bundledPath,
       id: compositionId,
@@ -722,7 +742,8 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     // 動的に計算されたフレーム数をコンポジションに上書き設定
     composition.durationInFrames = scriptData.totalDurationInFrames;
 
-    console.log(`    ⏳ レンダリング中 (${composition.durationInFrames} frames) ...`);
+    sessionLog(sessionId, `⏳ レンダリング中 (${composition.durationInFrames} frames) ...`);
+    let lastReportedPct = -1;
     await renderMedia({
       composition,
       serveUrl: bundledPath,
@@ -730,8 +751,10 @@ app.post('/api/generate/:sessionId', async (req, res) => {
       outputLocation: outputPath,
       inputProps: { scriptData },
       onProgress: ({ progress }) => {
-        if (progress % 0.1 < 0.01) {
-          console.log(`      ... ${(progress * 100).toFixed(0)}%`);
+        const pct = Math.floor(progress * 100);
+        if (pct >= lastReportedPct + 5) {
+          lastReportedPct = pct;
+          sessionLog(sessionId, `🎞️ レンダリング進捗: ${pct}%`);
         }
       },
     });
@@ -740,7 +763,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     session.videoPath = outputPath;
     session.scriptData = scriptData;
 
-    console.log(`\n✅ [Generate] 処理完了: ${outputPath}`);
+    sessionLog(sessionId, `✅ [Generate] 処理完了!`);
     res.json({ videoPath: outputPath, scriptData });
 
   } catch (err) {

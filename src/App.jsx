@@ -37,6 +37,7 @@ export default function App() {
   const [ocrPreview, setOcrPreview] = useState(null);
   const [error, setError] = useState(null);
   const [terminalLogs, setTerminalLogs] = useState([]);
+  const [currentSessionId, setCurrentSessionId] = useState(null);
   const logEndRef = React.useRef(null);
 
   // ターミナルの自動スクロール
@@ -46,41 +47,36 @@ export default function App() {
     }
   }, [terminalLogs]);
 
-  // ── AI計算風のダミーログ生成 ──
+  // ── リアルタイムバックエンドログのポーリング ──
   useEffect(() => {
-    if (phase !== PHASE.GENERATING) {
-      setTerminalLogs([]);
+    if (phase !== PHASE.GENERATING || !currentSessionId) {
+      if (phase !== PHASE.GENERATING) setTerminalLogs([]);
       return;
     }
     
-    const logs = [
-      "> [System] パイプライン処理を開始...",
-      "> [AI_Vision] 画像を解析中...",
-      "> [AI_Vision] Gemini Proモデルと通信確立...",
-      "> [AI_Vision] コマ割り（バウンディングボックス）の抽出...",
-      "> [AI_Vision] セリフとテキスト領域の特定...",
-      "> [AI_Vision] キャラクターの性別、年齢、感情を推定...",
-      "> [AI_Vision] 解析完了。メタデータを抽出しました。",
-      "> [VoiceVox] 属性に基づく音声キャスティングを開始...",
-      "> [VoiceVox] セリフのWAV音声合成を実行中...",
-      "> [VoiceVox] BGMとオーディオトラックのミキシング...",
-      "> [Remotion] 動画プロジェクトのバンドル処理...",
-      "> [Remotion] 9:16 縦型動画フレームをレンダリング中...",
-      "> [Remotion] H.264エンコードと結合処理...",
-      "> [System] メタデータの最終確認...",
-      "> [System] まもなく完了します..."
-    ];
-    
-    let currentIndex = 0;
-    const interval = setInterval(() => {
-      if (currentIndex < logs.length) {
-        setTerminalLogs(prev => [...prev, logs[currentIndex]]);
-        currentIndex++;
+    let lastTime = 0;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/logs/${currentSessionId}?since=${lastTime}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.logs && data.logs.length > 0) {
+            lastTime = data.logs[data.logs.length - 1].time;
+            setTerminalLogs(prev => {
+              const newLogs = data.logs.map(l => l.message);
+              // 重複を防ぐための簡易フィルター（通常はsinceで担保されるが念のため）
+              const combined = [...prev, ...newLogs];
+              return Array.from(new Set(combined));
+            });
+          }
+        }
+      } catch (err) {
+        // ポーリングエラーは無視
       }
-    }, 1200);
+    }, 1000);
     
     return () => clearInterval(interval);
-  }, [phase]);
+  }, [phase, currentSessionId]);
 
   // ── 初期化 ──
   useEffect(() => {
@@ -188,6 +184,7 @@ export default function App() {
       });
       if (!uploadRes.ok) throw new Error('アップロードに失敗しました');
       const { sessionId } = await uploadRes.json();
+      setCurrentSessionId(sessionId);
 
       // Step 2: Gemini OCR で AI解析
       setProgress({ step: 2, total: 5, message: 'AI が漫画を解析中... 🔍' });
