@@ -1,0 +1,32 @@
+# 依存関係
+node_modules/
+
+# ビルド出力
+build/
+out/
+
+# VOICEVOX ポータブル版（巨大バイナリ）
+bin/voicevox/
+
+# 生成ファイル（音声・分割画像）
+public/voiceover/*.wav
+public/panels/*.png
+public/panels/*.jpg
+src/data/scriptData.json
+
+# 環境変数
+.env
+.env.local
+
+# パイプライン一時ファイル
+.pipeline_lock
+*.log
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# デバッグ
+debug*.log
