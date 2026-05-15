@@ -30,3 +30,6 @@ Thumbs.db
 
 # デバッグ
 debug*.log
+temp/
+public/voiceover/
+dist/voiceover/
