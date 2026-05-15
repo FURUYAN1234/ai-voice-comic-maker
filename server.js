@@ -19,7 +19,6 @@
 
 import express from 'express';
 import cors from 'cors';
-import { generateBgm } from './generate_bgm.js';
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
@@ -423,6 +422,23 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
     session.metadata = metadata;
     session.status = 'analyzed';
 
+    // 感情に基づくBGMの動的生成
+    try {
+      const { execSync } = await import('child_process');
+      const emotionCounts = { happy: 0, excited: 0, sad: 0, worried: 0, angry: 0, neutral: 0 };
+      for (const panel of metadata.panels) {
+        for (const d of panel.dialogues) {
+          if (emotionCounts[d.emotion] !== undefined) emotionCounts[d.emotion]++;
+          else emotionCounts.neutral++;
+        }
+      }
+      const dominantEmotion = Object.keys(emotionCounts).reduce((a, b) => emotionCounts[a] > emotionCounts[b] ? a : b);
+      console.log(`🎵 Dominant Emotion detected: ${dominantEmotion}`);
+      execSync(`node generate_bgm.js ${dominantEmotion}`, { cwd: process.cwd() });
+    } catch (e) {
+      console.error('BGMの生成に失敗しました:', e);
+    }
+
     const totalDialogues = metadata.panels.reduce((s, p) => s + p.dialogues.length, 0);
     const speakers = [...new Set(metadata.panels.flatMap(p => p.dialogues.map(d => d.speaker)))];
 
@@ -478,26 +494,6 @@ app.post('/api/generate/:sessionId', async (req, res) => {
 
     console.log(`  📖 タイトル: ${title}`);
     console.log(`  💬 セリフ数: ${dialogues.length}`);
-
-    // --- AI感情連動BGM生成 ---
-    console.log('  🎵 AI感情連動BGMを生成中...');
-    const emotionCounts = {};
-    for (const d of dialogues) {
-      if (d.emotion) {
-        emotionCounts[d.emotion] = (emotionCounts[d.emotion] || 0) + 1;
-      }
-    }
-    // 最も頻出する感情を抽出
-    let dominantMood = 'happy';
-    let maxCount = 0;
-    for (const [mood, count] of Object.entries(emotionCounts)) {
-      if (count > maxCount) {
-        maxCount = count;
-        dominantMood = mood;
-      }
-    }
-    // BGMファイルはセッションIDごとに作成せず、上書きで対応
-    generateBgm(dominantMood);
 
     // ── 画像分割 (sharp) ──
     console.log('  ✂️ 画像をコマごとに分割中...');
