@@ -65,18 +65,41 @@ Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System の思想を
 3. **Access / アクセス**: The browser will automatically open `http://localhost:5173`. / ブラウザが自動的に `http://localhost:5173` を開きます。
 
 ### 🛠️ Manual Launch / 手動起動
-If the batch file does not work, you can launch manually: / バッチファイルが動作しない場合は手動で起動できます:
-1. Ensure VOICEVOX is running locally on port 50021. / VOICEVOXをローカル（ポート50021）で起動しておきます。
-2. Run `npm install` followed by `npm run dev`. / `npm install` の後、`npm run dev` を実行します。
+If the batch file does not work, follow these steps: / バッチファイルが動作しない場合は以下の手順で起動できます:
+
+#### 1. Node.js (Required / 必須)
+- **Download / 入手先**: [https://nodejs.org/](https://nodejs.org/) (LTS recommended / LTS版を推奨)
+- Verify installation / インストール確認: `node -v` and `npm -v`
+
+#### 2. VOICEVOX Engine (Required / 必須)
+- **Download / 入手先**: [https://voicevox.hiroshiba.jp/](https://voicevox.hiroshiba.jp/)
+- Download and install the desktop application. / デスクトップアプリをダウンロードしてインストールしてください。
+- **Launch VOICEVOX before starting the app.** It must be running on `localhost:50021`. / **アプリ起動前にVOICEVOXを起動してください。** `localhost:50021` でリッスンしている必要があります。
+- Verify / 確認: Open `http://127.0.0.1:50021/version` in your browser. If a version number appears, it's running. / ブラウザで `http://127.0.0.1:50021/version` を開き、バージョン番号が表示されればOKです。
+
+#### 3. Remotion + Dependencies (Auto-installed via npm / npmで自動インストール)
+- Remotion is included in `package.json` and will be installed automatically by `npm install`. / Remotionは`package.json`に含まれており、`npm install` で自動インストールされます。
+- If `npm install` fails for Remotion packages, try: / Remotionパッケージのインストールに失敗する場合:
+  ```bash
+  npm install @remotion/cli @remotion/renderer @remotion/bundler remotion
+  ```
+- Remotion requires **Chrome/Chromium** on your system for rendering. Most Windows PCs have Chrome installed. If not, install it from [https://www.google.com/chrome/](https://www.google.com/chrome/). / Remotionはレンダリングに**Chrome/Chromium**が必要です。未インストールの場合は[Chrome](https://www.google.com/chrome/)をインストールしてください。
+
+#### 4. Launch / 起動
+```bash
+npm install
+npm run dev
+```
+The browser will open `http://localhost:5173` automatically. / ブラウザが `http://localhost:5173` を自動で開きます。
 
 ### 🔑 About API Keys / APIキーについて
-- A Gemini API Key obtained from Google AI Studio is required. / Google AI Studioで取得した Gemini APIキー が必要です。
+- A Gemini API Key obtained from [Google AI Studio](https://aistudio.google.com/) is required. / [Google AI Studio](https://aistudio.google.com/) で取得した Gemini APIキー が必要です。
 
 ## 💻 Tech Stack / 技術スタック
 - **Frontend**: React / Remotion
 - **Bundler**: Vite
 - **Backend**: Node.js / Express
-- **AI**: Google GenAI SDK (Gemini 1.5 Flash)
+- **AI**: Google GenAI SDK (Gemini 2.5 Flash)
 - **Audio**: VOICEVOX API
 
 ## ⚖️ Compliance & Legal Stance / 法的遵守について
