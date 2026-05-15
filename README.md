@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.1.9-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.2.0-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%201.5-orange.svg" alt="Gemini">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.1.9 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.2.0 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 **[Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System](https://github.com/FURUYAN1234/nano-banana-pro)** Integration / 連携対応  
 The generated voice comic videos provide overwhelming immersion for TikTok, Shorts, and social media platforms. / 生成された声付き動画は、TikTokやYouTube Shorts向けの動画素材として圧倒的な没入感を提供します。
@@ -165,12 +165,16 @@ This project is part of an integrated ecosystem designed to support AI-powered m
 *Developed by FURU*
 
 ## 📋 ChangeLog
+**v1.2.0 (2026-05-16)**
+- [Feature] ターミナル風UIを、バックエンドのリアルタイムな処理状況（動画のエンコード状況含む）をそのままポーリングして表示する仕様に変更 / Replaced dummy logs with real backend process logging and polling in frontend UI.
+- [Fix] BGMの音量制限を大幅に緩和（0.15 → 0.6）し、適度な聴取音量を確保。 / Increased BGM master gain to ensure proper audibility.
+- [Fix] クレジット表記のテキストシャドウと半透明黒バナーを追加し、背景画像と重なっても視認できるよう改善。 / Redesigned video outtro credit with a dark banner and shadow for better visibility.
+
 **v1.1.9 (2026-05-16)**
 - [Fix] Gemini model list updated: removed deprecated 1.5 models, set `gemini-2.5-flash` as primary. / Geminiモデルリストを更新。廃止された1.5系を削除、`gemini-2.5-flash` をプライマリに設定。
-- [Fix] BGM volume increased from 0.05 to 0.25 (was inaudible). / BGM音量を0.05→0.25に引き上げ（聴こえなかった問題を修正）。
-- [Fix] Fixed all "Nano Banana Pro" references to official name. / 全箇所「Nano Banana Pro」の短縮呼称を正式名称に修正。
+- [Fix] 全箇所「Nano Banana Pro」の短縮呼称を正式名称に修正。 / Fixed all "Nano Banana Pro" references to official name.
 - [Docs] Zenith Protocol model list updated in README. / READMEのZenith Protocolモデルリストを更新。
-- [Docs] Added deploy-time model audit rule to AGENTS.md. / AGENTS.mdにデプロイ時モデル監査ルールを追加。
+- [Docs] AGENTS.mdにデプロイ時モデル監査ルールを追加。 / Added deploy-time model audit rule to AGENTS.md.
 
 **v1.1.8 (2026-05-16)**
 - [Fix] Batch launcher rewritten to `start_ai-voice-comic-maker.bat` (English-only, matching ecosystem app pattern). / バッチファイルを英語専用に書き直し、他アプリと同一コード形式に統一。旧 `start_app.bat` を削除。
