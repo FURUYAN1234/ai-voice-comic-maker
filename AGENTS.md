@@ -18,7 +18,7 @@
 ## ディレクトリ構成
 ```
 short_movie/
-├── start_app.bat          # エントリポイント
+├── start_ai-voice-comic-maker.bat  # Entry point
 ├── scripts/bootstrap.ps1  # 全自動環境構築
 ├── run_pipeline.js        # 統合パイプライン
 ├── generate-voiceover.ts  # VOICEVOX音声生成

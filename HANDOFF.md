@@ -25,7 +25,7 @@
 ## 4. 作成済みファイル一覧
 - `package.json` - Remotion 4.0.428 + @google/generative-ai
 - `tsconfig.json` / `remotion.config.ts` - TypeScript & Remotion設定
-- `start_app.bat` - ワンクリック起動用バッチ
+- `start_ai-voice-comic-maker.bat` - One-click launcher
 - `scripts/bootstrap.ps1` - 全自動環境構築 (Node.js + npm + VOICEVOX)
 - `server.js` - Express バックエンド（Gemini OCR + VOICEVOX統合）
 - `src/App.jsx` - フロントエンドUI（画像のみドロップ + APIキー入力）

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.1.7-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.1.8-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%201.5-orange.svg" alt="Gemini">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.1.7 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.1.8 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 **[Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System](https://github.com/FURUYAN1234/nano-banana-pro)** Integration / 連携対応  
 The generated voice comic videos provide overwhelming immersion for TikTok, Shorts, and social media platforms. / 生成された声付き動画は、TikTokやYouTube Shorts向けの動画素材として圧倒的な没入感を提供します。
@@ -60,7 +60,7 @@ Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System の思想を
 
 ### 💻 One-Click Launch (Windows) / ワンクリック起動
 1. **Download / ダウンロード**: Download the latest release ZIP from [Releases](https://github.com/FURUYAN1234/ai-voice-comic-maker/releases) and extract it (e.g. `C:\ai-voice-comic-maker-main`). / [Releases](https://github.com/FURUYAN1234/ai-voice-comic-maker/releases) ページから最新版ZIPをダウンロードし、任意の場所に解凍します（例: `C:\ai-voice-comic-maker-main`）。
-2. **Run / 起動**: Double-click `start_app.bat` in the extracted folder. The bootstrap script will automatically install Node.js, npm dependencies, and launch VOICEVOX if needed. / 解凍したフォルダ内の `start_app.bat` をダブルクリックするだけ。ブートストラップスクリプトがNode.js、npm依存関係のインストール、およびVOICEVOXの起動を全自動で行います。
+2. **Run / 起動**: Double-click `start_ai-voice-comic-maker.bat` in the extracted folder. It will automatically check Node.js, install npm dependencies, verify VOICEVOX, and launch the app. / 解凍したフォルダ内の `start_ai-voice-comic-maker.bat` をダブルクリックするだけ。Node.jsの確認、npm依存関係のインストール、VOICEVOXの検出、アプリの起動を全自動で行います。
 3. **Access / アクセス**: The browser will automatically open `http://localhost:5173`. / ブラウザが自動的に `http://localhost:5173` を開きます。
 
 ### 🛠️ Manual Launch / 手動起動
@@ -141,11 +141,14 @@ This project is part of an integrated ecosystem designed to support AI-powered m
 *Developed by FURU*
 
 ## 📋 ChangeLog
+**v1.1.8 (2026-05-16)**
+- [Fix] Batch launcher rewritten to `start_ai-voice-comic-maker.bat` (English-only, matching PanoForge/Nano Banana Pro pattern). / バッチファイルを英語専用に書き直し、他アプリと同一コード形式に統一。旧 `start_app.bat` を削除。
+- [Feature] VOICEVOX Engine auto-detection + Remotion dependency check added to batch launcher. / バッチランチャーにVOICEVOXエンジン自動検出とRemotionの依存チェックを追加。
 
 **v1.1.7 (2026-05-16)**
 - [Fix] UIに表示されるバージョン番号（`SYSTEM_VERSION`）が `1.0.0` のまま更新されていなかった問題を修正。 / Fixed SYSTEM_VERSION in App.jsx not being updated from 1.0.0.
 - [Docs] デモサイトのリンクを削除し、ローカル実行専用である旨と理由（VOICEVOX・Remotionがローカル依存のため）を明記。 / Removed demo site link and documented local-only requirement with technical rationale.
-- [Docs] `start_app.bat` によるワンクリック起動手順を追加。 / Added one-click launch instructions via `start_app.bat`.
+- [Docs] `start_ai-voice-comic-maker.bat` によるワンクリック起動手順を追加。 / Added one-click launch instructions via `start_ai-voice-comic-maker.bat`.
 
 **v1.1.6 (2026-05-15)**
 - [Feature] 動画の最後（アウトロ画面）にRemotionとVOICEVOXのクレジット表記を自動挿入する機能を追加。 / Added automatic credit insertion for Remotion and VOICEVOX at the video's outtro screen.
