@@ -86,7 +86,7 @@ for (let i = 0; i < numSamples; i++) {
   const baseEnvelope = Math.max(0, 1 - (t * bps - Math.floor(t * bps)) * 2.0);
   
   // ミックス
-  const sample = (wave * envelope * 0.4 + baseWave * baseEnvelope * 0.3) * 32767 * 0.15;
+  const sample = (wave * envelope * 0.4 + baseWave * baseEnvelope * 0.3) * 32767 * 0.6;
   buffer.writeInt16LE(Math.max(-32768, Math.min(32767, sample)), 44 + i * 2);
 }
 

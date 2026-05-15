@@ -78,7 +78,7 @@ export const VoiceComic: React.FC<VoiceComicProps> = ({ scriptData }) => {
       />
 
       {/* AI自動作曲BGM (ループ再生) */}
-      <Audio src={staticFile("audio/bgm.wav")} volume={0.25} loop />
+      <Audio src={staticFile("audio/bgm.wav")} volume={0.4} loop />
 
       {/* タイトルコール */}
       {data.title && (
