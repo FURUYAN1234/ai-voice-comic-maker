@@ -1,0 +1,61 @@
+{
+  "title": "1984年のオタク像に驚愕",
+  "panels": [
+    "panels/session_1778847498536_panel_1.png",
+    "panels/session_1778847498536_panel_2.png",
+    "panels/session_1778847498536_panel_3.png",
+    "panels/session_1778847498536_panel_4.png"
+  ],
+  "titleAudio": "voiceover/session_1778847498536/title_call.wav",
+  "dialogues": [
+    {
+      "id": "line_01",
+      "speaker": "サエコ",
+      "text": "見て、これが42年前の「絶滅危惧種」……2次コン・ボーイだよ。",
+      "panelIndex": 0,
+      "durationInFrames": 175,
+      "audioFile": "voiceover/session_1778847498536/line_01.wav"
+    },
+    {
+      "id": "line_02",
+      "speaker": "ドーナツの少女",
+      "text": "えっ、それって新作のケーキ3個分くらいだよ!?",
+      "panelIndex": 1,
+      "durationInFrames": 112,
+      "audioFile": "voiceover/session_1778847498536/line_02.wav"
+    },
+    {
+      "id": "line_03",
+      "speaker": "ギャルの少女",
+      "text": "月1万で「生活犠牲」とか、ギャグのセンス古すぎっしょ！",
+      "panelIndex": 1,
+      "durationInFrames": 250,
+      "audioFile": "voiceover/session_1778847498536/line_03.wav"
+    },
+    {
+      "id": "line_04",
+      "speaker": "メガネの少女",
+      "text": "……サエコさん、今のフィギュア、1体3万円するんだよ。",
+      "panelIndex": 2,
+      "durationInFrames": 135,
+      "audioFile": "voiceover/session_1778847498536/line_04.wav"
+    },
+    {
+      "id": "line_05",
+      "speaker": "サエコ",
+      "text": "1万円もあれば学食が何食食べられると……！没収に値する不健全な金額です！",
+      "panelIndex": 2,
+      "durationInFrames": 183,
+      "audioFile": "voiceover/session_1778847498536/line_05.wav"
+    },
+    {
+      "id": "line_06",
+      "speaker": "サエコ",
+      "text": "1万円なんて、ただの『端数』じゃん！！",
+      "panelIndex": 3,
+      "durationInFrames": 114,
+      "audioFile": "voiceover/session_1778847498536/line_06.wav"
+    }
+  ],
+  "totalDurationInFrames": 1179
+}

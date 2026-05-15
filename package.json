@@ -1,0 +1,36 @@
+{
+  "name": "ai-voice-comic-maker",
+  "version": "1.1.0",
+  "description": "Drop a 4-koma manga image + JSON, get a fully voiced short video automatically.",
+  "type": "module",
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@remotion/bundler": "^4.0.428",
+    "@remotion/cli": "4.0.428",
+    "@remotion/renderer": "4.0.428",
+    "cors": "^2.8.5",
+    "dotenv": "^17.3.1",
+    "express": "^5.1.0",
+    "multer": "^1.4.5-lts.2",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "remotion": "4.0.428",
+    "sharp": "^0.33.5"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.5.2",
+    "concurrently": "^9.1.2",
+    "vite": "^6.3.5"
+  },
+  "scripts": {
+    "dev": "concurrently -n FE,BE -c cyan,yellow \"vite --host\" \"node server.js\"",
+    "dev:frontend": "vite --host --open",
+    "dev:server": "node server.js",
+    "build": "vite build",
+    "preview": "vite preview"
+  }
+}

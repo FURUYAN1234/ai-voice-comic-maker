@@ -1,0 +1,64 @@
+{
+  "title": "猫カフェ初体験",
+  "panels": [
+    {
+      "panelNumber": 1,
+      "dialogues": [
+        {
+          "speaker": "ヒカリ",
+          "text": "ねえねえ、猫カフェ行こうよ！",
+          "emotion": "excited"
+        },
+        {
+          "speaker": "アカリ",
+          "text": "え、私猫アレルギーなんだけど…",
+          "emotion": "worried"
+        }
+      ]
+    },
+    {
+      "panelNumber": 2,
+      "dialogues": [
+        {
+          "speaker": "ヒカリ",
+          "text": "大丈夫大丈夫！マスクすれば平気だって！",
+          "emotion": "cheerful"
+        },
+        {
+          "speaker": "アカリ",
+          "text": "その根拠のない自信はどこから…",
+          "emotion": "skeptical"
+        }
+      ]
+    },
+    {
+      "panelNumber": 3,
+      "dialogues": [
+        {
+          "speaker": "ナレーション",
+          "text": "結局、猫カフェに来てしまった二人"
+        },
+        {
+          "speaker": "アカリ",
+          "text": "あ…この子可愛い…もふもふ…",
+          "emotion": "lovestruck"
+        }
+      ]
+    },
+    {
+      "panelNumber": 4,
+      "dialogues": [
+        {
+          "speaker": "ヒカリ",
+          "text": "ちょっ！くしゃみ止まってないよ！？",
+          "emotion": "panicked"
+        },
+        {
+          "speaker": "アカリ",
+          "text": "ハクション！でも…可愛いから…許す…",
+          "emotion": "teary_smile"
+        }
+      ]
+    }
+  ]
+}

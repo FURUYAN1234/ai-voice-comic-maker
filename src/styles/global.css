@@ -1,0 +1,23 @@
+/**
+ * グローバルスタイル
+ * 
+ * Remotion コンポジション全体で使用するスタイル定義
+ * Vanilla CSS（Tailwind不使用）
+ */
+
+/* Google Fonts: Noto Sans JP */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;900&display=swap');
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Noto Sans JP', sans-serif;
+  background: #000;
+  color: #fff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

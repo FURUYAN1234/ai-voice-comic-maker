@@ -1,0 +1,69 @@
+{
+  "title": "地球規模GPUの衝撃",
+  "panels": [
+    "panels/session_1778850286923_panel_1.png",
+    "panels/session_1778850286923_panel_2.png",
+    "panels/session_1778850286923_panel_3.png",
+    "panels/session_1778850286923_panel_4.png"
+  ],
+  "originalImage": "panels/session_1778850286923_full.png",
+  "titleAudio": "voiceover/session_1778850286923/title_call.wav",
+  "titleDurationInFrames": 97,
+  "dialogues": [
+    {
+      "id": "line_01",
+      "speaker": "赤髪の少女",
+      "text": "最新のGPU、ついに届いたよー！",
+      "panelIndex": 0,
+      "bubblePosition": "right",
+      "durationInFrames": 88,
+      "audioFile": "voiceover/session_1778850286923/line_01.wav"
+    },
+    {
+      "id": "line_02",
+      "speaker": "日焼け肌の少女",
+      "text": "超デカい！マジで映え確定じゃん♪",
+      "panelIndex": 1,
+      "bubblePosition": "left",
+      "durationInFrames": 74,
+      "audioFile": "voiceover/session_1778850286923/line_02.wav"
+    },
+    {
+      "id": "line_03",
+      "speaker": "茶髪のメガネの少女",
+      "text": "これ一基で、地球全体の演算が可能だね。",
+      "panelIndex": 1,
+      "bubblePosition": "right",
+      "durationInFrames": 102,
+      "audioFile": "voiceover/session_1778850286923/line_03.wav"
+    },
+    {
+      "id": "line_04",
+      "speaker": "金髪のメガネの少女",
+      "text": "ブレーカーが、一瞬で消し飛んだっ。",
+      "panelIndex": 2,
+      "bubblePosition": "right",
+      "durationInFrames": 75,
+      "audioFile": "voiceover/session_1778850286923/line_04.wav"
+    },
+    {
+      "id": "line_05",
+      "speaker": "赤髪の少女",
+      "text": "家ごと持って行かないでー！！",
+      "panelIndex": 3,
+      "bubblePosition": "left",
+      "durationInFrames": 55,
+      "audioFile": "voiceover/session_1778850286923/line_05.wav"
+    },
+    {
+      "id": "line_06",
+      "speaker": "黒髪の少女",
+      "text": "校則違反の不法建築物として、没収します！",
+      "panelIndex": 3,
+      "bubblePosition": "right",
+      "durationInFrames": 111,
+      "audioFile": "voiceover/session_1778850286923/line_06.wav"
+    }
+  ],
+  "totalDurationInFrames": 782
+}
