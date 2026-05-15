@@ -19,6 +19,7 @@
 
 import express from 'express';
 import cors from 'cors';
+import { generateBgm } from './generate_bgm.js';
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
@@ -477,6 +478,26 @@ app.post('/api/generate/:sessionId', async (req, res) => {
 
     console.log(`  📖 タイトル: ${title}`);
     console.log(`  💬 セリフ数: ${dialogues.length}`);
+
+    // --- AI感情連動BGM生成 ---
+    console.log('  🎵 AI感情連動BGMを生成中...');
+    const emotionCounts = {};
+    for (const d of dialogues) {
+      if (d.emotion) {
+        emotionCounts[d.emotion] = (emotionCounts[d.emotion] || 0) + 1;
+      }
+    }
+    // 最も頻出する感情を抽出
+    let dominantMood = 'happy';
+    let maxCount = 0;
+    for (const [mood, count] of Object.entries(emotionCounts)) {
+      if (count > maxCount) {
+        maxCount = count;
+        dominantMood = mood;
+      }
+    }
+    // BGMファイルはセッションIDごとに作成せず、上書きで対応
+    generateBgm(dominantMood);
 
     // ── 画像分割 (sharp) ──
     console.log('  ✂️ 画像をコマごとに分割中...');
