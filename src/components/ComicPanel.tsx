@@ -42,9 +42,24 @@ export const ComicPanel: React.FC<ComicPanelProps> = ({
   });
 
   // 話者位置に応じた表示領域の設定
-  // width: 200% にして、画面幅のちょうど半分（左側・中央・右側）を映す
-  const leftPos = bubblePosition === 'left' ? "0%" : bubblePosition === 'right' ? "-100%" : "-50%";
-  const origin = bubblePosition === 'left' ? "left center" : bubblePosition === 'right' ? "right center" : "center center";
+  // 常にカメラが「右から左」へパンするように、画像の left 位置は「左から右」へ移動させる。
+  // scale による拡大と組み合わせても黒枠が見えないように、オフセットを調整。
+  let startX = 0;
+  let endX = 0;
+  if (bubblePosition === 'left') {
+    startX = -10;
+    endX = 0;
+  } else if (bubblePosition === 'right') {
+    startX = -100;
+    endX = -90;
+  } else {
+    startX = -55;
+    endX = -45;
+  }
+
+  const posX = interpolate(frame, [0, durationInFrames], [startX, endX], {
+    extrapolateRight: "clamp",
+  });
 
   if (!src) return null;
 
@@ -78,8 +93,8 @@ export const ComicPanel: React.FC<ComicPanelProps> = ({
             width: "200%",
             height: "auto",
             top: "50%",
-            left: leftPos,
-            transformOrigin: origin,
+            left: `${posX}%`,
+            transformOrigin: "center center",
             transform: `translateY(-50%) scale(${scale})`, // 上下中央揃え ＋ 緩やかなズーム
           }}
         />

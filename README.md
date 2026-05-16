@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.2.2-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.2.3-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%201.5-orange.svg" alt="Gemini">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.2.2 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.2.3 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 **[Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System](https://github.com/FURUYAN1234/nano-banana-pro)** Integration / 連携対応  
 The generated voice comic videos provide overwhelming immersion for TikTok, Shorts, and social media platforms. / 生成された声付き動画は、TikTokやYouTube Shorts向けの動画素材として圧倒的な没入感を提供します。
@@ -36,7 +36,7 @@ Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System などの漫
 
 ### ✨ Dual AI Automation (ダブルAI自動化)
 - **Casting AI / キャスティングAI**: AI proposes stable character casting by maintaining the same VOICEVOX ID for characters with consistent visual traits across panels. / AIがコマを跨いで同一の特徴を持つキャラクターに同じVOICEVOX IDを割り当て、安定したキャスティングを提案。
-- **BGM AI / BGM自動生成**: AI determines the dominant emotion of the manga (Happy, Angry, Sad) and dynamically generates a matching 8-bit chiptune BGM track in real-time. / AIが漫画全体の感情（喜・怒・哀）を判定し、それに合わせた8bit風のBGM（チップチューン）をリアルタイムで動的に生成。
+- **BGM AI / BGM自動生成**: AI determines the dominant emotion of the manga (Happy, Angry, Sad, etc. - 7 patterns) and dynamically generates a unique procedural 8-bit chiptune BGM track in real-time, randomizing scale, chord progressions, and waveforms. / AIが漫画全体の感情（喜怒哀楽など全7種類）を判定し、スケールやコード進行、波形を組み合わせて毎回異なる8bit風のBGM（チップチューン）をプロシージャルに自動作曲します。
 
 ### 🌐 HD Video Export (高画質エクスポート)
 - Instantly compile any comic into a Full HD (1080x1920) MP4 format. / 任意の漫画をフルHD (1080x1920) のMP4形式で一瞬でコンパイル。
@@ -187,6 +187,11 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 *Developed by FURU*
 
 ## 🔄 ChangeLog / 更新履歴
+
+**v1.2.3 (2026-05-16)**
+- [Feature] AIの解析プロセス、キャスティング、タイムライン構築などの詳細な内部ログを進捗画面へ出力する機能（エモいログ）を追加。 / Added immersive logging for Gemini analysis, casting, and timeline processes to frontend terminal.
+- [Fix] コマ内のセリフが逆順（左→右）で生成される問題を解消するため、画像解析結果の `bubblePosition` を用いて強制的に右→左の順へソートするポスト処理を追加。 / Fixed out-of-order dialogue by forcing right-to-left sorting based on bubblePosition regardless of Gemini's array output order.
+- [Cleanup] 開発初期の不要なテストスクリプトや旧モジュールなどのゴミファイルを一掃し、プロジェクト構造を整理。 / Cleaned up unused legacy scripts and test environments for a cleaner project structure.
 
 **v1.2.2 (2026-05-16)**
 - [Feature] プロシージャル作曲エンジンv2.0を実装。BGMの感情パターンを7種類に拡張し、スケール、コード進行、波形などをランダムに組み合わせることで毎回異なるBGMを生成するように変更。/ Implemented procedural composition engine v2.0, dynamically generating infinite unique 8-bit BGMs across 7 emotional categories.

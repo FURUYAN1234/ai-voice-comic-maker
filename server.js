@@ -279,6 +279,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
 
   try {
     sessionLog(sessionId, `🔍 [Analyze] Gemini Vision OCR 開始...`);
+    sessionLog(sessionId, `🧠 統合解析エンジン起動: 画像構造 / セリフ抽出 / 感情推定 の並列タスクを構築中...`);
     session.status = 'analyzing';
 
     const apiKey = runtimeApiKey || process.env.GEMINI_API_KEY;
@@ -360,6 +361,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
 
       const responseText = result.response.text();
       sessionLog(sessionId, `📝 Gemini レスポンス受信 (${responseText.length}文字)`);
+      sessionLog(sessionId, `🔬 [Parser] JSONペイロードを抽出中... コードフェンス検出 & サニタイズ処理`);
 
       // JSONパース
       let cleaned = responseText.trim();
@@ -417,6 +419,10 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
             
             characterVoiceMap.set(speaker, voiceId);
             usedVoiceIds.add(voiceId);
+            
+            sessionLog(sessionId, `🎭 [Casting System] 検出話者: ${speaker} (${gender}, ${age})`);
+            sessionLog(sessionId, `   ↳ 適合ボイスプール内検索完了 (候補: ${pool.length}件)`);
+            sessionLog(sessionId, `   ↳ 重複回避アルゴリズム適用 -> VOICEVOX ID: ${voiceId} をアサイン`);
           }
 
           return {
@@ -431,6 +437,21 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
         }),
       })),
     };
+    // ── 日本の漫画読み順を強制適用: 各コマ内のセリフを右→中→左にソート ──
+    const positionOrder = { right: 0, center: 1, left: 2 };
+    for (const panel of metadata.panels) {
+      const before = panel.dialogues.map(d => `${d.speaker}(${d.bubblePosition})`).join(' → ');
+      panel.dialogues.sort((a, b) => {
+        const orderA = positionOrder[a.bubblePosition] ?? 1;
+        const orderB = positionOrder[b.bubblePosition] ?? 1;
+        return orderA - orderB;
+      });
+      const after = panel.dialogues.map(d => `${d.speaker}(${d.bubblePosition})`).join(' → ');
+      if (before !== after) {
+        sessionLog(sessionId, `📖 [Reading Order] コマ${panel.panelNumber}: セリフ順を右→左に修正`);
+        sessionLog(sessionId, `   ↳ ${after}`);
+      }
+    }
 
     // セッションにメタデータを保存
     session.metadata = metadata;
@@ -448,8 +469,11 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
       }
       const dominantEmotion = Object.keys(emotionCounts).reduce((a, b) => emotionCounts[a] > emotionCounts[b] ? a : b);
       const bgmSeed = Date.now();
-      sessionLog(sessionId, `🎵 Dominant Emotion detected: ${dominantEmotion} (BGM seed: ${bgmSeed})`);
-      execSync(`node generate_bgm.js ${dominantEmotion} ${bgmSeed}`, { cwd: process.cwd() });
+      sessionLog(sessionId, `🎵 [BGM Engine] Dominant Emotion: ${dominantEmotion} (Seed: ${bgmSeed})`);
+      
+      const stdout = execSync(`node generate_bgm.js ${dominantEmotion} ${bgmSeed}`, { cwd: process.cwd() });
+      const bgmLogs = stdout.toString().split('\n').filter(line => line.trim());
+      bgmLogs.forEach(log => sessionLog(sessionId, log));
     } catch (e) {
       console.error('BGMの生成に失敗しました:', e);
     }
@@ -511,13 +535,14 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     sessionLog(sessionId, `💬 セリフ数: ${dialogues.length}`);
 
     // ── 画像分割 (sharp) ──
-    sessionLog(sessionId, '✂️ 画像をコマごとに分割中...');
+    sessionLog(sessionId, '✂️ [Sharp] 画像をコマごとに分割中...');
     const publicPanelsDir = path.join(__dirname, 'public', 'panels');
     if (!fs.existsSync(publicPanelsDir)) fs.mkdirSync(publicPanelsDir, { recursive: true });
 
     const metadataImg = await sharp(session.imagePath).metadata();
     const width = metadataImg.width;
     const height = metadataImg.height;
+    sessionLog(sessionId, `📐 [Sharp] 原画解析: ${width}×${height}px (${(width * height / 1000000).toFixed(1)}MP)`);
 
     const panelCount = Math.max(1, metadata.panels.length);
     const panelPaths = [];
@@ -527,6 +552,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     // A4縦 (約0.707) も縦割り (vertical) と判定させるため、閾値を0.9に緩和
     if (aspectRatio < 0.9) layout = 'vertical';
     else if (aspectRatio > 1.5) layout = 'horizontal';
+    sessionLog(sessionId, `📐 [Sharp] レイアウト判定: ${layout} (aspect: ${aspectRatio.toFixed(3)}) → ${panelCount}コマ分割`);
 
     for (let i = 0; i < panelCount; i++) {
       let extractRegion;
@@ -594,7 +620,8 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     const originalImagePublicPath = `panels/${originalImageName}`;
 
     // ── VOICEVOX 音声合成 ──
-    sessionLog(sessionId, '🎙️ VOICEVOX 音声合成...');
+    sessionLog(sessionId, '🎙️ [VOICEVOX] 音声合成パイプラインを起動...');
+    sessionLog(sessionId, `   ↳ 合成対象: ${dialogues.length}セリフ + タイトルコール`);
     const publicVoiceDir = path.join(__dirname, 'public', 'voiceover', sessionId);
     if (!fs.existsSync(publicVoiceDir)) fs.mkdirSync(publicVoiceDir, { recursive: true });
 
@@ -637,6 +664,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
             query.speedScale = 1.35;
             break;
         }
+        sessionLog(sessionId, `   🎚️ 感情パラメータ適用: emotion=${d.emotion} → speed=${query.speedScale}x`);
 
         // synthesis
         const synthRes = await fetch(
@@ -660,8 +688,11 @@ app.post('/api/generate/:sessionId', async (req, res) => {
       }
     }
 
+    const totalAudioSec = audioFiles.reduce((s, a) => s + a.durationSec, 0);
+    sessionLog(sessionId, `✅ [VOICEVOX] セリフ音声合成完了: ${audioFiles.length}本 / 合計 ${totalAudioSec.toFixed(1)}秒`);
+
     // ── タイトルコール音声 ──
-    sessionLog(sessionId, '📢 タイトルコール音声生成...');
+    sessionLog(sessionId, '📢 [Title Call] ずんだもん (ID:3) によるタイトルコール音声を合成中...');
     const titleAudioPath = path.join(publicVoiceDir, 'title_call.wav');
     let titleAudioPublicPath = null;
     try {
@@ -692,6 +723,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
       var titleDurationFrames = 90; // フォールバック
     }
 
+    sessionLog(sessionId, '🗂️ [Timeline] 動画タイムラインを構築中...');
     const scriptData = {
       title,
       panels: panelPaths, // 分割されたコマ画像パス
@@ -712,8 +744,13 @@ app.post('/api/generate/:sessionId', async (req, res) => {
       (sum, d) => sum + d.durationInFrames, 0
     ) + scriptData.titleDurationInFrames + 180; // タイトルカード余白 + アウトロ余白(180)
 
+    const totalSec = (scriptData.totalDurationInFrames / 30).toFixed(1);
+    sessionLog(sessionId, `   ↳ タイトルカード: ${titleDurationFrames}F | セリフ区間: ${scriptData.dialogues.reduce((s,d)=>s+d.durationInFrames,0)}F | アウトロ: 180F`);
+    sessionLog(sessionId, `   ↳ 合計: ${scriptData.totalDurationInFrames}F (${totalSec}秒 @30fps)`);
+
     const scriptDataPath = path.join(__dirname, 'temp', sessionId, 'scriptData.json');
     fs.writeFileSync(scriptDataPath, JSON.stringify(scriptData, null, 2), 'utf8');
+    sessionLog(sessionId, '   ↳ scriptData.json 書き出し完了');
 
     // 出力パス
     const outDir = path.join(__dirname, 'out');
@@ -723,17 +760,20 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     const outputPath = path.join(outDir, `voice_comic_${timestamp}.mp4`);
 
     // ── Remotion レンダリング ──
-    sessionLog(sessionId, '🎬 Remotion 動画レンダリングを開始...');
+    sessionLog(sessionId, '🎬 [Remotion] 動画レンダリングパイプライン開始');
     const compositionId = 'VoiceComic';
 
     // Vite経由でバンドル
-    sessionLog(sessionId, '📦 プロジェクトをバンドル中...');
+    sessionLog(sessionId, '📦 [Remotion] Webpack バンドル中... (TypeScript → JavaScript 変換)');
+    const bundleStart = Date.now();
     const bundledPath = await bundle({
       entryPoint: path.join(__dirname, 'src', 'index.ts'),
       webpackOverride: (config) => config,
     });
+    const bundleMs = Date.now() - bundleStart;
+    sessionLog(sessionId, `   ↳ バンドル完了 (${(bundleMs / 1000).toFixed(1)}秒)`);
 
-    sessionLog(sessionId, '🎥 コンポジションを抽出中...');
+    sessionLog(sessionId, '🎥 [Remotion] コンポジション "VoiceComic" を抽出中...');
     const composition = await selectComposition({
       serveUrl: bundledPath,
       id: compositionId,
@@ -743,7 +783,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     // 動的に計算されたフレーム数をコンポジションに上書き設定
     composition.durationInFrames = scriptData.totalDurationInFrames;
 
-    sessionLog(sessionId, `⏳ レンダリング中 (${composition.durationInFrames} frames) ...`);
+    sessionLog(sessionId, `⏳ [Remotion] H.264エンコード開始: ${composition.durationInFrames}F / ${composition.width}×${composition.height} / 30fps`);
     let lastReportedPct = -1;
     await renderMedia({
       composition,
@@ -751,8 +791,8 @@ app.post('/api/generate/:sessionId', async (req, res) => {
       codec: 'h264',
       outputLocation: outputPath,
       inputProps: { scriptData },
-      onProgress: ({ progress }) => {
-        const pct = Math.floor(progress * 100);
+      onProgress: ({ renderedFrames }) => {
+        const pct = Math.floor((renderedFrames / composition.durationInFrames) * 100);
         if (pct >= lastReportedPct + 5) {
           lastReportedPct = pct;
           sessionLog(sessionId, `🎞️ レンダリング進捗: ${pct}%`);
@@ -764,7 +804,11 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     session.videoPath = outputPath;
     session.scriptData = scriptData;
 
-    sessionLog(sessionId, `✅ [Generate] 処理完了!`);
+    // 出力ファイルサイズを取得
+    const outputStats = fs.statSync(outputPath);
+    const fileSizeMB = (outputStats.size / (1024 * 1024)).toFixed(2);
+    sessionLog(sessionId, `✅ [Generate] エンコード完了! → ${fileSizeMB} MB`);
+    sessionLog(sessionId, `🎉 ボイスコミック動画の生成が完了しました!`);
     res.json({ videoPath: outputPath, scriptData });
 
   } catch (err) {
