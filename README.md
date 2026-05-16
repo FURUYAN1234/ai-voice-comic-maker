@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.2.6-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.2.9-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%201.5-orange.svg" alt="Gemini">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.2.6 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.2.9 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 **[Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System](https://github.com/FURUYAN1234/nano-banana-pro)** Integration / 連携対応  
 The generated voice comic videos provide overwhelming immersion for TikTok, Shorts, and social media platforms. / 生成された声付き動画は、TikTokやYouTube Shorts向けの動画素材として圧倒的な没入感を提供します。
@@ -188,7 +188,17 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 
 ## 🔄 ChangeLog / 更新履歴
 
+**v1.2.9 (2026-05-17)**
+- [Deploy] バージョンアップと展開環境のバックアップを統合 / Full deployment and backup procedure.
+
+**v1.2.8 (2026-05-17)**
+- [Fix] モーラ解析による速度正規化の基準値を1文字あたり0.14秒から0.15秒へ変更し、さらにほんの少しだけゆっくりになるよう微調整 / Micro-adjusted speech speed by changing target from 0.14s to 0.15s per character.
+
+**v1.2.7 (2026-05-17)**
+- [Fix] 速度正規化エンジンの目標速度を1文字あたり0.11秒から0.14秒へ変更し、全体的に落ち着いたスピードに調整 / Slowed down the target speech speed for better intelligibility.
+
 **v1.2.6 (2026-05-17)**
+- [Feature] audio_queryのモーラ(音素)データから実際の発話時間を算出し、全てのモデルで話すスピードを均一化する「速度正規化エンジン」を実装 / Implemented speed normalization engine using mora analysis to ensure consistent talking speeds across all voice models.
 - [Major] 感情表現エンジンv2: VOICEVOXの音声パラメータをspeed/pitch/intonation/volumeの4軸で感情ごとに調整するように強化 / Enhanced emotion engine v2: 4-axis voice parameter adjustment (speed, pitch, intonation, volume) per emotion.
 - [Major] 性格ベースキャスティングv2: Geminiがキャラの見た目からpersonality(cool/cute/energetic/calm/serious)を推定し、性格に合った声を割り当てるように改善 / Personality-based casting v2: AI now estimates character personality from appearance and assigns fitting voices.
 - [Improve] 動的パディング: セリフ末尾の句読点・感情に応じてセリフ間の「間」を自動調整 / Dynamic padding: silence between lines now varies based on punctuation and emotion.

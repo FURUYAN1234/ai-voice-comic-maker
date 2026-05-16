@@ -15,7 +15,7 @@
  */
 import React, { useState, useCallback, useEffect } from 'react';
 
-const SYSTEM_VERSION = "1.2.8";
+const SYSTEM_VERSION = "1.2.9";
 
 // タイトルを「」で囲むヘルパー（すでに囲まれていたら二重にしない）
 const wrapKagi = (title) => {

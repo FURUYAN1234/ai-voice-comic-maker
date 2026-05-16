@@ -822,7 +822,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
 
     const scriptData = {
       title,
-      version: '1.2.8',
+      version: '1.2.9',
       panels: panelPaths, // 分割されたコマ画像パス
       originalImage: originalImagePublicPath, // 全体画像
       titleAudio: titleAudioPublicPath,
