@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.2.1-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.2.2-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%201.5-orange.svg" alt="Gemini">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.2.1 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.2.2 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 **[Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System](https://github.com/FURUYAN1234/nano-banana-pro)** Integration / 連携対応  
 The generated voice comic videos provide overwhelming immersion for TikTok, Shorts, and social media platforms. / 生成された声付き動画は、TikTokやYouTube Shorts向けの動画素材として圧倒的な没入感を提供します。
@@ -186,7 +186,11 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 ---
 *Developed by FURU*
 
-## 📋 ChangeLog
+## 🔄 ChangeLog / 更新履歴
+
+**v1.2.2 (2026-05-16)**
+- [Feature] プロシージャル作曲エンジンv2.0を実装。BGMの感情パターンを7種類に拡張し、スケール、コード進行、波形などをランダムに組み合わせることで毎回異なるBGMを生成するように変更。/ Implemented procedural composition engine v2.0, dynamically generating infinite unique 8-bit BGMs across 7 emotional categories.
+
 **v1.2.1 (2026-05-16)**
 - [Fix] バッチファイルの文字化けバグを修正。VOICEVOXの動的パス検出（PATH, レジストリ, ローカルフォルダ）を追加し、完全ASCII化により `cmd.exe` の動作を安定化。 / Fixed garbled text bug in batch launcher by completely rewriting it to pure ASCII. Added dynamic VOICEVOX installation path detection (PATH, Windows Registry, local folders) and robust winget fallback.
 

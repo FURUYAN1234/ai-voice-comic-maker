@@ -15,7 +15,7 @@
  */
 import React, { useState, useCallback, useEffect } from 'react';
 
-const SYSTEM_VERSION = "1.2.1";
+const SYSTEM_VERSION = "1.2.2";
 
 // アプリの状態
 const PHASE = {

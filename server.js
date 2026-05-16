@@ -436,10 +436,10 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
     session.metadata = metadata;
     session.status = 'analyzed';
 
-    // 感情に基づくBGMの動的生成
+    // 感情に基づくBGMの動的生成（プロシージャル作曲エンジン）
     try {
       const { execSync } = await import('child_process');
-      const emotionCounts = { happy: 0, excited: 0, sad: 0, worried: 0, angry: 0, neutral: 0 };
+      const emotionCounts = { happy: 0, excited: 0, sad: 0, worried: 0, angry: 0, neutral: 0, surprised: 0 };
       for (const panel of metadata.panels) {
         for (const d of panel.dialogues) {
           if (emotionCounts[d.emotion] !== undefined) emotionCounts[d.emotion]++;
@@ -447,8 +447,9 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
         }
       }
       const dominantEmotion = Object.keys(emotionCounts).reduce((a, b) => emotionCounts[a] > emotionCounts[b] ? a : b);
-      sessionLog(sessionId, `🎵 Dominant Emotion detected: ${dominantEmotion}`);
-      execSync(`node generate_bgm.js ${dominantEmotion}`, { cwd: process.cwd() });
+      const bgmSeed = Date.now();
+      sessionLog(sessionId, `🎵 Dominant Emotion detected: ${dominantEmotion} (BGM seed: ${bgmSeed})`);
+      execSync(`node generate_bgm.js ${dominantEmotion} ${bgmSeed}`, { cwd: process.cwd() });
     } catch (e) {
       console.error('BGMの生成に失敗しました:', e);
     }
