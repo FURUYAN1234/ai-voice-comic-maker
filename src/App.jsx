@@ -15,7 +15,7 @@
  */
 import React, { useState, useCallback, useEffect } from 'react';
 
-const SYSTEM_VERSION = "1.2.4";
+const SYSTEM_VERSION = "1.2.5";
 
 // アプリの状態
 const PHASE = {
@@ -38,6 +38,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const [terminalLogs, setTerminalLogs] = useState([]);
   const [currentSessionId, setCurrentSessionId] = useState(null);
+  const [isCopied, setIsCopied] = useState(false);
   const logEndRef = React.useRef(null);
 
   // ターミナルの自動スクロール
@@ -247,6 +248,17 @@ export default function App() {
   const shareToLine = () => {
     const text = `AIで漫画「${videoTitle}」のボイスコミックを作ったよ！`;
     window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text)}`, '_blank');
+  };
+
+  // ── タイトルコピー ──
+  const handleCopyTitle = async () => {
+    try {
+      await navigator.clipboard.writeText(`「${videoTitle}」`);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy', err);
+    }
   };
 
   // ── もう一度作る ──
@@ -489,7 +501,17 @@ export default function App() {
         {phase === PHASE.COMPLETE && (
           <div className="card complete-card">
             <h2 className="complete-title">🎉 ボイスコミック完成！</h2>
-            <p className="complete-subtitle">「{videoTitle}」</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '16px' }}>
+              <p className="complete-subtitle" style={{ margin: 0 }}>「{videoTitle}」</p>
+              <button 
+                className={`btn-copy-title ${isCopied ? 'btn-copy-title--copied' : ''}`}
+                onClick={handleCopyTitle}
+                title="タイトルをコピー"
+              >
+                <span className="copy-icon">{isCopied ? '✓' : '📋'}</span>
+                {isCopied ? 'コピー完了' : 'タイトルをコピー'}
+              </button>
+            </div>
 
             {/* 内蔵プレーヤー */}
             <div className="player-container">

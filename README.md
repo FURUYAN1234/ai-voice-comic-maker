@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.2.3-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.2.5-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%201.5-orange.svg" alt="Gemini">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.2.3 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.2.5 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 **[Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System](https://github.com/FURUYAN1234/nano-banana-pro)** Integration / 連携対応  
 The generated voice comic videos provide overwhelming immersion for TikTok, Shorts, and social media platforms. / 生成された声付き動画は、TikTokやYouTube Shorts向けの動画素材として圧倒的な没入感を提供します。
@@ -187,6 +187,9 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 *Developed by FURU*
 
 ## 🔄 ChangeLog / 更新履歴
+
+**v1.2.5 (2026-05-17)**
+- [Feature] タイトルをコピペする際、タイトルの前後に「」が自動で付くように修正 / Titles copied to clipboard are now automatically wrapped in Japanese quotation marks (「」).
 
 **v1.2.4 (2026-05-16)**
 - Bugfix: 連続して動画を生成する際に、進捗ターミナルに前回のログが残る不具合を修正
