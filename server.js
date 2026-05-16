@@ -711,14 +711,14 @@ app.post('/api/generate/:sessionId', async (req, res) => {
         );
         const query = await queryRes.json();
         
-        // ── 感情表現エンジン v2: pitch / intonation / volume で感情をオーバー気味に表現（ギャグ漫画向け） ──
+        // ── 感情表現エンジン v2: pitch / intonation / volume で感情を表現（スピードは全話者統一1.25x） ──
         const EMOTION_PROFILES = {
-          angry:     { speedScale: 1.25, pitchScale: -0.08, intonationScale: 1.8, volumeScale: 1.3 },
-          sad:       { speedScale: 1.25, pitchScale: -0.10, intonationScale: 0.4, volumeScale: 0.75 },
-          worried:   { speedScale: 1.25, pitchScale: -0.03, intonationScale: 0.5, volumeScale: 0.8 },
-          happy:     { speedScale: 1.25, pitchScale: 0.08,  intonationScale: 1.7, volumeScale: 1.15 },
-          excited:   { speedScale: 1.25, pitchScale: 0.10,  intonationScale: 2.0, volumeScale: 1.25 },
-          surprised: { speedScale: 1.25, pitchScale: 0.12,  intonationScale: 2.0, volumeScale: 1.2 },
+          angry:     { speedScale: 1.25, pitchScale: -0.03, intonationScale: 1.5, volumeScale: 1.2 },
+          sad:       { speedScale: 1.25, pitchScale: -0.05, intonationScale: 0.6, volumeScale: 0.85 },
+          worried:   { speedScale: 1.25, pitchScale: 0.0,   intonationScale: 0.7, volumeScale: 0.9 },
+          happy:     { speedScale: 1.25, pitchScale: 0.04,  intonationScale: 1.4, volumeScale: 1.1 },
+          excited:   { speedScale: 1.25, pitchScale: 0.05,  intonationScale: 1.6, volumeScale: 1.15 },
+          surprised: { speedScale: 1.25, pitchScale: 0.06,  intonationScale: 1.7, volumeScale: 1.1 },
           neutral:   { speedScale: 1.25, pitchScale: 0.0,   intonationScale: 1.0, volumeScale: 1.0 },
         };
         const profile = EMOTION_PROFILES[d.emotion] || EMOTION_PROFILES.neutral;
