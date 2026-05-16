@@ -726,8 +726,8 @@ app.post('/api/generate/:sessionId', async (req, res) => {
         // ── 速度正規化エンジン: モーラデータから実効速度を統一 ──
         // VOICEVOXの各モデルは固有の発話速度を持つため、speedScale固定では速度差が生じる
         // audio_queryが返すモーラの合計時間から実際の発話時間を計算し、
-        // 目標速度（1文字あたり0.11秒 ≒ 約9文字/秒）に正規化する
-        const TARGET_SEC_PER_CHAR = 0.11;
+        // 目標速度（1文字あたり0.14秒 ≒ 約7文字/秒。0.11だと早すぎたため調整）
+        const TARGET_SEC_PER_CHAR = 0.14;
         let totalMoraDuration = 0;
         for (const phrase of (query.accent_phrases || [])) {
           for (const mora of (phrase.moras || [])) {
@@ -740,7 +740,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
         const textLength = d.text.replace(/[、。！？…\s]/g, '').length || 1;
         const targetDuration = textLength * TARGET_SEC_PER_CHAR;
         const normalizedSpeed = totalMoraDuration > 0
-          ? Math.max(0.9, Math.min(1.8, totalMoraDuration / targetDuration))
+          ? Math.max(0.85, Math.min(1.6, totalMoraDuration / targetDuration))
           : 1.25; // フォールバック
 
         query.speedScale = normalizedSpeed;
@@ -822,7 +822,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
 
     const scriptData = {
       title,
-      version: '1.2.6',
+      version: '1.2.7',
       panels: panelPaths, // 分割されたコマ画像パス
       originalImage: originalImagePublicPath, // 全体画像
       titleAudio: titleAudioPublicPath,

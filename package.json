@@ -1,6 +1,6 @@
 {
   "name": "ai-voice-comic-maker",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "Drop a 4-koma manga image + JSON, get a fully voiced short video automatically.",
   "type": "module",
   "license": "MIT",
