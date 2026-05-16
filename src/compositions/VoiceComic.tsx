@@ -95,7 +95,7 @@ export const VoiceComic: React.FC<VoiceComicProps> = ({ scriptData }) => {
         <Sequence from={0} durationInFrames={data.titleDurationInFrames || 90}>
           <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", backgroundColor: "#000" }}>
             <div style={{ color: "#fff", fontSize: 60, fontWeight: "bold", textAlign: "center", padding: 40 }}>
-              {data.title}
+              {data.title && data.title.startsWith("\u300c") && data.title.endsWith("\u300d") ? data.title : `\u300c${data.title}\u300d`}
             </div>
           </AbsoluteFill>
           {data.titleAudio && <Audio src={staticFile(data.titleAudio)} />}

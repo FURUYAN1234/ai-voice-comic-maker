@@ -17,6 +17,13 @@ import React, { useState, useCallback, useEffect } from 'react';
 
 const SYSTEM_VERSION = "1.2.6";
 
+// タイトルを「」で囲むヘルパー（すでに囲まれていたら二重にしない）
+const wrapKagi = (title) => {
+  if (!title) return '';
+  if (title.startsWith('「') && title.endsWith('」')) return title;
+  return `「${title}」`;
+};
+
 // アプリの状態
 const PHASE = {
   SETUP: 'setup',       // APIキー入力 + VOICEVOX接続確認
@@ -241,19 +248,19 @@ export default function App() {
 
   // ── SNS共有 ──
   const shareToTwitter = () => {
-    const text = `🎬 AIで漫画「${videoTitle}」のボイスコミックを作ったよ！\n#AIVoiceComicMaker #ボイスコミック`;
+    const text = `🎬 AIで漫画${wrapKagi(videoTitle)}のボイスコミックを作ったよ！\n#AIVoiceComicMaker #ボイスコミック`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   const shareToLine = () => {
-    const text = `AIで漫画「${videoTitle}」のボイスコミックを作ったよ！`;
+    const text = `AIで漫画${wrapKagi(videoTitle)}のボイスコミックを作ったよ！`;
     window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text)}`, '_blank');
   };
 
   // ── タイトルコピー ──
   const handleCopyTitle = async () => {
     try {
-      await navigator.clipboard.writeText(`「${videoTitle}」`);
+      await navigator.clipboard.writeText(wrapKagi(videoTitle));
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     } catch (err) {
@@ -410,7 +417,7 @@ export default function App() {
           <div className="card generating-card">
             <div className="card-icon generating-icon">🎬</div>
             <h2>ボイスコミック生成中...</h2>
-            {videoTitle && <p className="generating-title">「{videoTitle}」</p>}
+            {videoTitle && <p className="generating-title">{wrapKagi(videoTitle)}</p>}
 
             <div className="progress-container">
               <div className="progress-bar">
@@ -463,7 +470,7 @@ export default function App() {
               <div className="ocr-preview">
                 <h3>🔍 AI解析結果</h3>
                 <div className="ocr-details">
-                  <p><strong>タイトル:</strong> {ocrPreview.title}</p>
+                  <p><strong>タイトル:</strong> {wrapKagi(ocrPreview.title)}</p>
                   <p><strong>コマ数:</strong> {ocrPreview.panels.length}</p>
                   <p><strong>セリフ数:</strong> {ocrPreview.panels.reduce((s, p) => s + (p.dialogues ? p.dialogues.length : 0), 0)}</p>
                 </div>
@@ -502,7 +509,7 @@ export default function App() {
           <div className="card complete-card">
             <h2 className="complete-title">🎉 ボイスコミック完成！</h2>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '16px' }}>
-              <p className="complete-subtitle" style={{ margin: 0 }}>「{videoTitle}」</p>
+              <p className="complete-subtitle" style={{ margin: 0 }}>{wrapKagi(videoTitle)}</p>
               <button 
                 className={`btn-copy-title ${isCopied ? 'btn-copy-title--copied' : ''}`}
                 onClick={handleCopyTitle}
