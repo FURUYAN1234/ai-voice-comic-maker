@@ -711,22 +711,43 @@ app.post('/api/generate/:sessionId', async (req, res) => {
         );
         const query = await queryRes.json();
         
-        // ── 感情表現エンジン v2: pitch / intonation / volume で感情を表現（スピードは全話者統一1.25x） ──
+        // ── 感情表現エンジン v2: pitch / intonation / volume で感情を表現 ──
         const EMOTION_PROFILES = {
-          angry:     { speedScale: 1.25, pitchScale: -0.03, intonationScale: 1.5, volumeScale: 1.2 },
-          sad:       { speedScale: 1.25, pitchScale: -0.05, intonationScale: 0.6, volumeScale: 0.85 },
-          worried:   { speedScale: 1.25, pitchScale: 0.0,   intonationScale: 0.7, volumeScale: 0.9 },
-          happy:     { speedScale: 1.25, pitchScale: 0.04,  intonationScale: 1.4, volumeScale: 1.1 },
-          excited:   { speedScale: 1.25, pitchScale: 0.05,  intonationScale: 1.6, volumeScale: 1.15 },
-          surprised: { speedScale: 1.25, pitchScale: 0.06,  intonationScale: 1.7, volumeScale: 1.1 },
-          neutral:   { speedScale: 1.25, pitchScale: 0.0,   intonationScale: 1.0, volumeScale: 1.0 },
+          angry:     { pitchScale: -0.03, intonationScale: 1.5, volumeScale: 1.2 },
+          sad:       { pitchScale: -0.05, intonationScale: 0.6, volumeScale: 0.85 },
+          worried:   { pitchScale: 0.0,   intonationScale: 0.7, volumeScale: 0.9 },
+          happy:     { pitchScale: 0.04,  intonationScale: 1.4, volumeScale: 1.1 },
+          excited:   { pitchScale: 0.05,  intonationScale: 1.6, volumeScale: 1.15 },
+          surprised: { pitchScale: 0.06,  intonationScale: 1.7, volumeScale: 1.1 },
+          neutral:   { pitchScale: 0.0,   intonationScale: 1.0, volumeScale: 1.0 },
         };
         const profile = EMOTION_PROFILES[d.emotion] || EMOTION_PROFILES.neutral;
-        query.speedScale = profile.speedScale;
+
+        // ── 速度正規化エンジン: モーラデータから実効速度を統一 ──
+        // VOICEVOXの各モデルは固有の発話速度を持つため、speedScale固定では速度差が生じる
+        // audio_queryが返すモーラの合計時間から実際の発話時間を計算し、
+        // 目標速度（1文字あたり0.11秒 ≒ 約9文字/秒）に正規化する
+        const TARGET_SEC_PER_CHAR = 0.11;
+        let totalMoraDuration = 0;
+        for (const phrase of (query.accent_phrases || [])) {
+          for (const mora of (phrase.moras || [])) {
+            totalMoraDuration += (mora.vowel_length || 0) + (mora.consonant_length || 0);
+          }
+          if (phrase.pause_mora) {
+            totalMoraDuration += phrase.pause_mora.vowel_length || 0;
+          }
+        }
+        const textLength = d.text.replace(/[、。！？…\s]/g, '').length || 1;
+        const targetDuration = textLength * TARGET_SEC_PER_CHAR;
+        const normalizedSpeed = totalMoraDuration > 0
+          ? Math.max(0.9, Math.min(1.8, totalMoraDuration / targetDuration))
+          : 1.25; // フォールバック
+
+        query.speedScale = normalizedSpeed;
         query.pitchScale = profile.pitchScale;
         query.intonationScale = profile.intonationScale;
         query.volumeScale = profile.volumeScale;
-        sessionLog(sessionId, `   🎚️ 感情エンジンv2: ${d.emotion} → spd=${profile.speedScale} / pitch=${profile.pitchScale} / inton=${profile.intonationScale} / vol=${profile.volumeScale}`);
+        sessionLog(sessionId, `   🎚️ 速度正規化: モーラ=${totalMoraDuration.toFixed(2)}s / 文字数=${textLength} → spd=${normalizedSpeed.toFixed(2)}x | pitch=${profile.pitchScale} / inton=${profile.intonationScale} / vol=${profile.volumeScale}`);
 
         // synthesis
         const synthRes = await fetch(
