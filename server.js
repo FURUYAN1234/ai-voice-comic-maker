@@ -98,6 +98,14 @@ function sessionLog(sessionId, message) {
   sessionLogs.get(sessionId).push(message);
 }
 
+// 完了/エラー後のセッションログを5分後に自動削除（メモリリーク防止）
+function scheduleLogCleanup(sessionId) {
+  setTimeout(() => {
+    sessionLogs.delete(sessionId);
+    console.log(`🧹 [LogCleanup] セッション ${sessionId} のログを削除`);
+  }, 5 * 60 * 1000);
+}
+
 // ランタイムで設定されたAPIキー（.envより優先）
 let runtimeApiKey = '';
 let runtimeModel = 'gemini-2.5-flash';
@@ -321,7 +329,9 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
 3. 各セリフの話者を判定する（キャラクターの外見・位置から推定）
 4. 各セリフの感情を推定する
 5. セリフ（吹き出し）がコマ内のどの位置にあるか（left, center, right）を推定する。※重要：日本の漫画は「右から左」に読みます。そのため最初のセリフは通常「右（right）」にあります。見た目上の左右を正確に判定してください。
-6. 漫画全体のタイトルを推定する（画像内にタイトルがあればそれを使用、なければ内容から推定）
+6. 漫画全体のタイトルを決定する:
+   - 画像内にタイトルテキストが明確に存在する場合 → そのテキストをそのまま使用
+   - 画像内にタイトルがない場合 → 漫画の内容・オチ・テーマから、SNS投稿に適した魅力的で簡潔な日本語タイトルを創作する（例: 「お弁当の秘密」「猫と掃除機」等）
 
 ## 出力形式
 以下のJSON形式のみを出力してください。マークダウンのコードブロックは使わないでください。
@@ -346,6 +356,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
 }
 
 ## ルール
+- **titleフィールドは必須**: 空文字列にしないこと。必ず意味のある日本語タイトルを設定すること
 - セリフは吹き出し内のテキストを正確に読み取ること
 - 話者名はキャラクターの外見的特徴から分かりやすい名前を付けること（例: 「青髪の少女」「メガネの男性」等）
 - 同じキャラクターには一貫した名前を使うこと
@@ -363,17 +374,34 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
       sessionLog(sessionId, `📝 Gemini レスポンス受信 (${responseText.length}文字)`);
       sessionLog(sessionId, `🔬 [Parser] JSONペイロードを抽出中... コードフェンス検出 & サニタイズ処理`);
 
-      // JSONパース
-      let cleaned = responseText.trim();
-      if (cleaned.startsWith('```')) {
-        cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+      // JSONパース（Geminiの不正JSON出力に対応するサニタイズ処理付き）
+      function sanitizeJson(raw) {
+        let s = raw.trim();
+        // コードフェンスを除去
+        if (s.startsWith('```')) {
+          s = s.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+        }
+        // トレイリングカンマを除去 (配列・オブジェクト末尾の ,] や ,} )
+        s = s.replace(/,\s*([}\]])/g, '$1');
+        // 制御文字を除去（改行・タブ以外）
+        s = s.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '');
+        return s;
       }
+
+      let cleaned = sanitizeJson(responseText);
       try {
         metadata = JSON.parse(cleaned);
-      } catch {
+      } catch (parseErr1) {
+        sessionLog(sessionId, `⚠️ [Parser] 1次パース失敗: ${parseErr1.message}`);
+        // フォールバック: JSON部分だけを抽出して再トライ
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-          metadata = JSON.parse(jsonMatch[0]);
+          try {
+            metadata = JSON.parse(sanitizeJson(jsonMatch[0]));
+          } catch (parseErr2) {
+            sessionLog(sessionId, `❌ [Parser] 2次パースも失敗: ${parseErr2.message}`);
+            throw new Error('AIの応答からメタデータを抽出できませんでした。再度お試しください。');
+          }
         } else {
           throw new Error('AIの応答からメタデータを抽出できませんでした。再度お試しください。');
         }
@@ -809,11 +837,13 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     const fileSizeMB = (outputStats.size / (1024 * 1024)).toFixed(2);
     sessionLog(sessionId, `✅ [Generate] エンコード完了! → ${fileSizeMB} MB`);
     sessionLog(sessionId, `🎉 ボイスコミック動画の生成が完了しました!`);
+    scheduleLogCleanup(sessionId);
     res.json({ videoPath: outputPath, scriptData });
 
   } catch (err) {
     console.error('❌ Generation error:', err);
     session.status = 'error';
+    scheduleLogCleanup(sessionId);
     res.status(500).json({ error: err.message });
   }
 });

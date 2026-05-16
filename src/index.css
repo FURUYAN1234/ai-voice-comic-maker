@@ -561,7 +561,62 @@ body::before {
   font-family: 'Dela Gothic One', sans-serif;
   font-size: 16px;
   color: var(--text-secondary);
+  margin-bottom: 0;
+}
+
+.complete-subtitle-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.btn-copy-title {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 100px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-copy-title:hover {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+.btn-copy-title:active {
+  transform: scale(0.95);
+}
+
+.btn-copy-title--copied {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}
+
+.btn-copy-title--copied:hover {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}
+
+.copy-icon {
+  font-size: 13px;
 }
 
 /* ── ビデオプレーヤー ── */

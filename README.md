@@ -188,6 +188,10 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 
 ## 🔄 ChangeLog / 更新履歴
 
+**v1.2.4 (2026-05-16)**
+- Bugfix: 連続して動画を生成する際に、進捗ターミナルに前回のログが残る不具合を修正
+- Feature: タイトルコピーボタンの実装、およびファイル名がそのままタイトルとしてフォールバックされる仕様の廃止
+
 **v1.2.3 (2026-05-16)**
 - [Feature] AIの解析プロセス、キャスティング、タイムライン構築などの詳細な内部ログを進捗画面へ出力する機能（エモいログ）を追加。 / Added immersive logging for Gemini analysis, casting, and timeline processes to frontend terminal.
 - [Fix] コマ内のセリフが逆順（左→右）で生成される問題を解消するため、画像解析結果の `bubblePosition` を用いて強制的に右→左の順へソートするポスト処理を追加。 / Fixed out-of-order dialogue by forcing right-to-left sorting based on bubblePosition regardless of Gemini's array output order.
