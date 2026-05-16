@@ -113,8 +113,8 @@ export const Subtitle: React.FC<SubtitleProps> = ({
  * VOICEVOXキャラクターのイメージカラーに合わせる
  */
 function getSpeakerColor(speaker: string): string {
+  // 既知のVOICEVOXキャラクター → イメージカラー
   const colorMap: Record<string, string> = {
-    // デフォルトのキャラクターカラー
     "ずんだもん": "#7BC67E",
     "四国めたん": "#E8639A",
     "春日部つむぎ": "#F8B500",
@@ -123,13 +123,24 @@ function getSpeakerColor(speaker: string): string {
     "雨晴はう": "#35A7FF",
     "玄野武宏": "#4A90D9",
     "白上虎太郎": "#FF8C00",
-    // キャラA/B（remotion_video_2互換）
+    "冥鳴ひまり": "#9B59B6",
+    "青山龍星": "#2ECC71",
     "アカリ": "#F8B500",
     "ヒカリ": "#6EAADC",
-    // 汎用
     "A": "#F8B500",
     "B": "#6EAADC",
+    "ナレーション": "#888",
   };
 
-  return colorMap[speaker] || "#888";
+  if (colorMap[speaker]) return colorMap[speaker];
+
+  // 未知のキャラ名 → ハッシュベースでHSLカラーを動的生成
+  let hash = 0;
+  for (let i = 0; i < speaker.length; i++) {
+    hash = (hash * 31 + speaker.charCodeAt(i)) & 0xFFFFFF;
+  }
+  const hue = hash % 360;
+  const saturation = 55 + (hash % 25);   // 55-80%（彩度高め）
+  const lightness = 48 + (hash % 12);    // 48-60%（暗すぎず明るすぎず）
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }

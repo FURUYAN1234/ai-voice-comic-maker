@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.2.5-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.2.6-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%201.5-orange.svg" alt="Gemini">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.2.5 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.2.6 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 **[Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System](https://github.com/FURUYAN1234/nano-banana-pro)** Integration / 連携対応  
 The generated voice comic videos provide overwhelming immersion for TikTok, Shorts, and social media platforms. / 生成された声付き動画は、TikTokやYouTube Shorts向けの動画素材として圧倒的な没入感を提供します。
@@ -187,6 +187,15 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 *Developed by FURU*
 
 ## 🔄 ChangeLog / 更新履歴
+
+**v1.2.6 (2026-05-17)**
+- [Major] 感情表現エンジンv2: VOICEVOXの音声パラメータをspeed/pitch/intonation/volumeの4軸で感情ごとに調整するように強化 / Enhanced emotion engine v2: 4-axis voice parameter adjustment (speed, pitch, intonation, volume) per emotion.
+- [Major] 性格ベースキャスティングv2: Geminiがキャラの見た目からpersonality(cool/cute/energetic/calm/serious)を推定し、性格に合った声を割り当てるように改善 / Personality-based casting v2: AI now estimates character personality from appearance and assigns fitting voices.
+- [Improve] 動的パディング: セリフ末尾の句読点・感情に応じてセリフ間の「間」を自動調整 / Dynamic padding: silence between lines now varies based on punctuation and emotion.
+- [Fix] キャスティングロジックの二重管理を解消し、analyze側のCasting v2に一元化 / Consolidated duplicate casting logic into single Casting v2 engine.
+- [Fix] アウトロのバージョン表記(v1.2.2)がハードコードされていた問題を修正し、scriptDataから動的に取得するように変更 / Fixed hardcoded version in video outtro, now dynamically sourced from scriptData.
+- [Improve] 話者名ラベルの色分けを動的生成に変更し、未知のキャラ名でもカラフルに表示 / Dynamic speaker label colors for unknown character names via hash-based HSL generation.
+- [Improve] ナレーション検出パターンを拡充（「語り手」「地の文」等にも対応） / Extended narrator detection patterns.
 
 **v1.2.5 (2026-05-17)**
 - [Feature] タイトルをコピペする際、タイトルの前後に「」が自動で付くように修正 / Titles copied to clipboard are now automatically wrapped in Japanese quotation marks (「」).

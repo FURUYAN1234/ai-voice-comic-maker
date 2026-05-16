@@ -43,6 +43,16 @@ interface ScriptData {
   dialogues: DialogueLine[];
   /** 動画全体のフレーム数 */
   totalDurationInFrames: number;
+  /** タイトル */
+  title?: string;
+  /** バージョン */
+  version?: string;
+  /** タイトルコール音声 */
+  titleAudio?: string;
+  /** タイトルカードのフレーム数 */
+  titleDurationInFrames?: number;
+  /** 漫画全体画像パス */
+  originalImage?: string;
 }
 
 interface VoiceComicProps {
@@ -185,7 +195,7 @@ export const VoiceComic: React.FC<VoiceComicProps> = ({ scriptData }) => {
                 textShadow: "0px 2px 4px rgba(0,0,0,0.8)",
               }}>
                 AI Voice Comic Maker<br/>
-                <span style={{ fontSize: 18 }}>v1.2.2</span>
+                <span style={{ fontSize: 18 }}>v{data.version || '1.2.5'}</span>
               </div>
             </div>
           </AbsoluteFill>
@@ -206,7 +216,7 @@ export const VoiceComic: React.FC<VoiceComicProps> = ({ scriptData }) => {
         >
           <div>
             <div style={{ fontSize: 64, marginBottom: 20 }}>🎬</div>
-            <div>AI Voice Comic Maker v1.2.2</div>
+            <div>AI Voice Comic Maker v{data.version || '1.2.5'}</div>
             <div style={{ fontSize: 20, opacity: 0.6, marginTop: 10 }}>
               input/ フォルダに漫画画像とJSONを配置して
               <br />

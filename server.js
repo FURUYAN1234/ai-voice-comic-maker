@@ -346,6 +346,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
           "speaker": "キャラ名（推定）",
           "gender": "male または female または unknown",
           "age": "child または young または adult または elder",
+          "personality": "cool または cute または energetic または calm または serious",
           "bubblePosition": "left または center または right",
           "text": "セリフの内容",
           "emotion": "感情"
@@ -363,7 +364,8 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
 - ナレーション（吹き出し外のテキスト）は speaker を "ナレーション" にすること
 - コマは上から下、左から右の順に番号を振ること
 - 効果音やオノマトペはスキップ（セリフのみ抽出）
-- 感情は neutral/happy/sad/angry/surprised/excited/worried 等から選択`;
+- 感情は neutral/happy/sad/angry/surprised/excited/worried 等から選択
+- personalityはキャラクターの見た目や雰囲気から推定すること（cool=クール・無表情・知的, cute=可愛い・幼い, energetic=元気・活発, calm=穏やか・おっとり, serious=真面目・厳格）`;
 
       const result = await model.generateContent([
         prompt,
@@ -408,10 +410,41 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
       }
     }
 
-    // 構造を正規化しつつ、キャラごとの声の重複を防ぐ
+    // 構造を正規化しつつ、キャラごとの声の重複を防ぐ（性格ベースキャスティング v2）
     const characterVoiceMap = new Map();
     const usedVoiceIds = new Set();
-    
+
+    // 性格×性別ベースのボイスプール定義
+    // 女性: cool→落ち着いた声, cute→可愛い声, energetic→元気な声, calm→穏やかな声, serious→知的な声
+    // 男性: cool/serious→渋い声, energetic→若い声, calm→穏やかな声
+    const VOICE_POOLS = {
+      female: {
+        cool:      [10, 16, 14],    // 雨晴はう, 九州そら, 冥鳴ひまり
+        cute:      [8, 2, 9],       // 春日部つむぎ, 四国めたん, 波音リツ
+        energetic: [8, 9, 2],       // 春日部つむぎ, 波音リツ, 四国めたん
+        calm:      [14, 16, 10],    // 冥鳴ひまり, 九州そら, 雨晴はう
+        serious:   [10, 14, 16],    // 雨晴はう, 冥鳴ひまり, 九州そら
+      },
+      male: {
+        cool:      [11, 13],        // 玄野武宏, 青山龍星
+        cute:      [12, 13],        // 白上虎太郎, 青山龍星
+        energetic: [12, 13],        // 白上虎太郎, 青山龍星
+        calm:      [11, 13],        // 玄野武宏, 青山龍星
+        serious:   [11, 13],        // 玄野武宏, 青山龍星
+      },
+      // デフォルト（gender不明時）
+      unknown: {
+        cool:      [10, 16, 11],
+        cute:      [8, 2, 12],
+        energetic: [8, 9, 12],
+        calm:      [14, 16, 11],
+        serious:   [10, 14, 11],
+      },
+    };
+
+    // ナレーション判定用パターン
+    const narratorPatterns = ['ナレ', 'narr', '語り手', '地の文', 'ナレーター', 'ナレータ'];
+
     metadata = {
       title: metadata.title || '無題の漫画',
       panels: (metadata.panels || []).map((p, i) => ({
@@ -419,37 +452,41 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
         dialogues: (p.dialogues || []).map(d => {
           const gender = d.gender || 'unknown';
           const age = d.age || 'young';
+          const personality = d.personality || 'calm';
           const speaker = d.speaker || '不明';
-          
+
+          // ナレーション判定
+          const isNarrator = narratorPatterns.some(pat => speaker.toLowerCase().includes(pat.toLowerCase()));
+
           let voiceId;
           if (characterVoiceMap.has(speaker)) {
             voiceId = characterVoiceMap.get(speaker);
           } else {
-            let pool = [8, 16, 2, 14, 10, 20, 9, 43, 22, 38];
-            if (gender === 'female') {
-              if (age === 'child') pool = [8, 16, 20, 43];
-              else if (age === 'young') pool = [2, 14, 9, 43, 8];
-              else pool = [10, 14, 2, 16];
-            } else if (gender === 'male') {
-              if (age === 'child' || age === 'young') pool = [1, 10, 22, 38];
-              else pool = [13, 11, 15, 29];
-            }
-            
-            // 未使用の声を優先
-            const unusedPool = pool.filter(id => !usedVoiceIds.has(id));
-            if (unusedPool.length > 0) {
-              const hash = [...speaker].reduce((h, c) => h + c.charCodeAt(0), 0);
-              voiceId = unusedPool[hash % unusedPool.length];
+            if (isNarrator) {
+              voiceId = 2; // 四国めたんノーマル（ナレーション専用）
             } else {
+              // 性格×性別からプールを選択
+              const genderKey = VOICE_POOLS[gender] ? gender : 'unknown';
+              const pool = VOICE_POOLS[genderKey][personality] || VOICE_POOLS[genderKey].calm;
+
+              // 子供キャラは特別扱い: 男児→白上虎太郎, 女児→春日部つむぎ
+              let finalPool = pool;
+              if (age === 'child') {
+                finalPool = gender === 'male' ? [12] : [8];
+              }
+
+              // 未使用の声を優先して重複を回避
+              const unusedPool = finalPool.filter(id => !usedVoiceIds.has(id));
+              const selectFrom = unusedPool.length > 0 ? unusedPool : finalPool;
               const hash = [...speaker].reduce((h, c) => h + c.charCodeAt(0), 0);
-              voiceId = pool[hash % pool.length];
+              voiceId = selectFrom[hash % selectFrom.length];
             }
-            
+
             characterVoiceMap.set(speaker, voiceId);
             usedVoiceIds.add(voiceId);
-            
-            sessionLog(sessionId, `🎭 [Casting System] 検出話者: ${speaker} (${gender}, ${age})`);
-            sessionLog(sessionId, `   ↳ 適合ボイスプール内検索完了 (候補: ${pool.length}件)`);
+
+            sessionLog(sessionId, `🎭 [Casting v2] 検出話者: ${speaker} (${gender}, ${age}, ${personality})`);
+            sessionLog(sessionId, `   ↳ 性格プロファイル "${personality}" からボイスプールを選択`);
             sessionLog(sessionId, `   ↳ 重複回避アルゴリズム適用 -> VOICEVOX ID: ${voiceId} をアサイン`);
           }
 
@@ -457,6 +494,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
             speaker,
             gender,
             age,
+            personality,
             bubblePosition: d.bubblePosition || 'center',
             text: d.text || '',
             emotion: d.emotion || 'neutral',
@@ -551,6 +589,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
           speaker: d.speaker,
           gender: d.gender,
           age: d.age,
+          voiceId: d.voiceId,
           bubblePosition: d.bubblePosition || 'center',
           text: d.text,
           emotion: d.emotion,
@@ -672,27 +711,22 @@ app.post('/api/generate/:sessionId', async (req, res) => {
         );
         const query = await queryRes.json();
         
-        // 基本スピード
-        query.speedScale = 1.25;
-
-        // 見た目からの感情推定を音声パラメーターに反映（ピッチ変更は不自然になるためスピードのみ）
-        switch (d.emotion) {
-          case 'angry':
-            query.speedScale = 1.35;
-            break;
-          case 'sad':
-          case 'worried':
-            query.speedScale = 1.1;
-            break;
-          case 'happy':
-          case 'excited':
-            query.speedScale = 1.3;
-            break;
-          case 'surprised':
-            query.speedScale = 1.35;
-            break;
-        }
-        sessionLog(sessionId, `   🎚️ 感情パラメータ適用: emotion=${d.emotion} → speed=${query.speedScale}x`);
+        // ── 感情表現エンジン v2: speed / pitch / intonation / volume の4軸調整 ──
+        const EMOTION_PROFILES = {
+          angry:     { speedScale: 1.35, pitchScale: -0.03, intonationScale: 1.5, volumeScale: 1.2 },
+          sad:       { speedScale: 1.0,  pitchScale: -0.05, intonationScale: 0.6, volumeScale: 0.85 },
+          worried:   { speedScale: 1.05, pitchScale: 0.0,   intonationScale: 0.7, volumeScale: 0.9 },
+          happy:     { speedScale: 1.25, pitchScale: 0.04,  intonationScale: 1.4, volumeScale: 1.1 },
+          excited:   { speedScale: 1.35, pitchScale: 0.05,  intonationScale: 1.6, volumeScale: 1.15 },
+          surprised: { speedScale: 1.3,  pitchScale: 0.06,  intonationScale: 1.7, volumeScale: 1.1 },
+          neutral:   { speedScale: 1.2,  pitchScale: 0.0,   intonationScale: 1.0, volumeScale: 1.0 },
+        };
+        const profile = EMOTION_PROFILES[d.emotion] || EMOTION_PROFILES.neutral;
+        query.speedScale = profile.speedScale;
+        query.pitchScale = profile.pitchScale;
+        query.intonationScale = profile.intonationScale;
+        query.volumeScale = profile.volumeScale;
+        sessionLog(sessionId, `   🎚️ 感情エンジンv2: ${d.emotion} → spd=${profile.speedScale} / pitch=${profile.pitchScale} / inton=${profile.intonationScale} / vol=${profile.volumeScale}`);
 
         // synthesis
         const synthRes = await fetch(
@@ -752,8 +786,22 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     }
 
     sessionLog(sessionId, '🗂️ [Timeline] 動画タイムラインを構築中...');
+
+    // セリフ末尾の句読点・感情に基づく動的パディング（間の長さ）
+    function calcPadding(text, emotion) {
+      const lastChar = text.slice(-1);
+      if (lastChar === '…' || text.endsWith('...')) return 22; // 余韻が必要な沈黙
+      if (lastChar === '。' || lastChar === '.') return 16;    // 通常の区切り
+      if (lastChar === '！' || lastChar === '!') return 8;     // テンポよく
+      if (lastChar === '？' || lastChar === '?') return 18;    // 問いかけの間
+      if (emotion === 'sad' || emotion === 'worried') return 20; // 感情的な間
+      if (emotion === 'angry' || emotion === 'excited') return 8; // 畳みかけ
+      return 12; // デフォルト
+    }
+
     const scriptData = {
       title,
+      version: '1.2.6',
       panels: panelPaths, // 分割されたコマ画像パス
       originalImage: originalImagePublicPath, // 全体画像
       titleAudio: titleAudioPublicPath,
@@ -764,7 +812,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
         text: af.dialogue.text,
         panelIndex: af.dialogue.panelIndex,
         bubblePosition: af.dialogue.bubblePosition,
-        durationInFrames: Math.ceil(af.durationSec * 30) + 15, // パディング含む
+        durationInFrames: Math.ceil(af.durationSec * 30) + calcPadding(af.dialogue.text, af.dialogue.emotion),
         audioFile: af.publicPath,
       })),
     };
@@ -864,45 +912,25 @@ app.get('/api/video/:sessionId', (req, res) => {
 // ──────────────────────────────────────
 
 /**
- * 話者の属性（性別・年齢）からスマート・キャスティング
- * ※ずんだもん(3)はタイトル専用のため除外
+ * 話者のvoiceIdを返す（Casting v2でアサイン済みのvoiceIdを優先）
+ * ※analyze側で性格ベースキャスティングが完了しているため、通常はvoiceIdがそのまま返る
+ * ※フォールバック: voiceIdが未設定の場合のみ簡易推定を行う
  */
 function getSpeakerId(dialogue) {
   if (dialogue.voiceId) return dialogue.voiceId;
 
   const speaker = dialogue.speaker || '';
   const gender = dialogue.gender || 'unknown';
-  const age = dialogue.age || 'young';
 
-  // ナレーション等
-  if (speaker.includes('ナレ') || speaker.includes('narr')) return 2; // 四国めたんノーマル
+  // ナレーション判定（拡張パターン）
+  const narratorPatterns = ['ナレ', 'narr', '語り手', '地の文', 'ナレーター', 'ナレータ'];
+  if (narratorPatterns.some(pat => speaker.toLowerCase().includes(pat.toLowerCase()))) return 2;
 
-  // 名前による完全一致（ずんだもん排除）
-  const exactMap = {
-    '四国めたん': 2, '春日部つむぎ': 8, '九州そら': 16, 
-    '波音リツ': 9, '雨晴はう': 10, '玄野武宏': 11,
-    '白上虎太郎': 12, '青山龍星': 13, '冥鳴ひまり': 14,
-  };
-  for (const [key, id] of Object.entries(exactMap)) {
-    if (speaker.includes(key)) return id;
-  }
-
-  // ハッシュ計算（同一キャラには常に同じ声を当てるため）
+  // フォールバック: 性別ベースの簡易アサイン
   const hash = [...speaker].reduce((h, c) => h + c.charCodeAt(0), 0);
-
-  let pool = [8, 16, 2, 14, 10]; // デフォルトは女性キャラ（4コマに多いため）
-
-  if (gender === 'female') {
-    if (age === 'child' || age === 'young') pool = [8, 2, 10, 14]; // つむぎ, めたん, はう, ひまり
-    else pool = [16, 14, 2]; // 九州そら(大人の女性ぽい), ひまり
-  } else if (gender === 'male') {
-    if (age === 'child') pool = [12]; // 白上虎太郎(少年)
-    else if (age === 'young') pool = [13, 12]; // 青山龍星(青年), 虎太郎
-    else pool = [11, 13]; // 玄野武宏(渋い), 龍星
-  }
-
+  const pool = gender === 'male' ? [11, 13, 12] : [10, 14, 8, 2, 16];
   const fallbackId = pool[hash % pool.length];
-  console.log(`    🎭 [Casting] ${speaker} (${gender}, ${age}) → Voice ID: ${fallbackId}`);
+  console.log(`    🎭 [Casting Fallback] ${speaker} (${gender}) → Voice ID: ${fallbackId}`);
   return fallbackId;
 }
 
