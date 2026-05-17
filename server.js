@@ -519,6 +519,49 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
       }
     }
 
+    // ── コマ跨ぎ重複セリフの自動除去 (Dedup Engine) ──
+    // Geminiが同じセリフを複数コマに重複出力するケースへの対策
+    // 同一 speaker + text の組み合わせが異なるコマに現れた場合、
+    // 後のコマ（より正確な検出）を残し、前のコマの重複を除去する
+    {
+      // 全セリフをフラットに収集（コマ番号付き）
+      const allDialogues = [];
+      for (const panel of metadata.panels) {
+        for (const d of panel.dialogues) {
+          allDialogues.push({ key: `${d.speaker}|||${d.text}`, panelNumber: panel.panelNumber });
+        }
+      }
+
+      // 重複キーを検出（最後に出現したコマ番号を記録）
+      const lastOccurrence = new Map();
+      for (const entry of allDialogues) {
+        lastOccurrence.set(entry.key, entry.panelNumber);
+      }
+
+      // 前方コマの重複を除去
+      let dedupCount = 0;
+      for (const panel of metadata.panels) {
+        const originalLen = panel.dialogues.length;
+        panel.dialogues = panel.dialogues.filter(d => {
+          const key = `${d.speaker}|||${d.text}`;
+          const lastPanel = lastOccurrence.get(key);
+          // 最後に出現したコマでなければ重複 → 除去
+          if (lastPanel !== panel.panelNumber) {
+            return false;
+          }
+          return true;
+        });
+        const removed = originalLen - panel.dialogues.length;
+        if (removed > 0) {
+          dedupCount += removed;
+          sessionLog(sessionId, `🔄 [Dedup] コマ${panel.panelNumber}: 重複セリフ ${removed}件を除去（後方コマに正本あり）`);
+        }
+      }
+      if (dedupCount > 0) {
+        sessionLog(sessionId, `✅ [Dedup] 合計 ${dedupCount}件の重複セリフを自動除去`);
+      }
+    }
+
     // セッションにメタデータを保存
     session.metadata = metadata;
     session.status = 'analyzed';
@@ -613,6 +656,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
 
     const panelCount = Math.max(1, metadata.panels.length);
     const panelPaths = [];
+    const panelAspectRatios = [];
     const aspectRatio = width / height;
     
     let layout = 'grid';
@@ -677,6 +721,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
       const outputPath = path.join(publicPanelsDir, outputFileName);
       await sharp(session.imagePath).extract(extractRegion).png({ quality: 95 }).toFile(outputPath);
       panelPaths.push(`panels/${outputFileName}`);
+      panelAspectRatios.push(extractRegion.width / extractRegion.height);
     }
     sessionLog(sessionId, `✅ ${panelCount}コマに分割完了 (${layout})`);
 
@@ -824,6 +869,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
       title,
       version: '1.2.9',
       panels: panelPaths, // 分割されたコマ画像パス
+      panelAspectRatios, // 各コマのアスペクト比（動的ズーム用）
       originalImage: originalImagePublicPath, // 全体画像
       titleAudio: titleAudioPublicPath,
       titleDurationInFrames: titleDurationFrames,

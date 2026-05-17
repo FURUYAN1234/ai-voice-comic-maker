@@ -53,6 +53,8 @@ interface ScriptData {
   titleDurationInFrames?: number;
   /** 漫画全体画像パス */
   originalImage?: string;
+  /** 各コマのアスペクト比（動的ズーム用） */
+  panelAspectRatios?: number[];
 }
 
 interface VoiceComicProps {
@@ -121,6 +123,7 @@ export const VoiceComic: React.FC<VoiceComicProps> = ({ scriptData }) => {
               src={staticFile(data.panels[dialogue.panelIndex] || "")}
               durationInFrames={duration}
               bubblePosition={dialogue.bubblePosition}
+              panelAspectRatio={data.panelAspectRatios?.[dialogue.panelIndex]}
             />
 
             {/* セリフ音声 */}
