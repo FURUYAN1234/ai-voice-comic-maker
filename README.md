@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.3.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.3.1-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%201.5-orange.svg" alt="Gemini">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.3.0 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.3.1 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 **[Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System](https://github.com/FURUYAN1234/nano-banana-pro)** Integration / 連携対応  
 The generated voice comic videos provide overwhelming immersion for TikTok, Shorts, and social media platforms. / 生成された声付き動画は、TikTokやYouTube Shorts向けの動画素材として圧倒的な没入感を提供します。
@@ -187,6 +187,9 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 *Developed by FURU*
 
 ## 🔄 ChangeLog / 更新履歴
+
+**v1.3.1 (2026-05-17)**
+- [Improve] 字幕の表示位置を画面下部から画面上部へ移動し、漫画のキャラクターや絵に被らずセリフが読みやすくなるよう改善。表示アニメーションも上からのスライドインに変更しました。 / Moved subtitles from bottom to top for better readability without overlapping comic characters.
 
 **v1.3.0 (2026-05-17)**
 - [Feature] AI解析におけるセリフ重複検出・除去エンジン（Dedup Engine）を実装。Geminiが複数コマに同一のセリフを出力してしまった場合でも、後方の正しいコマのセリフだけを残して自動で重複を削除します。 / Implemented dialogue deduplication engine to automatically remove redundant AI outputs across panels.

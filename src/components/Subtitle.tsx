@@ -40,7 +40,7 @@ export const Subtitle: React.FC<SubtitleProps> = ({
     },
   });
 
-  const translateY = interpolate(slideUp, [0, 1], [60, 0]);
+  const translateY = interpolate(slideUp, [0, 1], [-60, 0]);
 
   // フェードアウト（最後の0.3秒）
   const fadeOut = interpolate(
@@ -56,9 +56,9 @@ export const Subtitle: React.FC<SubtitleProps> = ({
   return (
     <AbsoluteFill
       style={{
-        justifyContent: "flex-end",
+        justifyContent: "flex-start",
         alignItems: "center",
-        paddingBottom: 120,
+        paddingTop: 150, // 画面上部からのマージン
         opacity: fadeOut,
       }}
     >
