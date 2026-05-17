@@ -3,6 +3,7 @@ node_modules/
 
 # ビルド出力
 build/
+dist/
 out/
 
 # VOICEVOX ポータブル版（巨大バイナリ）

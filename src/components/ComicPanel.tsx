@@ -34,24 +34,23 @@ export const ComicPanel: React.FC<ComicPanelProps> = ({
   const frame = useCurrentFrame();
   const { fps, width: videoWidth, height: videoHeight } = useVideoConfig();
 
-  // ── 動的ズーム計算 ──
-  // パネルのアスペクト比に応じて、ビューポート高さの TARGET_FILL を埋めるように
-  // 画像の表示幅を動的に算出する（横長パネルほどズームイン）
-  const TARGET_FILL = 0.55; // ビューポート高さの55%をパネルで埋める（広角寄り）
-  const MIN_WIDTH_PCT = 200; // 最小幅（パン演出に必要な余裕）
-  const MAX_WIDTH_PCT = 350; // 最大幅（人物が切れない程度に抑制）
+  // ── 動的ズーム計算（width制約方式） ──
+  const TARGET_FILL = 0.50; // ビューポート高さの50%をパネルで埋める
+  const MAX_WIDTH_PCT = 350;
 
   const videoAR = videoWidth / videoHeight; // 9:16 = 0.5625
-  const panelAR = panelAspectRatio || 2; // デフォルト2:1（未指定時）
-  // 目標: imageHeight / videoHeight = TARGET_FILL
-  //   imageHeight = imageWidth / panelAR
-  //   imageWidth = imageWidthPct / 100 * videoWidth
-  //   → imageWidthPct = TARGET_FILL * panelAR / videoAR * 100
+  const panelAR = panelAspectRatio || 2;
   const idealWidthPct = (TARGET_FILL * panelAR / videoAR) * 100;
-  const imageWidthPct = Math.max(MIN_WIDTH_PCT, Math.min(MAX_WIDTH_PCT, idealWidthPct));
 
-  // 少しズームインしながらパンする演出（迫力アップ）
-  const scale = interpolate(frame, [0, durationInFrames], [1.05, 1.15], {
+  // 安全キャップ: scale最大値でも画像高さがビューポートを超えない幅の上限
+  const SCALE_END = 1.08;
+  const safeMaxWidthPct = (videoHeight * panelAR / videoWidth / SCALE_END) * 100;
+
+  // safeMaxWidthPctを最終的な上限とする（MIN_WIDTH_PCTより優先）
+  const imageWidthPct = Math.min(safeMaxWidthPct, Math.max(130, Math.min(MAX_WIDTH_PCT, idealWidthPct)));
+
+  // 少しズームインしながらパンする演出
+  const scale = interpolate(frame, [0, durationInFrames], [1.02, SCALE_END], {
     extrapolateRight: "clamp",
   });
 
@@ -61,26 +60,27 @@ export const ComicPanel: React.FC<ComicPanelProps> = ({
   });
 
   // ── 動的パンオフセット計算 ──
-  // 画像幅に比例してパン範囲を算出（黒枠が出ないよう scale 最小値で安全マージン確認済み）
-  const overflowPct = imageWidthPct - 100; // ビューポートからのはみ出し量
-  const scaleBonus = imageWidthPct * 0.05; // scale 1.05 時の追加余白
-  const panRange = 10; // パン幅（全ポジション共通）
+  const overflowPct = Math.max(0, imageWidthPct - 100);
+  const panRange = Math.min(10, overflowPct * 0.15);
 
   let startX = 0;
   let endX = 0;
-  if (bubblePosition === 'left') {
-    // 画像の左端にフォーカス
-    endX = scaleBonus;
-    startX = endX - panRange;
-  } else if (bubblePosition === 'right') {
-    // 画像の右端にフォーカス
-    startX = -overflowPct;
-    endX = startX + panRange;
+  if (overflowPct > 5) {
+    if (bubblePosition === 'left') {
+      endX = Math.min(overflowPct * 0.05, overflowPct * 0.3);
+      startX = endX - panRange;
+    } else if (bubblePosition === 'right') {
+      startX = -overflowPct * 0.8;
+      endX = startX + panRange;
+    } else {
+      const centerX = -(overflowPct / 2);
+      startX = centerX - panRange / 2;
+      endX = centerX + panRange / 2;
+    }
   } else {
-    // 中央
     const centerX = -(overflowPct / 2);
-    startX = centerX - panRange / 2;
-    endX = centerX + panRange / 2;
+    startX = centerX - 1;
+    endX = centerX + 1;
   }
 
   const posX = interpolate(frame, [0, durationInFrames], [startX, endX], {
@@ -111,7 +111,7 @@ export const ComicPanel: React.FC<ComicPanelProps> = ({
             transform: `scale(1.1)`,
           }}
         />
-        {/* メインのコマ画像（動的幅でアスペクト比に応じたズーム） */}
+        {/* メインのコマ画像 */}
         <Img
           src={src}
           style={{

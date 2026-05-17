@@ -670,9 +670,10 @@ app.post('/api/generate/:sessionId', async (req, res) => {
       switch (layout) {
         case 'vertical': {
           // ユーザー専用フォーマット（Super FURU AI 4-koma等）の最適化
-          // 上部のタイトル領域（約6%）と下部のフッター領域（約3%）を除外し、純粋なコマ部分のみを等分する
-          const topMargin = Math.floor(height * 0.065);
-          const bottomMargin = Math.floor(height * 0.035);
+          // 上部のタイトル領域（約4.5%）と下部のフッター領域（約2.5%）を除外し、純粋なコマ部分のみを等分する
+          // ※ topMarginが大きすぎると1コマ目のキャラの頭が切れるため控えめに設定
+          const topMargin = Math.floor(height * 0.045);
+          const bottomMargin = Math.floor(height * 0.025);
           const contentHeight = height - topMargin - bottomMargin;
           const panelHeight = Math.floor(contentHeight / panelCount);
           
