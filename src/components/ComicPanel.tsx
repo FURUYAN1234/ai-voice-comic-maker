@@ -10,7 +10,6 @@ import {
   useCurrentFrame,
   interpolate,
   Img,
-  spring,
   useVideoConfig,
 } from "remotion";
 
@@ -59,28 +58,36 @@ export const ComicPanel: React.FC<ComicPanelProps> = ({
     extrapolateRight: "clamp",
   });
 
-  // ── 動的パンオフセット計算 ──
+  // ── 動的パンオフセット計算（吹き出し位置追従カメラ v2） ──
+  // overflowPct: 画像がビューポートからはみ出す割合（%）
+  // 例: imageWidthPct=250% → overflowPct=150 → 画像の左右にそれぞれ75%分の余白
   const overflowPct = Math.max(0, imageWidthPct - 100);
-  const panRange = Math.min(10, overflowPct * 0.15);
+  // パン演出の移動幅（ゆっくりスライドするKen Burns効果）
+  const panRange = Math.min(8, overflowPct * 0.08);
+
+  // 各位置の基準オフセット（left%値。負=画像を左にずらす=右側が見える）
+  // center: 画像の中心がビューポート中心に来る位置
+  const centerX = -(overflowPct / 2);
 
   let startX = 0;
   let endX = 0;
-  if (overflowPct > 5) {
-    if (bubblePosition === 'left') {
-      endX = Math.min(overflowPct * 0.05, overflowPct * 0.3);
-      startX = endX - panRange;
-    } else if (bubblePosition === 'right') {
-      startX = -overflowPct * 0.8;
-      endX = startX + panRange;
-    } else {
-      const centerX = -(overflowPct / 2);
-      startX = centerX - panRange / 2;
-      endX = centerX + panRange / 2;
-    }
+
+  if (bubblePosition === 'right') {
+    // 右側の吹き出しにフォーカス: 画像を大きく左にずらして右側を表示
+    // overflowPctの95%分シフト（ほぼ右端まで寄せる）
+    const targetX = -overflowPct * 0.95;
+    startX = targetX;
+    endX = targetX + panRange; // 少しだけ中央方向にゆっくりパン
+  } else if (bubblePosition === 'left') {
+    // 左側の吹き出しにフォーカス: 画像をほぼそのまま（左端を表示）
+    // overflowPctの5%分だけ左にずらす（左端ギリギリ）
+    const targetX = -overflowPct * 0.05;
+    startX = targetX;
+    endX = targetX - panRange; // 少しだけ左方向にゆっくりパン
   } else {
-    const centerX = -(overflowPct / 2);
-    startX = centerX - 1;
-    endX = centerX + 1;
+    // center: 中央に配置し、わずかにパン
+    startX = centerX - panRange / 2;
+    endX = centerX + panRange / 2;
   }
 
   const posX = interpolate(frame, [0, durationInFrames], [startX, endX], {

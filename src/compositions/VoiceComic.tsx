@@ -34,6 +34,8 @@ interface DialogueLine {
   durationInFrames: number;
   /** 音声ファイルパス */
   audioFile: string;
+  /** 吹き出しの左右位置（Gemini解析結果） */
+  bubblePosition?: 'left' | 'center' | 'right';
 }
 
 interface ScriptData {

@@ -868,7 +868,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
 
     const scriptData = {
       title,
-      version: '1.2.9',
+      version: '1.3.3',
       panels: panelPaths, // 分割されたコマ画像パス
       panelAspectRatios, // 各コマのアスペクト比（動的ズーム用）
       originalImage: originalImagePublicPath, // 全体画像

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.3.2-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.3.3-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%201.5-orange.svg" alt="Gemini">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.3.2 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.3.3 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 **[Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System](https://github.com/FURUYAN1234/nano-banana-pro)** Integration / 連携対応  
 The generated voice comic videos provide overwhelming immersion for TikTok, Shorts, and social media platforms. / 生成された声付き動画は、TikTokやYouTube Shorts向けの動画素材として圧倒的な没入感を提供します。
@@ -187,6 +187,9 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 *Developed by FURU*
 
 ## 🔄 ChangeLog / 更新履歴
+
+**v1.3.3 (2026-05-17)**
+- [Fix] `bubblePosition`の型定義欠落により常に中央揃えになっていたバグを修正。右/左配置時のカメラパンオフセットを非対称かつ強力に調整し、吹き出し位置にカメラが確実に寄るよう改善。 / Fixed a bug where `bubblePosition` was missing in the type definition, causing the camera to always default to the center. Adjusted panning offsets for right/left positions to be stronger and more asymmetrical, ensuring the camera reliably focuses on the dialogue bubbles.
 
 **v1.3.2 (2026-05-17)**
 - [Fix] コマ画像の頭部が切り取られる現象を修正するため、画像抽出の`topMargin`を6.5%から4.5%に縮小し、安全キャップを適用した`width`制約方式のズーム処理に最適化。 / Reduced `topMargin` to 4.5% in image extraction and optimized `width`-based zoom with a safety cap to prevent character head clipping.
