@@ -114,8 +114,8 @@ This project is developed in full compliance with Article 30-4 of the Japanese C
 本プロジェクトは、日本の著作権法第30条の4（情報解析目的の外での利用）に基づき、技術検証および情報解析を目的として開発されており、法的に適正な範囲内で公開されています。
 
 ### Official API Usage
-All generations are performed through the official Google Gemini API. This system adheres strictly to Google's "Generative AI Forbidden Use Policy" and Terms of Service.  
-本システムはGoogle公式のGemini APIを介して動作しており、Googleが定める「生成AI禁止事項」および利用規約を厳格に遵守しています。
+All generations are performed through the official Google Gemini API or OpenAI API. This system adheres strictly to the "Generative AI Forbidden Use Policy" and Terms of Service of each provider.  
+本システムはGoogle公式のGemini API、およびOpenAI公式のAPIを介して動作しており、各社が定める「生成AI禁止事項」および利用規約を厳格に遵守しています。
 
 ### No-Profit & Research Focus
 The core logic (Prompts/Protocols) is released under CC BY-NC-SA 4.0. Any commercial misuse by third parties is strictly prohibited. This project exists solely for the advancement of AI agent technology and the democratization of creative tools.  
