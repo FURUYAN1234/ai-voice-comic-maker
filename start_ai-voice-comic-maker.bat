@@ -7,6 +7,7 @@ echo ============================================
 echo   AI Voice Comic Maker - Starting...
 echo ============================================
 
+
 REM --- Basic Environment Check ---
 where node >nul 2>nul
 if errorlevel 1 (
@@ -126,6 +127,13 @@ REM   Launch Application
 REM ========================================================
 :LAUNCH_APP
 echo [INFO] Launching frontend + backend server...
-start "" "http://localhost:5173"
 call npm run dev
+
+if errorlevel 1 goto RUN_ERROR
 pause
+exit /b
+
+:RUN_ERROR
+echo [ERROR] Failed to start server.
+pause
+exit /b
