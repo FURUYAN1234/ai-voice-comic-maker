@@ -109,6 +109,7 @@ function scheduleLogCleanup(sessionId) {
 // ランタイムで設定されたAPIキー（.envより優先）
 let runtimeApiKey = '';
 let runtimeModel = 'gemini-2.5-flash';
+let runtimeEngine = 'gemini';
 
 // ファイルアップロード設定（画像のみ）
 const storage = multer.diskStorage({
@@ -137,12 +138,12 @@ const upload = multer({
 });
 
 // ──────────────────────────────────────
-// API: Gemini APIキー設定状態
+// API: AI APIキー設定状態
 // ──────────────────────────────────────
-app.get('/api/gemini/status', (req, res) => {
-  const key = runtimeApiKey || process.env.GEMINI_API_KEY || '';
+app.get('/api/apistatus', (req, res) => {
+  const key = runtimeApiKey || process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY || '';
   const configured = key.length > 0 && key !== 'your_gemini_api_key_here';
-  res.json({ configured });
+  res.json({ configured, engine: runtimeEngine });
 });
 
 // ──────────────────────────────────────
@@ -157,50 +158,67 @@ app.get('/api/logs/:sessionId', (req, res) => {
 });
 
 // ──────────────────────────────────────
-// API: Gemini APIキーを設定
+// API: AI APIキーを設定 (Gemini / OpenAI 自動認識)
 // ──────────────────────────────────────
-app.post('/api/gemini/key', async (req, res) => {
+app.post('/api/apikey', async (req, res) => {
   const { apiKey } = req.body;
   if (!apiKey || !apiKey.trim()) {
     return res.status(400).json({ valid: false, error: 'APIキーが空です' });
   }
 
-  // 簡易バリデーション: Gemini APIにリクエストして確認
+  const key = apiKey.trim();
+  let engine = 'gemini';
+  if (key.startsWith('sk-')) {
+    engine = 'openai';
+  }
+
   try {
-    const { GoogleGenerativeAI } = await import('@google/generative-ai');
-    const genAI = new GoogleGenerativeAI(apiKey.trim());
-    
-    const modelsToTry = [
-      'gemini-2.5-flash',
-      'gemini-2.5-pro',
-      'gemini-2.0-flash',
-    ];
-    
-    let workingModel = null;
-    let lastError = null;
+    if (engine === 'openai') {
+      const OpenAI = (await import('openai')).default;
+      const openai = new OpenAI({ apiKey: key });
+      await openai.models.list(); // 簡易バリデーション
+      runtimeApiKey = key;
+      runtimeModel = 'gpt-4o'; // 推奨モデル
+      runtimeEngine = 'openai';
+      console.log(`🔑 OpenAI API Key が設定されました (使用モデル: ${runtimeModel})`);
+      res.json({ valid: true, engine: 'openai' });
+    } else {
+      const { GoogleGenerativeAI } = await import('@google/generative-ai');
+      const genAI = new GoogleGenerativeAI(key);
+      
+      const modelsToTry = [
+        'gemini-2.5-flash',
+        'gemini-2.5-pro',
+        'gemini-2.0-flash',
+      ];
+      
+      let workingModel = null;
+      let lastError = null;
 
-    for (const modelName of modelsToTry) {
-      try {
-        const model = genAI.getGenerativeModel({ model: modelName });
-        await model.generateContent('test');
-        workingModel = modelName;
-        break; // 成功したらループを抜ける
-      } catch (e) {
-        lastError = e;
-        console.log(`    ℹ️ ${modelName} は利用不可: ${e.message.split('\\n')[0]}`);
+      for (const modelName of modelsToTry) {
+        try {
+          const model = genAI.getGenerativeModel({ model: modelName });
+          await model.generateContent('test');
+          workingModel = modelName;
+          break; // 成功したらループを抜ける
+        } catch (e) {
+          lastError = e;
+          console.log(`    ℹ️ ${modelName} は利用不可: ${e.message.split('\\n')[0]}`);
+        }
       }
-    }
 
-    if (!workingModel) {
-      throw lastError || new Error("利用可能なモデルが見つかりませんでした");
+      if (!workingModel) {
+        throw lastError || new Error("利用可能なモデルが見つかりませんでした");
+      }
+      
+      runtimeApiKey = key;
+      runtimeModel = workingModel;
+      runtimeEngine = 'gemini';
+      console.log(`🔑 Gemini API Key が設定されました (使用モデル: ${runtimeModel})`);
+      res.json({ valid: true, engine: 'gemini' });
     }
-    
-    runtimeApiKey = apiKey.trim();
-    runtimeModel = workingModel;
-    console.log(`🔑 Gemini API Key が設定されました (使用モデル: ${runtimeModel})`);
-    res.json({ valid: true });
   } catch (err) {
-    console.error('❌ Gemini API Key 検証失敗:', err.message);
+    console.error(`❌ ${engine === 'openai' ? 'OpenAI' : 'Gemini'} API Key 検証失敗:`, err.message);
     res.json({ valid: false, error: 'APIキーが無効、または利用可能なモデルがありません' });
   }
 });
@@ -286,7 +304,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
   }
 
   try {
-    sessionLog(sessionId, `🔍 [Analyze] Gemini Vision OCR 開始...`);
+    sessionLog(sessionId, `🔍 [Analyze] AI Vision OCR 開始 (${runtimeEngine} / ${runtimeModel})...`);
     sessionLog(sessionId, `🧠 統合解析エンジン起動: 画像構造 / セリフ抽出 / 感情推定 の並列タスクを構築中...`);
     session.status = 'analyzing';
 
@@ -317,20 +335,25 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
       const mimeMap = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' };
       const mimeType = mimeMap[ext] || 'image/png';
 
-      // OCRプロンプト
-      const prompt = `あなたは漫画解析AIです。この漫画画像を詳細に分析してください。
+      const prompt = `あなたは非常に優秀な漫画解析AIです。画像を詳細に分析し、**すべてのフキダシやテキストを1つ残らず**抽出してください。一切の読み飛ばしは許されません。
 【前提条件】
 ・この画像は「縦並びの4コマ漫画（A4縦サイズ）」です。一番上にはタイトル、一番下にはフッターがあります。
+・日本の漫画は【右から左】【上から下】に進みます。
+・ルビ（ふりがな）が振られている漢字は、誤読を防ぐため親文字（漢字）を優先し、自然な日本語として抽出してください。
 ・画像生成AIによって描かれているため、コマごとに同じキャラクターでも服や髪型に若干のブレ（非一貫性）がある場合があります。髪色やメガネなどの「特徴」から同一人物を特定してください。
 
 ## タスク
-1. この漫画画像に含まれるコマ（パネル）を上から順に識別する（一般的な4コマ漫画の場合は必ず4つのコマオブジェクトを出力すること）
-2. 各コマ内のセリフ（吹き出しのテキスト）を読み取る
+1. この漫画画像に含まれるコマ（パネル）を上から順に識別する（必ず4つのコマオブジェクトを出力すること）
+2. 各コマ内の**すべてのセリフ（フキダシ内のテキスト）**を一切の漏れなく読み取る。その後、抽出したテキストの「前後の文脈」や「日本語としての自然さ」を再考証し、OCR特有の誤認識（漢字の誤読など）があれば意味が通るように補正（自己検証）してから出力してください。
 3. 各セリフの話者を判定する（キャラクターの外見・位置から推定）
 4. 各セリフの感情を推定する
-5. セリフ（吹き出し）がコマ内のどの位置にあるか（left, center, right）を推定する。※重要：日本の漫画は「右から左」に読みます。そのため最初のセリフは通常「右（right）」にあります。見た目上の左右を正確に判定してください。
-6. 漫画全体のタイトルを決定する:
-   - 画像内にタイトルテキストが明確に存在する場合 → そのテキストをそのまま使用
+5. 【重要】セリフ（フキダシ）がコマ内のどの位置にあるか（left, center, right）を空間的に厳密に判定する
+   - コマの右半分にある → "right"
+   - コマの中央にある → "center"
+   - コマの左半分にある → "left"
+6. 【超重要】1つのコマに複数のセリフがある場合、出力するJSONの配列順序を必ず**「右側にあるセリフ（right）」から順に（日本の漫画の読む順序通りに）**並べてください。
+7. 漫画全体のタイトルを決定する:
+   - 画像内にタイトルテキストが存在する場合 → そのテキストを抽出し、さらに前後の文脈や全体のテーマからOCRの誤読がないか自己検証（文脈補完）した上でタイトルとして設定する。
    - 画像内にタイトルがない場合 → 漫画の内容・オチ・テーマから、SNS投稿に適した魅力的で簡潔な日本語タイトルを創作する（例: 「お弁当の秘密」「猫と掃除機」等）
 
 ## 出力形式
@@ -367,13 +390,43 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
 - 感情は neutral/happy/sad/angry/surprised/excited/worried 等から選択
 - personalityはキャラクターの見た目や雰囲気から推定すること（cool=クール・無表情・知的, cute=可愛い・幼い, energetic=元気・活発, calm=穏やか・おっとり, serious=真面目・厳格）`;
 
-      const result = await model.generateContent([
-        prompt,
-        { inlineData: { mimeType, data: base64Image } },
-      ]);
+      let responseText = "";
 
-      const responseText = result.response.text();
-      sessionLog(sessionId, `📝 Gemini レスポンス受信 (${responseText.length}文字)`);
+      if (runtimeEngine === 'openai') {
+        const OpenAI = (await import('openai')).default;
+        const openai = new OpenAI({ apiKey: apiKey });
+        const dataUrl = `data:${mimeType};base64,${base64Image}`;
+        
+        const response = await openai.chat.completions.create({
+          model: runtimeModel,
+          messages: [
+            { role: "system", content: "あなたは優秀な漫画解析AIです。必ず指定されたJSONフォーマットで出力してください。" },
+            { role: "user", content: [
+                { type: "text", text: prompt },
+                { type: "image_url", image_url: { url: dataUrl, detail: "high" } }
+              ]
+            }
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.1
+        });
+        
+        responseText = response.choices[0].message.content;
+        sessionLog(sessionId, `📝 OpenAI レスポンス受信 (${responseText.length}文字)`);
+      } else {
+        // Gemini ロジック
+        const { GoogleGenerativeAI } = await import('@google/generative-ai');
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: runtimeModel });
+
+        const result = await model.generateContent([
+          prompt,
+          { inlineData: { mimeType, data: base64Image } },
+        ]);
+
+        responseText = result.response.text();
+        sessionLog(sessionId, `📝 Gemini レスポンス受信 (${responseText.length}文字)`);
+      }
       sessionLog(sessionId, `🔬 [Parser] JSONペイロードを抽出中... コードフェンス検出 & サニタイズ処理`);
 
       // JSONパース（Geminiの不正JSON出力に対応するサニタイズ処理付き）

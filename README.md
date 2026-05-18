@@ -1,13 +1,13 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.3.4-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.3.5-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
-  <img src="https://img.shields.io/badge/AI-Gemini%201.5-orange.svg" alt="Gemini">
+  <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
   <img src="https://img.shields.io/badge/Audio-VOICEVOX-brightgreen.svg" alt="VOICEVOX">
 </p>
 
 # AI Voice Comic Maker
-v1.3.4 — AI-driven 4-koma manga voiceover and video generation tool using Gemini API / Gemini API を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.3.5 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 **[Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System](https://github.com/FURUYAN1234/nano-banana-pro)** Integration / 連携対応  
 The generated voice comic videos provide overwhelming immersion for TikTok, Shorts, and social media platforms. / 生成された声付き動画は、TikTokやYouTube Shorts向けの動画素材として圧倒的な没入感を提供します。
@@ -26,8 +26,12 @@ Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System などの漫
 
 ## ✨ Features / 機能
 
+### 🧠 Dual API Architecture (Gemini & OpenAI 両対応)
+- **Automatic Engine Detection / 自動エンジン認識**: Enter either a Gemini API Key (`AIza...`) or an OpenAI API Key (`sk-...`), and the backend automatically routes the request to the optimal vision model. / ユーザーが入力したAPIキーの形式から、バックエンドが自動的に「Gemini」か「OpenAI (gpt-4o)」かを認識し、最適なルーティングを行います。手動のトグルスイッチは不要です。
+- **Accuracy & Contextual Fallback / 精度と文脈補完**: Gemini is recommended as the primary engine due to its superior Japanese OCR capabilities. However, when using OpenAI, the system applies a "Contextual OCR Verification" prompt to self-correct kanji misreadings based on conversational context. / 日本語OCRの精度において圧倒的に優れる **Gemini** の使用を強く推奨します。OpenAIを使用する場合は、誤読（ルビの誤認や濁点の欠落など）を軽減するため、AI自身に前後の文脈からテキストを再考証させる強力な自己検証プロンプトが実行されます。
+
 ### 🖼️ 2-Stage Analysis (2段階解析)
-- **Vision OCR Analysis / 画像解析OCR**: Generates high-quality metadata from the uploaded comic image, determining speaker, emotion, and bubble position. / アップロードされた漫画画像から、話者、感情、吹き出し位置を判定する高品質なメタデータを生成。
+- **Vision OCR Analysis / 画像解析OCR**: Generates high-quality metadata from the uploaded comic image using Gemini or OpenAI, determining speaker, emotion, and bubble position. / アップロードされた漫画画像から、話者、感情、吹き出し位置を判定する高品質なメタデータを生成。
 - **Emotion-to-Audio / 感情連動オーディオ**: Expands the generated text into fully voiced audio with dynamic speed adjustments based on the character's emotion using VOICEVOX. / 生成したテキストを、キャラクターの感情に基づきVOICEVOXを使って速度調整されたフルボイス音声へと拡張。
 
 ### 🎬 Dynamic Panning (ダイナミックパンニング)
@@ -94,13 +98,13 @@ npm run dev
 The browser will open `http://localhost:5173` automatically. / ブラウザが `http://localhost:5173` を自動で開きます。
 
 ### 🔑 About API Keys / APIキーについて
-- A Gemini API Key obtained from [Google AI Studio](https://aistudio.google.com/) is required. / [Google AI Studio](https://aistudio.google.com/) で取得した Gemini APIキー が必要です。
+- A Gemini API Key or OpenAI API Key is required. / [Google AI Studio](https://aistudio.google.com/) で取得した Gemini APIキー、または [OpenAI](https://platform.openai.com/api-keys) の APIキー が必要です。
 
 ## 💻 Tech Stack / 技術スタック
 - **Frontend**: React / Remotion
 - **Bundler**: Vite
 - **Backend**: Node.js / Express
-- **AI**: Google GenAI SDK (Gemini 2.5 Flash)
+- **AI**: Google GenAI SDK (Gemini 2.5 Flash) / OpenAI SDK (gpt-4o)
 - **Audio**: VOICEVOX API
 
 ## ⚖️ Compliance & Legal Stance / 法的遵守について
@@ -188,6 +192,12 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 *Developed by FURU*
 
 ## 🔄 ChangeLog / 更新履歴
+
+**v1.3.5 (2026-05-18)**
+- [Feature] Dual API Engine (Gemini & OpenAI) アーキテクチャを導入。APIキーを入力するだけで自動的にエンジンを認識しルーティングする機能を追加しました。 / Implemented Dual API Engine architecture. The system now automatically detects and routes requests to either Gemini or OpenAI based on the provided API key.
+- [Improve] フロントエンドUIを改修。APIキーの再入力（切替）をリロード不要で行える専用の「⚙️ APIキーを変更」ボタンをUI画面上に追加し、ボタンの押下感を向上させました。 / Enhanced the frontend UI by adding a dedicated "Change API Key" button for on-the-fly engine switching without reloading, along with improved button tactile feedback.
+- [Improve] AIプロンプトの抜本的強化（自己検証機能の追加）。OpenAIモデル（gpt-4o）利用時に目立つ「漢字の誤認」や「読む順序の逆転」「読み飛ばし」を防ぐため、AIに前後の文脈からOCR結果を自己検証（補正）させる指示と、空間的な左右位置（right-to-left）の厳密な抽出ルールを導入しました。このルールはGeminiにも適用され、全体の解析精度がさらに向上しています。 / Massively upgraded the AI prompt with a contextual self-verification routine to mitigate OpenAI's specific OCR weaknesses. Enforced strict right-to-left spatial extraction and prevented dialogue skipping.
+- [Docs] READMEを大幅にアップデートし、Dual APIアーキテクチャの解説と、Geminiをプライマリオプションとして推奨する理由（日本語OCR精度の優位性）を明記しました。 / Updated README to detail the Dual API architecture and explicitly recommend Gemini due to its superior Japanese OCR accuracy.
 
 **v1.3.4 (2026-05-18)**
 - [Fix] バッチファイル(`start_ai-voice-comic-maker.bat`)におけるVite開発サーバーの起動プロセスを改善。`vite --open`を利用してブラウザを自動で開くようにし、初期起動時の「サイトにアクセスできません」エラーを解消。 / Improved the Vite development server startup process in the batch launcher. Replaced hardcoded browser launch with `vite --open` to fix initial "Site not reached" errors.

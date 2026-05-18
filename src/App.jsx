@@ -15,7 +15,7 @@
  */
 import React, { useState, useCallback, useEffect } from 'react';
 
-const SYSTEM_VERSION = "1.3.4";
+const SYSTEM_VERSION = '1.3.5';
 
 // タイトルを「」で囲むヘルパー（すでに囲まれていたら二重にしない）
 const wrapKagi = (title) => {
@@ -37,6 +37,7 @@ export default function App() {
   const [voicevoxStatus, setVoicevoxStatus] = useState('checking'); // checking | connected | error
   const [geminiKey, setGeminiKey] = useState('');
   const [geminiKeyValid, setGeminiKeyValid] = useState(false);
+  const [activeEngine, setActiveEngine] = useState('gemini');
   const [dragOver, setDragOver] = useState(false);
   const [progress, setProgress] = useState({ step: 0, total: 5, message: '' });
   const [videoUrl, setVideoUrl] = useState(null);
@@ -103,10 +104,11 @@ export default function App() {
 
   const checkSavedApiKey = async () => {
     try {
-      const res = await fetch('/api/gemini/status');
+      const res = await fetch('/api/apistatus');
       const data = await res.json();
       if (data.configured) {
         setGeminiKeyValid(true);
+        setActiveEngine(data.engine || 'gemini');
       }
     } catch {
       // サーバー未起動時は無視
@@ -133,7 +135,7 @@ export default function App() {
   const handleSetApiKey = async () => {
     if (!geminiKey.trim()) return;
     try {
-      const res = await fetch('/api/gemini/key', {
+      const res = await fetch('/api/apikey', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ apiKey: geminiKey.trim() }),
@@ -141,6 +143,7 @@ export default function App() {
       const data = await res.json();
       if (data.valid) {
         setGeminiKeyValid(true);
+        setActiveEngine(data.engine || 'gemini');
         setError(null);
       } else {
         setError('APIキーが無効です。正しいキーを入力してください。');
@@ -303,20 +306,29 @@ export default function App() {
                   {geminiKeyValid ? '✅' : '🔑'}
                 </span>
                 <div className="setup-detail">
-                  <strong>Gemini API Key</strong>
+                  <strong>AI API Key</strong>
                   {geminiKeyValid ? (
-                    <p className="setup-hint success">設定済み</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
+                      <p className="setup-hint success" style={{ margin: 0 }}>設定済み ({activeEngine === 'openai' ? 'OpenAI' : 'Gemini (推奨/高精度)'})</p>
+                      <button className="btn-change-key" onClick={() => { setGeminiKey(''); setGeminiKeyValid(false); }}>APIを切替</button>
+                    </div>
                   ) : (
                     <div className="api-key-form">
                       <p className="setup-hint">
-                        漫画画像の解析に使用します。
-                        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer"> 取得はこちら →</a>
+                        漫画画像の解析に使用します。<br/>
+                        <strong>Gemini</strong> または <strong>OpenAI (sk-...)</strong> のAPIキーを入力すると自動で認識します。<br/>
+                        <span style={{ fontSize: '12px', color: 'var(--accent-pink)' }}>※ OpenAI APIは、Geminiと比べて日本語テキストの誤認識が発生する場合があります。</span><br/>
+                        <span style={{ marginTop: '8px', display: 'inline-block' }}>
+                          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Geminiキー取得</a>
+                          <span style={{ margin: '0 8px', color: 'var(--text-muted)' }}>|</span>
+                          <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">OpenAIキー取得</a>
+                        </span>
                       </p>
                       <div className="api-key-input-row">
                         <input
                           type="password"
                           className="api-key-input"
-                          placeholder="AIza..."
+                          placeholder="AIza... または sk-..."
                           value={geminiKey}
                           onChange={(e) => setGeminiKey(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && handleSetApiKey()}
@@ -368,9 +380,21 @@ export default function App() {
                 VOICEVOX 接続中
               </div>
               <div className="gemini-badge">
-                <span className="badge-dot badge-dot--gemini" />
-                Gemini AI 準備完了
+                <span className={`badge-dot ${activeEngine === 'openai' ? 'badge-dot--openai' : 'badge-dot--gemini'}`} style={activeEngine === 'openai' ? { backgroundColor: '#10a37f', boxShadow: '0 0 8px #10a37f' } : {}} />
+                {activeEngine === 'openai' ? 'OpenAI 準備完了' : 'Gemini AI 準備完了'}
               </div>
+              <button 
+                className="btn-change-key" 
+                onClick={() => {
+                  setGeminiKey('');
+                  setGeminiKeyValid(false);
+                  setPhase(PHASE.SETUP);
+                }}
+                style={{ height: '32px', display: 'flex', alignItems: 'center', alignSelf: 'center' }}
+                title="APIキーを変更する"
+              >
+                ⚙️ APIキーを変更
+              </button>
             </div>
 
             <div
