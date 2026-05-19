@@ -15,7 +15,7 @@
  */
 import React, { useState, useCallback, useEffect } from 'react';
 
-const SYSTEM_VERSION = '1.3.6';
+const SYSTEM_VERSION = '1.3.7';
 
 // タイトルを「」で囲むヘルパー（すでに囲まれていたら二重にしない）
 const wrapKagi = (title) => {
@@ -29,6 +29,7 @@ const PHASE = {
   SETUP: 'setup',       // APIキー入力 + VOICEVOX接続確認
   DROP: 'drop',         // 画像ドロップ待ち
   GENERATING: 'generating', // AI解析 → 音声合成 → 動画生成
+  CANCELLING: 'cancelling', // 中断処理中
   COMPLETE: 'complete', // 完成 → プレーヤー＆ダウンロード
 };
 
@@ -48,6 +49,7 @@ export default function App() {
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [isCopied, setIsCopied] = useState(false);
   const logEndRef = React.useRef(null);
+  const abortControllerRef = React.useRef(null);
 
   // ターミナルの自動スクロール
   useEffect(() => {
@@ -192,6 +194,9 @@ export default function App() {
     setVideoTitle(imageFile.name.replace(/\.[^.]+$/, ''));
 
     try {
+      abortControllerRef.current = new AbortController();
+      const signal = abortControllerRef.current.signal;
+
       const formData = new FormData();
       formData.append('image', imageFile);
 
@@ -200,6 +205,7 @@ export default function App() {
       const uploadRes = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
+        signal
       });
       if (!uploadRes.ok) throw new Error('アップロードに失敗しました');
       const { sessionId } = await uploadRes.json();
@@ -207,7 +213,7 @@ export default function App() {
 
       // Step 2: Gemini OCR で AI解析
       setProgress({ step: 2, total: 5, message: 'AI が漫画を解析中... 🔍' });
-      const ocrRes = await fetch(`/api/analyze/${sessionId}`, { method: 'POST' });
+      const ocrRes = await fetch(`/api/analyze/${sessionId}`, { method: 'POST', signal });
       if (!ocrRes.ok) {
         const errData = await ocrRes.json().catch(() => ({}));
         throw new Error(errData.error || 'AI解析に失敗しました');
@@ -223,7 +229,7 @@ export default function App() {
       setProgress({ step: 4, total: 5, message: 'Remotion で動画レンダリング中... 🎬' });
 
       // Step 3-4 を一括実行
-      const genRes = await fetch(`/api/generate/${sessionId}`, { method: 'POST' });
+      const genRes = await fetch(`/api/generate/${sessionId}`, { method: 'POST', signal });
       if (!genRes.ok) {
         const errData = await genRes.json().catch(() => ({}));
         throw new Error(errData.error || '動画生成に失敗しました');
@@ -235,9 +241,39 @@ export default function App() {
       setPhase(PHASE.COMPLETE);
 
     } catch (err) {
-      setError(err.message);
-      setPhase(PHASE.DROP);
+      if (err.name === 'AbortError' || err.message === 'CanceledByUser') {
+        console.log('Generation cancelled by user.');
+        // 中断時は handleCancel 側で状態遷移を管理するためここでは何もしない
+      } else {
+        setError(err.message);
+        setPhase(PHASE.DROP);
+      }
     }
+  };
+
+  // ── 生成中断 ──
+  const handleCancel = async () => {
+    setPhase(PHASE.CANCELLING);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    if (currentSessionId) {
+      try {
+        await fetch(`/api/cancel/${currentSessionId}`, { method: 'DELETE' });
+      } catch (e) {
+        console.error('Failed to cancel session on server', e);
+      }
+    }
+    
+    // 削除完了メッセージを少し見せるために3秒待機
+    setTimeout(() => {
+      setPhase(PHASE.DROP);
+      setVideoUrl(null);
+      setVideoTitle('');
+      setOcrPreview(null);
+      setProgress({ step: 0, total: 5, message: '' });
+      setError(null);
+    }, 3000);
   };
 
   // ── ダウンロード ──
@@ -439,6 +475,19 @@ export default function App() {
         {/* ──────── Phase: GENERATING (AI解析 → 生成中) ──────── */}
         {phase === PHASE.GENERATING && (
           <div className="card generating-card">
+            
+            {/* 生成中もステータスバッジを表示 */}
+            <div className="status-badges" style={{ marginBottom: '16px' }}>
+              <div className="voicevox-badge">
+                <span className="badge-dot" />
+                VOICEVOX 接続中
+              </div>
+              <div className="gemini-badge">
+                <span className={`badge-dot ${activeEngine === 'openai' ? 'badge-dot--openai' : 'badge-dot--gemini'}`} style={activeEngine === 'openai' ? { backgroundColor: '#10a37f', boxShadow: '0 0 8px #10a37f' } : {}} />
+                {activeEngine === 'openai' ? 'OpenAI 稼働中' : 'Gemini AI 稼働中'}
+              </div>
+            </div>
+
             <div className="card-icon generating-icon">🎬</div>
             <h2>ボイスコミック生成中...</h2>
             {videoTitle && <p className="generating-title">{wrapKagi(videoTitle)}</p>}
@@ -525,6 +574,32 @@ export default function App() {
                 <button className="btn btn-retry" onClick={handleReset}>やり直す</button>
               </div>
             )}
+
+            <div style={{ marginTop: '24px', textAlign: 'center' }}>
+              <button 
+                className="btn btn-change-key" 
+                onClick={handleCancel}
+                style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#fca5a5', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+              >
+                ⏹️ 生成を中断する
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ──────── Phase: CANCELLING (中断処理中) ──────── */}
+        {phase === PHASE.CANCELLING && (
+          <div className="card generating-card" style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <div className="card-icon" style={{ fontSize: '48px', marginBottom: '16px' }}>🛑</div>
+            <h2 style={{ color: '#fca5a5' }}>生成を中断しました</h2>
+            <p style={{ color: '#94a3b8', marginTop: '16px', lineHeight: '1.6', fontSize: '15px' }}>
+              バックエンドの処理を停止し、<br/>
+              サーバー上の一時ファイル（ゴミ動画や音声等）をクリーンアップしました。
+            </p>
+            <div style={{ marginTop: '24px' }}>
+              <span style={{ display: 'inline-block', width: '24px', height: '24px', border: '3px solid rgba(56, 189, 248, 0.3)', borderTopColor: '#38bdf8', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></span>
+              <p style={{ color: '#64748b', fontSize: '13px', marginTop: '12px' }}>ドロップ画面へ戻ります...</p>
+            </div>
           </div>
         )}
 

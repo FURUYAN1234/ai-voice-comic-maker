@@ -265,6 +265,38 @@ app.get('/api/voicevox/speakers', async (req, res) => {
 });
 
 // ──────────────────────────────────────
+// API: 生成中断＆ゴミファイル削除
+// ──────────────────────────────────────
+app.delete('/api/cancel/:sessionId', (req, res) => {
+  const { sessionId } = req.params;
+  const session = sessions.get(sessionId);
+  if (session) {
+    session.cancelled = true;
+    sessionLog(sessionId, `🛑 [Cancel] ユーザーにより生成が中断されました。関連ファイルを削除します。`);
+    
+    try {
+      // テンポラリディレクトリ（アップロード画像など）の削除
+      const tempDir = path.join(__dirname, 'temp', sessionId);
+      if (fs.existsSync(tempDir)) {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      }
+      
+      // 音声ディレクトリの削除
+      const voiceDir = path.join(__dirname, 'public', 'voiceover', sessionId);
+      if (fs.existsSync(voiceDir)) {
+        fs.rmSync(voiceDir, { recursive: true, force: true });
+      }
+      
+      // 注意: public/panels は sessionId がファイル名に含まれるため個別に消すかガベコレに任せる
+      // （安全のためガベコレに任せる形でもOKですが、ここでは明示的に消せるものは消します）
+    } catch (e) {
+      console.error('Cancel cleanup error:', e);
+    }
+  }
+  res.json({ success: true });
+});
+
+// ──────────────────────────────────────
 // API: 画像のみアップロード（JSONは不要！）
 // ──────────────────────────────────────
 app.post('/api/upload', upload.single('image'), (req, res) => {
@@ -427,6 +459,9 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
         responseText = result.response.text();
         sessionLog(sessionId, `📝 Gemini レスポンス受信 (${responseText.length}文字)`);
       }
+
+      if (session.cancelled) throw new Error('CanceledByUser');
+
       sessionLog(sessionId, `🔬 [Parser] JSONペイロードを抽出中... コードフェンス検出 & サニタイズ処理`);
 
       // JSONパース（Geminiの不正JSON出力に対応するサニタイズ処理付き）
@@ -697,6 +732,8 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     sessionLog(sessionId, `📖 タイトル: ${title}`);
     sessionLog(sessionId, `💬 セリフ数: ${dialogues.length}`);
 
+    if (session.cancelled) throw new Error('CanceledByUser');
+
     // ── 画像分割 (sharp) ──
     sessionLog(sessionId, '✂️ [Sharp] 画像をコマごとに分割中...');
     const publicPanelsDir = path.join(__dirname, 'public', 'panels');
@@ -793,6 +830,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
 
     const audioFiles = [];
     for (let i = 0; i < dialogues.length; i++) {
+      if (session.cancelled) throw new Error('CanceledByUser');
       const d = dialogues[i];
       const speakerId = getSpeakerId(d);
       const filename = `line_${String(i + 1).padStart(2, '0')}.wav`;
@@ -956,6 +994,8 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     const timestamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
     const outputPath = path.join(outDir, `voice_comic_${timestamp}.mp4`);
 
+    if (session.cancelled) throw new Error('CanceledByUser');
+
     // ── Remotion レンダリング ──
     sessionLog(sessionId, '🎬 [Remotion] 動画レンダリングパイプライン開始');
     const compositionId = 'VoiceComic';
@@ -989,6 +1029,9 @@ app.post('/api/generate/:sessionId', async (req, res) => {
       outputLocation: outputPath,
       inputProps: { scriptData },
       onProgress: ({ renderedFrames }) => {
+        if (session.cancelled) {
+          throw new Error('CanceledByUser');
+        }
         const pct = Math.floor((renderedFrames / composition.durationInFrames) * 100);
         if (pct >= lastReportedPct + 5) {
           lastReportedPct = pct;
