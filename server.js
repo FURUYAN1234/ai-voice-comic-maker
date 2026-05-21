@@ -187,6 +187,10 @@ const PRONUNCIATION_DICT = {
   'Steam': 'スチーム',
   'PS5': 'プレステファイブ',
   'PS4': 'プレステフォー',
+  'PS3': 'プレステスリー',
+  'PS2': 'プレステツー',
+  'PS1': 'プレステワン',
+  'PS': 'プレステ',
   'Switch': 'スイッチ',
   'Xbox': 'エックスボックス',
   // --- 日常会話・感情表現 ---
@@ -924,7 +928,6 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
       
       // 動的に判定したモデルを使用（画像入力非対応のgemini-proなどが選ばれた場合のフォールバックも考慮）
       let modelToUse = runtimeModel;
-      const model = genAI.getGenerativeModel({ model: modelToUse });
 
       // 画像をBase64に変換
       const imageBuffer = fs.readFileSync(session.imagePath);
@@ -1017,7 +1020,10 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
           model: runtimeModel,
-          generationConfig: { temperature: 0.1 },
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: "application/json"
+          },
         });
 
         const result = await model.generateContent([
@@ -1052,6 +1058,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
         metadata = JSON.parse(cleaned);
       } catch (parseErr1) {
         sessionLog(sessionId, `⚠️ [Parser] 1次パース失敗: ${parseErr1.message}`);
+        console.error(`[Parser Error] 1次パース失敗。生レスポンス:\n${responseText}\n---`);
         // フォールバック: JSON部分だけを抽出して再トライ
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
@@ -1059,9 +1066,11 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
             metadata = JSON.parse(sanitizeJson(jsonMatch[0]));
           } catch (parseErr2) {
             sessionLog(sessionId, `❌ [Parser] 2次パースも失敗: ${parseErr2.message}`);
+            console.error(`[Parser Error] 2次パースも失敗。抽出試行JSON:\n${jsonMatch[0]}\n---`);
             throw new Error('AIの応答からメタデータを抽出できませんでした。再度お試しください。');
           }
         } else {
+          console.error(`[Parser Error] JSONパターンマッチ失敗。レスポンス内に { } が見つかりません。`);
           throw new Error('AIの応答からメタデータを抽出できませんでした。再度お試しください。');
         }
       }

@@ -1,5 +1,6 @@
-v1.3.8: Preset Pronunciation Dictionary & OCR Prompt Hardening / プリセット発音辞書導入＆OCRプロンプト厳格化
+v1.3.9: Enforced JSON Format & PS Pronunciation Fix / GeminiレスポンスJSON強制化＆PSシリーズ発音辞書修正
 
 ## What's New / 更新内容
-- VOICEVOX音声合成向けにIT用語やネットスラングなどを含む約450ワードのプリセット発音辞書を導入し、読み間違いを自動補正。/ Introduced a preset pronunciation dictionary of ~450 words including IT terms and net slang for VOICEVOX synthesis to auto-correct misreadings.
-- Vision OCRのプロンプトを厳格化し、セリフの一字一句正確な転写とGemini API呼び出し時の温度設定(temperature: 0.1)による言い換えの抑制を実現。/ Hardened Vision OCR prompt to enforce word-for-word transcriptions and lowered temperature to 0.1 to suppress LLM paraphrasing.
+- Gemini Vision OCRに `responseMimeType: "application/json"` を適用し、解析エラーの主な原因であった不正なJSONや説明文テキストの混入を完全に防止。 / Enforced Gemini Vision OCR response as JSON via responseMimeType configuration to mitigate parsing errors.
+- 発音補正辞書にPlayStationシリーズ（`PS3`, `PS2`, `PS1`, `PS`）を追加し、PS2画像等をドロップした際の発音（「プレステツー」など）を正確に補正。 / Added PlayStation series (PS3, PS2, PS1, PS) to the pronunciation dictionary to correct voice synthesis pronunciation.
+- 重複する未使用コードの削除およびクリーンアップ。 / Cleaned up duplicate model definition code.
