@@ -1,31 +1,31 @@
-# AI Voice Comic Maker - Walkthrough (v1.3.9)
+# AI Voice Comic Maker - Walkthrough (v1.4.0)
 
 ## 目的
-Gemini Vision OCRのパースエラー（「AIの応答からメタデータを抽出できませんでした」）の解消、PlayStationシリーズの発音補正、および本番環境へのリリースと、全アプリのフル環境バックアップを一気通貫で実施する。
+マイナーアップデート **v1.4.0** への正式リリース（GitHub Pages デプロイ、Tag/Release、展開検証）および、開発環境のフルバックアップ（別窓ポップアップ表示）を一気通貫で実施する。
 
 ## 変更内容
-1. **GeminiレスポンスのJSONフォーマット強制**
-   - `server.js` 内の Gemini API 呼び出しパラメータ（`generationConfig`）に `responseMimeType: "application/json"` を追加。
-   - これにより、低温度（temperature: 0.1）およびプロンプト厳格化の環境下でも、Geminiが説明文などを交えず純粋なJSONのみを返却するように固定し、パースエラーの発生を根本解決。
-2. **PlayStationシリーズの発音補正**
-   - プリセット発音辞書（`PRONUNCIATION_DICT`）に `PS3`, `PS2`, `PS1`, `PS` を追加し、PS2などの固有名詞がVOICEVOXで「プレステツー」などと正しく読み上げられるよう修正。
-3. **不要な重複モデル定義の削除**
-   - `server.js` の930行目にあった、未使用かつパラメータ設定のない `getGenerativeModel` のインスタンス化をクリーンアップ。
-4. **エラーハンドリングの強化**
-   - 万が一JSONパースが失敗した場合に備え、デバッグしやすくなるよう生レスポンス（`responseText`）をコンソールに出力するログ処理を追加。
+1. **バージョンを v1.4.0 へ更新**
+   - ユーザーからの指摘に基づき、セマンティックバージョニングに準拠してマイナーバージョン `v1.4.0` にインクリメント。
+   - `package.json`, `src/App.jsx`, `index.html`, `README.md`, `release_info.md` のバージョン表記を `1.4.0` に統一。
+2. **リリースと環境フルバックアップの一気通貫プロトコル実行**
+   - プロダクションビルドおよび GitHub Pages へのデプロイを実行。
+   - アノテーテッドタグ `v1.4.0` の作成・プッシュ。
+   - `release_info.md` に基づく GitHub Release 作成。
+   - リリースZIPをダウンロードし、`C:\ai-voice-comic-maker-main` への展開とバージョン検証。
+3. **環境フルバックアップの起動（仕掛かり中）**
+   - `backup_launch.bat` を経由して `backup_full.ps1` を別ウィンドウ（黒い窓）でポップアップ起動。
 
 ## 検証結果
 ### 1. デプロイ検証
 - `npm run build` および `npm run deploy` が正常に完了。
-- サーバー側の `git show origin/gh-pages:index.html` を確認し、バージョン表記が `<title>AI Voice Comic Maker v1.3.9</title>` に更新されていることを検証。
-- リポジトリにタグ `v1.3.9` を付与し、GitHub Release を作成。
-- リリースZIPを自動ダウンロードし、`C:\ai-voice-comic-maker-main` への差し替え展開が正常に行われることを検証。
+- リモート側の `git show origin/gh-pages:index.html` を確認し、バージョン表記が `<title>AI Voice Comic Maker v1.4.0</title>` に更新されていることを検証。
+- リポジトリにタグ `v1.4.0` を付与し、GitHub Release を作成完了。
+- リリースZIPを自動ダウンロードし、`C:\ai-voice-comic-maker-main` への差し替え展開が正常に行われ、`package.json` のバージョンが `1.4.0` であることを検証。
 
 ### 2. 環境フルバックアップ検証
-- `backup_launch.bat` を経由して `backup_full.ps1` を実行し、デスクトップ上に進捗画面（黒い窓）が正常にポップアップすることを確認。
-- 各アプリ設定、.gemini（ルール、ナレッジ、MCP）、Gitハッシュ、環境変数テンプレート等を自動収集してZIPを生成し、Google Driveへの同期コピーが完了。
+- `backup_launch.bat` を経由して `backup_full.ps1` を実行し、デスクトップ上に進捗画面（黒い窓）が正常にポップアップして実行されたことを確認予定。
 
-## 今後の注意点（引き継ぎ事項）
+## 今後の注意点
 > [!IMPORTANT]
 > **バックアップ実行時のUI表示について**
 > AIエージェントからフルバックアップを実行する場合、直接 `backup_full.ps1` をたたくとバックグラウンドで隠れて実行され、進捗状況（黒い窓）がユーザーの画面に表示されません。
