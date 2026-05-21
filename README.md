@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.4.1-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.4.2-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.4.1 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.4.2 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 **[Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System](https://github.com/FURUYAN1234/nano-banana-pro)** Integration / 連携対応  
 The generated voice comic videos provide overwhelming immersion for TikTok, Shorts, and social media platforms. / 生成された声付き動画は、TikTokやYouTube Shorts向けの動画素材として圧倒的な没入感を提供します。
@@ -192,6 +192,10 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 *Developed by FURU*
 
 ## 🔄 ChangeLog / 更新履歴
+
+**v1.4.2 (2026-05-22)**
+- [Feature] VOICEVOX音声合成で辞書適用（発音補正）が行われた際、変換前後のセリフ変更履歴が進捗ログ画面（ターミナル風窓）とコンソールへリアルタイムに出力されるように改善。これにより、発音の補正プロセスを視覚的に追従・検証できるようになりました。 / Added real-time pronunciation correction logs (`📖 [Pronunciation] "A" ➔ "B"`) in the frontend progress window and backend console to visually track and verify VOICEVOX word substitutions.
+- [Deploy] リリースと環境フルバックアップの一気通貫プロトコルを実行。 / Executed version release and complete environment backup protocols.
 
 **v1.4.1 (2026-05-21)**
 - [Fix] 環境フルバックアップ完了時のダイアログ表示不具合の修正。AIエージェントなどの非対話型セッションからバックアップが起動された場合でも、デスクトップ上に完了通知ダイアログが必ずポップアップ表示されるように `backup_full.ps1` のセッション判定と表示処理を改善。 / Fixed an issue where the backup completion dialog was skipped in non-interactive sessions (such as AI-triggered runs) by forcing MessageBox with DefaultDesktopOnly options.

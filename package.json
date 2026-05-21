@@ -1,6 +1,6 @@
 {
   "name": "ai-voice-comic-maker",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Drop a 4-koma manga image, get a fully voiced short video automatically. / 4コマ漫画画像をドロップするだけ。AIが全自動でフルボイスショート動画を生成します。",
   "type": "module",
   "license": "MIT",
