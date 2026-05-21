@@ -34,3 +34,6 @@ debug*.log
 temp/
 public/voiceover/
 dist/voiceover/
+
+# AI Agent rules
+AGENTS.md
