@@ -194,12 +194,10 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 ## 🔄 ChangeLog / 更新履歴
 
 **v1.4.0 (2026-05-21)**
-- [Deploy] リリースと環境フルバックアップの一気通貫プロトコルを実行。 / Executed version release and complete environment backup protocols.
-
-**v1.3.9 (2026-05-21)**
 - [Fix] Gemini Vision OCRのパースエラーにより「AIの応答からメタデータを抽出できませんでした」と表示される問題を修正。`responseMimeType: "application/json"` を適用することで、Gemini APIの応答形式をJSONへ完全に強制・固定。 / Fixed the JSON parse error "Failed to extract metadata from AI response" by enforcing a strict JSON return format from Gemini API using the `responseMimeType: "application/json"` generation config.
 - [Improve] 発音補正辞書（`PRONUNCIATION_DICT`）にPlayStationシリーズ（`PS3`, `PS2`, `PS1`, `PS`）を追加し、PS2等の文字が音声合成で「プレステツー」と正しく発音されるように調整。 / Added PlayStation series entries (PS3, PS2, PS1, PS) to the preset pronunciation dictionary for correct audio vocalization like "Pre-Ste-Two".
 - [Clean] `server.js` 内で重複して宣言されていた、未使用のモデル生成処理（`getGenerativeModel`）を削除。 / Cleaned up redundant and unused duplicate `getGenerativeModel` invocation in `server.js`.
+- [Deploy] リリースと環境フルバックアップの一気通貫プロトコルを実行。 / Executed version release and complete environment backup protocols.
 
 **v1.3.8 (2026-05-21)**
 - [Feature] VOICEVOXの音声合成時の発音精度を向上させるため、IT用語、日常会話、ネットスラングなど約450ワードのプリセット発音辞書を導入。ダイアログおよびタイトルコールに自動適用されるように改善。 / Introduced a preset pronunciation dictionary of ~450 words covering IT terms, conversation, and net slang for VOICEVOX synthesis to auto-correct dialogue and title-call audio.
