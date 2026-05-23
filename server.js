@@ -1098,9 +1098,32 @@ app.post('/api/apikey', async (req, res) => {
     if (engine === 'openai') {
       const OpenAI = (await import('openai')).default;
       const openai = new OpenAI({ apiKey: key });
-      await openai.models.list(); // 簡易バリデーション
+      
+      const modelsToTry = ['gpt-4.1', 'gpt-4o', 'gpt-4.1-mini'];
+      let workingModel = null;
+      let lastError = null;
+
+      for (const modelName of modelsToTry) {
+        try {
+          await openai.chat.completions.create({
+            model: modelName,
+            messages: [{ role: "user", content: "test" }],
+            max_tokens: 5
+          });
+          workingModel = modelName;
+          break;
+        } catch (e) {
+          lastError = e;
+          console.log(`    ℹ️ OpenAI ${modelName} は利用不可: ${e.message.split('\n')[0]}`);
+        }
+      }
+
+      if (!workingModel) {
+        throw lastError || new Error("利用可能なOpenAIモデルが見つかりませんでした");
+      }
+
       runtimeApiKey = key;
-      runtimeModel = 'gpt-4o'; // 推奨モデル
+      runtimeModel = workingModel;
       runtimeEngine = 'openai';
       console.log(`🔑 OpenAI API Key が設定されました (使用モデル: ${runtimeModel})`);
       res.json({ valid: true, engine: 'openai' });
@@ -1344,47 +1367,88 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
 - personalityはキャラクターの見た目や雰囲気から推定すること（cool=クール・無表情・知的, cute=可愛い・幼い, energetic=元気・活発, calm=穏やか・おっとり, serious=真面目・厳格）`;
 
       let responseText = "";
+      let success = false;
+      let lastError = null;
 
       if (runtimeEngine === 'openai') {
         const OpenAI = (await import('openai')).default;
         const openai = new OpenAI({ apiKey: apiKey });
         const dataUrl = `data:${mimeType};base64,${base64Image}`;
         
-        const response = await openai.chat.completions.create({
-          model: runtimeModel,
-          messages: [
-            { role: "system", content: "あなたは優秀な漫画解析AIです。必ず指定されたJSONフォーマットで出力してください。" },
-            { role: "user", content: [
-                { type: "text", text: prompt },
-                { type: "image_url", image_url: { url: dataUrl, detail: "high" } }
-              ]
-            }
-          ],
-          response_format: { type: "json_object" },
-          temperature: 0.1
-        });
-        
-        responseText = response.choices[0].message.content;
-        sessionLog(sessionId, `📝 OpenAI レスポンス受信 (${responseText.length}文字)`);
+        const openAiFallbackList = ['gpt-4.1', 'gpt-4o', 'gpt-4.1-mini'];
+        const startIdx = openAiFallbackList.indexOf(runtimeModel);
+        const modelsToAttempt = startIdx !== -1 
+          ? [runtimeModel, ...openAiFallbackList.filter(m => m !== runtimeModel)]
+          : [runtimeModel, ...openAiFallbackList];
+
+        for (const modelName of modelsToAttempt) {
+          try {
+            sessionLog(sessionId, `⏳ OpenAI API リクエスト送信中 (モデル: ${modelName})...`);
+            const response = await openai.chat.completions.create({
+              model: modelName,
+              messages: [
+                { role: "system", content: "あなたは優秀な漫画解析AIです。必ず指定されたJSONフォーマットで出力してください。" },
+                { role: "user", content: [
+                    { type: "text", text: prompt },
+                    { type: "image_url", image_url: { url: dataUrl, detail: "high" } }
+                  ]
+                }
+              ],
+              response_format: { type: "json_object" },
+              temperature: 0.1
+            });
+            
+            responseText = response.choices[0].message.content;
+            sessionLog(sessionId, `📝 OpenAI レスポンス受信 (${responseText.length}文字)`);
+            runtimeModel = modelName;
+            success = true;
+            break;
+          } catch (err) {
+            lastError = err;
+            sessionLog(sessionId, `⚠️ [Fallback] OpenAIモデル ${modelName} でエラー発生: ${err.message}`);
+          }
+        }
       } else {
         // Gemini ロジック
         const { GoogleGenerativeAI } = await import('@google/generative-ai');
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({
-          model: runtimeModel,
-          generationConfig: {
-            temperature: 0.1,
-            responseMimeType: "application/json"
-          },
-        });
 
-        const result = await model.generateContent([
-          prompt,
-          { inlineData: { mimeType, data: base64Image } },
-        ]);
+        const geminiFallbackList = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'];
+        const startIdx = geminiFallbackList.indexOf(runtimeModel);
+        const modelsToAttempt = startIdx !== -1 
+          ? [runtimeModel, ...geminiFallbackList.filter(m => m !== runtimeModel)]
+          : [runtimeModel, ...geminiFallbackList];
 
-        responseText = result.response.text();
-        sessionLog(sessionId, `📝 Gemini レスポンス受信 (${responseText.length}文字)`);
+        for (const modelName of modelsToAttempt) {
+          try {
+            sessionLog(sessionId, `⏳ Gemini API リクエスト送信中 (モデル: ${modelName})...`);
+            const model = genAI.getGenerativeModel({
+              model: modelName,
+              generationConfig: {
+                temperature: 0.1,
+                responseMimeType: "application/json"
+              },
+            });
+
+            const result = await model.generateContent([
+              prompt,
+              { inlineData: { mimeType, data: base64Image } },
+            ]);
+
+            responseText = result.response.text();
+            sessionLog(sessionId, `📝 Gemini レスポンス受信 (${responseText.length}文字)`);
+            runtimeModel = modelName;
+            success = true;
+            break;
+          } catch (err) {
+            lastError = err;
+            sessionLog(sessionId, `⚠️ [Fallback] Geminiモデル ${modelName} でエラー発生: ${err.message}`);
+          }
+        }
+      }
+
+      if (!success) {
+        throw lastError || new Error("すべてのAIモデルの試行に失敗しました");
       }
 
       if (session.cancelled) throw new Error('CanceledByUser');
