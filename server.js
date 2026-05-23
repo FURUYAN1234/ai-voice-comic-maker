@@ -523,6 +523,7 @@ const PRONUNCIATION_DICT = {
   'IT': 'アイティー',
   'DX': 'ディーエックス',
   'ICT': 'アイシーティー',
+  'Webtoon': 'ウェブトーン',
   'Web': 'ウェブ',
   'Site': 'サイト',
   'Blog': 'ブログ',
