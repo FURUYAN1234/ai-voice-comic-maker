@@ -1321,14 +1321,15 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
 
 ## タスク
 1. この漫画画像に含まれるコマ（パネル）を上から順に識別する（必ず4つのコマオブジェクトを出力すること）
-2. 各コマ内の**すべてのセリフ（フキダシ内のテキスト）**を一切の漏れなく読み取る。セリフは**吹き出し内のテキストを一字一句そのまま転写**すること。OCR特有の誤認識（漢字の誤読）があれば正しい漢字に置き換えてよいが、**語順の変更、言い換え、要約は厳禁**。原文の語順・表現を忠実に保つこと。
+2. 各コマ内の**すべてのセリフ（フキダシ内のテキスト）**を一切の漏れなく読み取る。セリフは吹き出し内のテキストをそのまま正確に転写すること。画像生成AI特有の文字の歪みや滲みによる誤読（例：『活躍』が『洋題』に見えるなど）を完全に防ぐため、会話の文脈や日本語としての自然さから不自然な単語（日本語として意味が通らない言葉）を検出し、画像から推測される本来の正しい日本語（例：『活躍』など）に自己修正（文脈補正）してください。ただし、語順の変更や要約、勝手な意訳は厳禁です。
 3. 各セリフの話者を判定する（キャラクターの外見・位置から推定）
 4. 各セリフの感情を推定する
-5. 【重要】セリフ（フキダシ）がコマ内のどの位置にあるか（left, center, right）を空間的に厳密に判定する
-   - コマの右半分にある → "right"
-   - コマの中央にある → "center"
-   - コマの左半分にある → "left"
-6. 【超重要】1つのコマに複数のセリフがある場合、出力するJSONの配列順序を必ず**「右側にあるセリフ（right）」から順に（日本の漫画の読む順序通りに）**並べてください。
+5. 【重要】セリフ（フキダシ）がコマ内の物理的にどの位置（左・中央・右）にあるかを空間的に厳密に判定する
+   - 吹き出しの物理的な中心がコマの右半分にある → "right"
+   - 吹き出しの物理的な中心がコマの中央付近にある → "center"
+   - 吹き出しの物理的な中心がコマの左半分にある → "left"
+   ※キャラクターの立ち位置やセリフの優先順位（読む順序）に惑わされず、吹き出し自体の物理的な配置だけを客観的に判定してください。
+6. 1つのコマに複数のセリフがある場合、出力するJSONの配列内の順序は任意（順不同）です。バックエンドで自動的に物理的な位置（bubblePosition）に基づいて「右 ➔ 中央 ➔ 左」の順にソートされるため、順序を意識するあまり bubblePosition の左右判定を誤魔化したり捻じ曲げたりしないようにしてください。
 7. 漫画全体のタイトルを決定する:
    - 画像内にタイトルテキストが存在する場合 → そのテキストを抽出し、さらに前後の文脈や全体のテーマからOCRの誤読がないか自己検証（文脈補完）した上でタイトルとして設定する。
    - 画像内にタイトルがない場合 → 漫画の内容・オチ・テーマから、SNS投稿に適した魅力的で簡潔な日本語タイトルを創作する（例: 「お弁当の秘密」「猫と掃除機」等）
@@ -1358,7 +1359,15 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
 
 ## ルール
 - **titleフィールドは必須**: 空文字列にしないこと。必ず意味のある日本語タイトルを設定すること
-- 【最重要】セリフは吹き出し内のテキストを**一字一句そのまま正確に転写**すること。語順の入れ替え、言い換え、要約、意訳は一切禁止。漢字の誤読補正のみ許可する
+- 【最重要】セリフは吹き出し内のテキストを**一字一句そのまま正確に転写**すること。
+  - ただし、画像生成AIによる文字の滲み・歪みで発生する誤字（例: 『活躍』が『洋題』に見えるなど）は、前後の文脈や会話の流れ、一般的な日本語表現と照らし合わせ、意味が通る正しい漢字に自己検証・補正してください。
+  - 日本語として意味が通らない不自然な造語のまま出力することを防ぎ、文脈に適合した単語に修正してください。
+  - ただし、語順の入れ替え、言い換え、要約、意訳は一切禁止します。
+- **pronunciationフィールドは必須**: 字幕用の text をベースにしつつ、英語・アルファベット部分のみを自然な日本語のカタカナ（またはひらがな）読みに変換して設定すること。英単語を含まない場合は text と全く同じ値にすること
+- **bubblePositionは物理的な配置のみに基づいて客観的に判定すること**:
+  - キャラクターの配置や会話の流れ、読む順番の想定に一切惑わされず、吹き出しテキスト（吹き出しの中心）が画像的に「右・中央・左」のどこにあるかだけで客観的に判定してください。
+  - プログラム側がこの bubblePosition の結果に従ってセリフを自動的にソートし、カメラのパン位置も決定します。この判定を誤ると、セリフの順序とカメラフォーカスが左右逆（テレコ）になってしまいます。
+  - コマ内に2つ以上の吹き出しがある場合、それぞれの物理的中心の左右関係を比較し、より右側にある方を "right"（または中央寄りなら "center"）、より左側にある方を "left" と正確に区別して設定してください。
 - 話者名はキャラクターの外見的特徴から分かりやすい名前を付けること（例: 「青髪の少女」「メガネの男性」等）
 - 同じキャラクターには一貫した名前を使うこと
 - ナレーション（吹き出し外のテキスト）は speaker を "ナレーション" にすること
@@ -1490,6 +1499,125 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
           console.error(`[Parser Error] JSONパターンマッチ失敗。レスポンス内に { } が見つかりません。`);
           throw new Error('AIの応答からメタデータを抽出できませんでした。再度お試しください。');
         }
+      }
+    }
+
+    // ── AIによる2-Pass テキスト自動校正 (Contextual Dialogue Correction Pass) ──
+    if (metadata && metadata.panels && metadata.panels.length > 0 && apiKey) {
+      try {
+        sessionLog(sessionId, `📝 [OCR Correction] 2-Pass目: AIによる日本語コンテキスト校正を開始中...`);
+
+        // 校正用のプロンプト構築
+        const cleanDialogues = metadata.panels.map(p => ({
+          panelNumber: p.panelNumber,
+          dialogues: (p.dialogues || []).map(d => ({
+            speaker: d.speaker || '不明',
+            text: d.text || '',
+            pronunciation: d.pronunciation || ''
+          }))
+        }));
+
+        const correctionPrompt = `あなたは非常に優秀なマンガ編集者および校正・校閲AIです。
+入力された漫画の全セリフ（Vision OCRの文字起こし結果）を読み、日本語として自然で前後のストーリーの文脈に合うように、誤字脱字や文字の誤認識（文字の滲みや歪みによる誤読）を校正してください。
+
+【コンテキスト】
+・漫画タイトル: 「${metadata.title || '無題'}」
+・画像生成AIによって描かれているため、吹き出し内の漢字（例:「活躍」が「洋題」や「躍」と誤認識されるケース等）やひらがな・助詞が誤読されている可能性が極めて高いです。
+・前後の会話の流れ、キャラクターの口調、および「${metadata.title || '無題'}」という全体のテーマから、明らかに日本語として不自然な単語（日本語として意味が通らない言葉、前後の文脈と合わない言葉）を検出し、本来の正しい表現に自己修正してください。
+
+【校正ルール】
+1. セリフの口調（ギャル風、丁寧語、幼い表現など）やキャラクターの個性は絶対に維持してください。
+2. 意味が大きく変わるような改変、要約、勝手なセリフの追加・削除は絶対にしないでください。
+3. 誤読（例:「洋題してたって」➔「活躍してたって」、「躍してたって」➔「活躍してたって」等）や、てにをはの崩れのみを修正し、正しい日本語の部分は一切変更しないでください。
+4. text（字幕用）を修正した場合は、pronunciation（発音用）もそれに合わせて正しい読みに修正してください（例：textが「活躍」ならpronunciationは「かつやく」または「カツヤク」）。
+5. 出力は入力と同じJSON構造（配列）のみを返してください。マークダウンのコードブロックは使わないでください。
+
+【校正対象のJSON】
+${JSON.stringify(cleanDialogues, null, 2)}`;
+
+        let correctedText = "";
+        let correctionSuccess = false;
+
+        if (runtimeEngine === 'openai') {
+          const OpenAI = (await import('openai')).default;
+          const openai = new OpenAI({ apiKey: apiKey });
+          
+          const correctionModels = ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini'];
+          const modelName = correctionModels.includes(runtimeModel) ? runtimeModel : 'gpt-4o-mini';
+
+          const response = await openai.chat.completions.create({
+            model: modelName,
+            messages: [
+              { role: "system", content: "あなたは優秀な校正・校閲AIです。必ず指定されたJSONフォーマットのみを出力してください。" },
+              { role: "user", content: correctionPrompt }
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.1
+          });
+          correctedText = response.choices[0].message.content;
+          correctionSuccess = true;
+        } else {
+          // Gemini
+          const { GoogleGenerativeAI } = await import('@google/generative-ai');
+          const genAI = new GoogleGenerativeAI(apiKey);
+          const modelName = runtimeModel.includes('gemini') ? runtimeModel : 'gemini-2.5-flash';
+
+          const model = genAI.getGenerativeModel({
+            model: modelName,
+            generationConfig: {
+              temperature: 0.1,
+              responseMimeType: "application/json"
+            },
+          });
+
+          const result = await model.generateContent([correctionPrompt]);
+          correctedText = result.response.text();
+          correctionSuccess = true;
+        }
+
+        if (correctionSuccess && correctedText) {
+          function sanitizeJson(raw) {
+            let s = raw.trim();
+            if (s.startsWith('```')) {
+              s = s.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+            }
+            s = s.replace(/,\s*([}\]])/g, '$1');
+            s = s.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '');
+            return s;
+          }
+
+          let cleanedCorrection = sanitizeJson(correctedText);
+          const correctedData = JSON.parse(cleanedCorrection);
+
+          const correctedPanels = Array.isArray(correctedData) 
+            ? correctedData 
+            : (correctedData.panels || correctedData.data || []);
+
+          if (correctedPanels && correctedPanels.length > 0) {
+            metadata.panels.forEach(p => {
+              const cp = correctedPanels.find(x => x.panelNumber === p.panelNumber);
+              if (cp && cp.dialogues) {
+                p.dialogues.forEach((d, idx) => {
+                  const cpDialogues = cp.dialogues;
+                  const cd = cpDialogues[idx];
+                  if (cd && cd.text) {
+                    if (d.text !== cd.text) {
+                      sessionLog(sessionId, `🔧 [OCR Corrected] "${d.text}" ➔ "${cd.text}"`);
+                      d.text = cd.text;
+                    }
+                    if (cd.pronunciation) {
+                      d.pronunciation = cd.pronunciation;
+                    }
+                  }
+                });
+              }
+            });
+            sessionLog(sessionId, `✅ [OCR Correction] 2-Pass校正完了！誤読が自動修復されました。`);
+          }
+        }
+      } catch (err) {
+        sessionLog(sessionId, `⚠️ [OCR Correction] 2-Pass校正処理中にエラー（スキップします）: ${err.message}`);
+        console.error('OCR Correction Error:', err);
       }
     }
 
