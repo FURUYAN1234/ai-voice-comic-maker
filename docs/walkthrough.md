@@ -5,6 +5,51 @@
 
 ---
 
+## [v1.4.7] (2026-05-24) - ドキュメントの拡充とデプロイ・フルバックアップ
+
+### 目的
+v1.4.6で拡充した「発音標準化辞書」の詳細な解説を `README.md` にドキュメント化し、品質チェック（個人情報・固有名詞・APIキー・ゴミファイル監査）を行ったうえで、自動ビルド・デプロイ・ZIP展開検証・環境フルバックアップの一連のデプロイプロトコルを実行する。
+
+### 変更内容
+1. **ドキュメントの拡充 (`README.md`)**
+   - 固有アーキテクチャの要点に「Alphanumeric Pronunciation Standardization（英数字・ガジェット・AI用語の発音標準化）」に関する解説を追加。
+2. **リリース & デプロイプロトコル (v1.4.7)**
+   - `package.json`, `src/App.jsx`, `index.html`, `README.md`, `release_info.md` のバージョンを `1.4.7` に同期。
+   - `dist/` と `gh-pages` の一時キャッシュ（Permission Deniedの元）をクリーンアップし、再ビルド & GitHub Pages デプロイを完了。
+   - アノテーテッドタグ `v1.4.7` の作成および GitHub Release v1.4.7 の新規作成。
+3. **リプレース展開検証**
+   - リリースZIPをTEMPにダウンロードし、`C:\ai-voice-comic-maker-main` を完全に削除して新しいZIPの内容で差し替え展開。展開後の `package.json` が `1.4.7` であることを UTF-8 デコードにより確認。
+4. **環境フルバックアップの起動**
+   - デプロイ完了後、`C:\Users\sx717\Antigravity\backup_launch.bat` を直接呼び出し、デスクトップ上に進捗画面（黒い窓）をポップアップ起動してバックアップを完了。
+
+### 検証結果
+- クリーンビルドおよび `gh-pages` へのデプロイが正常終了。
+- リモート側の `gh-pages` ブランチの `index.html` にバージョン表記が `<title>AI Voice Comic Maker v1.4.7</title>` で反映されていることを検証。
+- Cドライブの `C:\ai-voice-comic-maker-main` を対象ZIPで正常にリプレース・展開検証完了。
+- `backup_launch.bat` の実行により、デスクトップ上に黒い窓がポップアップし、進捗バーとともにフルバックアップが問題なく実行され完了したことを確認。
+
+---
+
+## [v1.4.6] (2026-05-24) - 英数字・ガジェット・AI用語の発音補正辞書の大幅拡充
+
+### 目的
+VOICEVOXなどの音声合成エンジンが英数字混じりの固有名詞を誤読するバグ（例: 「Switch2」を「スイッチに」と読んでしまう）を解消するため、AI漫画で頻出する各種カテゴリの英数字を含む約100語以上の語彙を `PRONUNCIATION_DICT` に登録・拡充する。
+
+### 変更内容
+1. **発音補正辞書の大幅拡充 (`server.js`)**
+   - ゲーム・エンタメ: `Switch2 / Switch 2`, `PS5 Pro`, `PS VR2`, `Quest 3`, `1UP`, `2ch`, `5ch`, `LEVEL5` 等
+   - スマホ・タブレット: `iPhone 16 〜 13`, `iPad Pro / Air / mini`, `Apple Watch`
+   - OS・通信: `Windows 11 〜 7`, `Wi-Fi 7 / 6 / 6E`, `5G`, `4G`, `USB-C`
+   - AIモデル: `GPT-4o`, `Claude 3.5`, `Gemini 1.5`, `Llama 3`, `SD3`, `SDXL`
+   - ミリタリー・サイエンス: `F-15`, `AK-47`, `CO2`, `PM2.5`, `A4` / `B5` 用紙サイズ等
+2. **バージョン同期 (v1.4.6)**
+   - `package.json`, `src/App.jsx`, `index.html`, `README.md`, `release_info.md` を一時的に `1.4.6` に同期し、masterへコミット & プッシュ。
+
+### 検証結果
+- テストコードを用いて `applyPronunciationDict("Switch2値上げ前夜の混乱")` が `スイッチツー値上げ前夜の混乱` に置換されることを確認。
+
+---
+
 ## [v1.4.5] (2026-05-23) - 2-Pass AIテキスト自動校正と物理配置ソート
 
 ### 目的
