@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.4.6-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.4.7-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.4.6 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.4.7 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 **[Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System](https://github.com/FURUYAN1234/nano-banana-pro)** Integration / 連携対応  
 The generated voice comic videos provide overwhelming immersion for TikTok, Shorts, and social media platforms. / 生成された声付き動画は、TikTokやYouTube Shorts向けの動画素材として圧倒的な没入感を提供します。
@@ -55,6 +55,7 @@ This system is not merely a video editor. It is an automated orchestration engin
 - **Multi-Panel Dialogue Deduplication (コマ跨ぎ重複セリフの自動除去 - Dedup Engine)**: If the Vision AI erroneously repeats the same speaker/dialogue combination across adjacent panels, the system detects these duplicates and automatically keeps the latter occurrence (where the bubble is usually captured more clearly) while purging the redundant entries. / GeminiなどのVision OCRが隣接するコマで同じセリフを重複して検出してしまった場合、システムが自動的に重複を検知し、吹き出しがより鮮明に描かれているはずの「後方コマ」のデータを正本として残し、重複した前方コマの不要データを自動除去（デダップ）します。
 - **Super FURU Format Optimization (専用フォーマット最適化)**: Instead of randomly slicing panels, it specifically removes top/bottom headers and footers associated with the Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System system, slicing the manga into 4 perfect horizontal panels to minimize structural collapse. / ランダムにコマを切り出すのではなく、Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System システム特有の上下のヘッダー・フッターを正確に除外し、4つの横長コマとして完璧にスライスすることで、構造の破綻を最小限に抑えます。
 - **Stateful Voice Mapping (状態保持ボイスマッピング)**: Implements a tracking memory algorithm to prevent the same voice ID from being assigned to different characters in a single session. / 単一セッション内で異なるキャラクターに同じ音声IDが割り当てられるのを防ぎます。
+- **Alphanumeric Pronunciation Standardization (英数字・ガジェット・AI用語の発音標準化)**: The system features an extensive dictionary of over 100+ preset terms, resolving the open-source text-to-speech engine's native struggle with western alphanumeric brands. Instead of reading "Switch2" as "Switch-ni" (interpreting 2 as the Japanese word "ni"), or splitting "Webtoon" as "Web-TOON", the backend programmatically standardizes them to natural Japanese kana pronunciations (e.g. "スイッチツー", "ウェブトーン"). This vocabulary spans gaming hardware (Switch2, PS5 Pro), smart devices (iPhone16, Quest 3), OS (Windows 11), AI engines (GPT-4o, Claude 3.5), network protocols (5G, Wi-Fi 7), and scientific concepts (CO2, PM2.5). / VOICEVOXなどの音声合成エンジンが苦手とする英数字交じりの固有名詞や技術用語を、自然な日本語発音に標準化する辞書システムを実装。例えば「Switch2」が「スイッチに」と誤読されたり、「Webtoon」が「ウェブ・トゥーン（変なイントネーション）」と誤認識される問題を回避するため、100語以上のプリセット（Switch2, PS5 Pro, iPhone16, Windows 11, GPT-4o, Claude 3.5, 5G, Wi-Fi 7, CO2, PM2.5等）を登録。AI漫画で頻出するあらゆるテクノロジー・サブカル用語を滑らかに発音させます。
 
 ## 🧠 Zenith Protocol（AIモデル自動切替 / Auto AI Model Fallback）
 Following the philosophy of Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System, this system features a robust fallback mechanism (Zenith Protocol) that automatically switches to optimal alternative models upon API errors, rate limits, or safety filter blocks.  
@@ -195,6 +196,10 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 *Developed by FURU*
 
 ## 🔄 ChangeLog / 更新履歴
+
+**v1.4.7 (2026-05-24)**
+- [Improve] READMEに「英数字・ガジェット・AI用語の発音標準化辞書」に関する詳細解説を追加。 / Added a detailed architectural explanation for the Alphanumeric Pronunciation Standardization dictionary in README.md.
+- [Deploy] リリースと環境フルバックアップの一気通貫プロトコルを実行。 / Executed version release and complete environment backup protocols.
 
 **v1.4.6 (2026-05-24)**
 - [Improve] 音声合成発音補正辞書（`PRONUNCIATION_DICT`）に、数字付きの最新ゲーム機、ガジェット、AIモデル、OS、規格、ミリタリー、科学用語など多岐にわたるジャンルの単語を追加・充実。これにより、「Switch2」を「スイッチに」と誤読するなどの英数字誤認識問題を大幅に改善しました。 / Expanded the preset pronunciation dictionary (`PRONUNCIATION_DICT`) to include a wide variety of alphanumeric terms across multiple categories (gaming, gadgets, OS, AI models, network standards, military, science). This prevents voiceover misreadings like "Switch2" being synthesized as "Switch-ni".
