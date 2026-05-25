@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.5.10-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.6.0-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.5.10 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.6.0 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['AI_Creative_Studio'](https://github.com/user-attachments/assets/d9b97ee9-5051-4f99-8bd3-fb82967d5c12)](https://youtu.be/Ik59dL_zG1s?si=VduXBkmCTGfz51aJ)
 
@@ -200,7 +200,7 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 
 ## 🔄 ChangeLog / 更新履歴
 
-**v1.5.10 (2026-05-25)**
+**v1.6.0 (2026-05-25)**
 - [Fix] server.js 内のプロンプトテキストで、バッククォートがエスケープされずに構文エラー（SyntaxError: Unexpected identifier 'dialogues'）を引き起こし、バックエンドが起動直後にクラッシュするバグを修正。VOICEVOX 接続確認等の通信遮断問題を解消。 / Fixed a syntax error in server.js's prompt text where unescaped backticks caused a SyntaxError ('Unexpected identifier dialogues'), crashing the backend on startup and blocking VOICEVOX connections.
 
 **v1.5.9 (2026-05-25)**
