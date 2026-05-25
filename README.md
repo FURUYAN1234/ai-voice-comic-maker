@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.5.6-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.5.7-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.5.6 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.5.7 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['AI_Creative_Studio'](https://github.com/user-attachments/assets/d9b97ee9-5051-4f99-8bd3-fb82967d5c12)](https://youtu.be/Ik59dL_zG1s?si=VduXBkmCTGfz51aJ)
 
@@ -199,6 +199,9 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 *Developed by FURU*
 
 ## 🔄 ChangeLog / 更新履歴
+
+**v1.5.7 (2026-05-25)**
+- [Optimize] Automated the full deployment protocol and reinforced repository build health. / フルデプロイプロトコルの自動化を実行し、ビルドとデプロイの健全性を強化。
 
 **v1.5.6 (2026-05-25)**
 - [Fix] VOICEVOX音声合成前の英語辞書置換処理において、単語境界の判定がないため `NEKO` の `KO` などが誤って部分置換されるバグをルックアラウンド ((?<![a-zA-Z0-9]), (?![a-zA-Z0-9])) を導入して解決。 / Fixed English dictionary matching to use lookarounds to prevent partial word mistranslations like `NEKO` to `NEケーオー`.
