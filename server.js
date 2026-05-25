@@ -2009,6 +2009,8 @@ ${JSON.stringify(cleanDialogues, null, 2)}`;
       sessionLog(sessionId, `⚠️ [BGM Engine] BGM生成に失敗したため、デフォルトBGMを使用します: ${e.message}`);
     }
 
+    session.bgmAudio = bgmAudioPath; // セッションにBGMパスを退避
+
     const totalDialogues = metadata.panels.reduce((s, p) => s + p.dialogues.length, 0);
     const speakers = [...new Set(metadata.panels.flatMap(p => p.dialogues.map(d => d.speaker)))];
 
@@ -2052,6 +2054,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
 
     const metadata = session.metadata;
     const title = metadata.title;
+    const bgmAudioPath = session.bgmAudio || `audio/bgm.wav`; // セッションからBGMパスを復元
     const dialogues = [];
 
     for (const panel of metadata.panels) {
