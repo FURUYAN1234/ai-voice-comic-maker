@@ -15,7 +15,7 @@
  */
 import React, { useState, useCallback, useEffect } from 'react';
 
-const SYSTEM_VERSION = '1.4.7';
+const SYSTEM_VERSION = '1.5.4';
 
 // タイトルを「」で囲むヘルパー（すでに囲まれていたら二重にしない）
 const wrapKagi = (title) => {
@@ -556,7 +556,18 @@ export default function App() {
                       ocrPreview.panels.flatMap(p => (p.dialogues || []).map(d => JSON.stringify({ name: d.speaker, voice: d.voiceId, gender: d.gender })))
                     )).map((str, i) => {
                       const c = JSON.parse(str);
-                      const voiceNames = { 8: "春日部つむぎ", 16: "九州そら", 2: "四国めたん", 14: "冥鳴ひまり", 10: "雨晴はう", 12: "白上虎太郎", 13: "青山龍星", 11: "玄野武宏" };
+                      const voiceNames = { 
+                        2: "四国めたん", 
+                        3: "ずんだもん", 
+                        8: "春日部つむぎ", 
+                        9: "波音リツ", 
+                        10: "雨晴はう", 
+                        11: "玄野武宏", 
+                        12: "白上虎太郎", 
+                        13: "青山龍星", 
+                        14: "冥鳴ひまり", 
+                        16: "九州そら" 
+                      };
                       return (
                         <li key={i} style={{ marginBottom: '4px' }}>
                           ・<strong>{c.name}</strong> <span style={{ color: '#94a3b8' }}>({c.gender === 'female' ? '女性' : c.gender === 'male' ? '男性' : '不明'})</span> ➔ {voiceNames[c.voice] || `VOICEVOX_ID:${c.voice}`}

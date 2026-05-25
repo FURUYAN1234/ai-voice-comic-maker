@@ -1045,6 +1045,9 @@ const JP_READING_REGEX = new RegExp(
  * (3) 英語辞書: 英字略語・IT用語をカタカナ読みに変換
  */
 function applyPronunciationDict(text, sessionId = null) {
+  if (typeof text !== 'string') {
+    text = String(text || '');
+  }
   let result = text;
 
   // (1) 正規表現ベースの前処理（記号除去・伸ばし正規化）
@@ -1077,6 +1080,30 @@ const PORT = 3001;
 // ミドルウェア
 app.use(cors());
 app.use(express.json());
+
+// セッション管理用（インメモリ）
+const sessions = new Map();
+
+// ── パイプラインロック制御 (二重起動防止) ──
+const LOCK_FILE = path.join(__dirname, '.pipeline_lock');
+
+function acquireLock() {
+  if (fs.existsSync(LOCK_FILE)) {
+    return false;
+  }
+  fs.writeFileSync(LOCK_FILE, String(Date.now()), 'utf8');
+  return true;
+}
+
+function releaseLock() {
+  try {
+    if (fs.existsSync(LOCK_FILE)) {
+      fs.unlinkSync(LOCK_FILE);
+    }
+  } catch (e) {
+    console.error('Failed to release lock file:', e);
+  }
+}
 
 // ── ガベージコレクション (古い一時ファイルの自動削除) ──
 const CLEANUP_DIRS = [
@@ -1114,20 +1141,35 @@ function cleanupOldFiles() {
     }
   });
 
-  if (deletedCount > 0) {
-    console.log(`  ✨ お掃除完了！ ${deletedCount} 件の古い一時データ（動画/画像/音声）を削除し、容量を空けました。`);
+  // インメモリセッションデータの解放 (24時間以上前の古いセッションをMapから削除)
+  let deletedSessions = 0;
+  for (const [sid, sess] of sessions.entries()) {
+    if (sess.createdAt && now - sess.createdAt > MAX_AGE_MS) {
+      sessions.delete(sid);
+      deletedSessions++;
+    }
+  }
+
+  if (deletedCount > 0 || deletedSessions > 0) {
+    console.log(`  ✨ お掃除完了！ ${deletedCount} 件のファイルと ${deletedSessions} 件の古いセッションメモリデータを削除し、容量を空けました。`);
   } else {
-    console.log('  ✨ 削除対象の古いファイルはありませんでした（クリーンです）。');
+    console.log('  ✨ 削除対象の古いファイルおよびセッションデータはありませんでした（クリーンです）。');
   }
 }
 
 // サーバー起動時にお掃除を実行
 cleanupOldFiles();
+// 前回の異常終了によるロックファイルが残っていればクリーンアップ
+try {
+  if (fs.existsSync(LOCK_FILE)) {
+    fs.unlinkSync(LOCK_FILE);
+    console.log('🧹 [Startup] 前回の古い .pipeline_lock を削除しました。');
+  }
+} catch (e) {
+  console.error('Failed to clean startup lock file:', e);
+}
 // 以降、1時間ごとに自動実行
 setInterval(cleanupOldFiles, 60 * 60 * 1000);
-
-// セッション管理用（インメモリ）
-const sessions = new Map();
 
 // セッションごとのログ蓄積（フロントエンドポーリング用）
 const sessionLogs = new Map();
@@ -1141,13 +1183,18 @@ function sessionLog(sessionId, message) {
 function scheduleLogCleanup(sessionId) {
   setTimeout(() => {
     sessionLogs.delete(sessionId);
+    // sessions.delete(sessionId); // 404エラー防止のためここでは削除せず、24時間後のガベージコレクション(cleanupOldFiles)に委ねる
     console.log(`🧹 [LogCleanup] セッション ${sessionId} のログを削除`);
   }, 5 * 60 * 1000);
 }
 
+const raw = fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8');
+const pkg = JSON.parse(raw.replace(/^\uFEFF/, ''));
+const SYSTEM_VERSION = pkg.version;
+
 // ランタイムで設定されたAPIキー（.envより優先）
 let runtimeApiKey = '';
-let runtimeModel = 'gemini-2.5-flash';
+let runtimeModel = 'gemini-3.5-flash';
 let runtimeEngine = 'gemini';
 
 // ファイルアップロード設定（画像のみ）
@@ -1160,7 +1207,8 @@ const storage = multer.diskStorage({
     cb(null, dir);
   },
   filename: (req, file, cb) => {
-    cb(null, file.originalname);
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `source${ext}`);
   },
 });
 
@@ -1216,7 +1264,7 @@ app.post('/api/apikey', async (req, res) => {
       const OpenAI = (await import('openai')).default;
       const openai = new OpenAI({ apiKey: key });
       
-      const modelsToTry = ['gpt-4.1', 'gpt-4o', 'gpt-4.1-mini'];
+      const modelsToTry = ['gpt-4o', 'gpt-4o-mini'];
       let workingModel = null;
       let lastError = null;
 
@@ -1226,12 +1274,15 @@ app.post('/api/apikey', async (req, res) => {
             model: modelName,
             messages: [{ role: "user", content: "test" }],
             max_tokens: 5
+          }, {
+            timeout: 25000
           });
           workingModel = modelName;
           break;
         } catch (e) {
           lastError = e;
-          console.log(`    ℹ️ OpenAI ${modelName} は利用不可: ${e.message.split('\n')[0]}`);
+          const errorMsg = e && e.message ? e.message.split('\n')[0] : String(e);
+          console.log(`    ℹ️ OpenAI ${modelName} は利用不可: ${errorMsg}`);
         }
       }
 
@@ -1249,9 +1300,12 @@ app.post('/api/apikey', async (req, res) => {
       const genAI = new GoogleGenerativeAI(key);
       
       const modelsToTry = [
+        'gemini-3.5-flash',
+        'gemini-flash-latest',
         'gemini-2.5-flash',
         'gemini-2.5-pro',
-        'gemini-2.0-flash',
+        'gemini-1.5-pro',
+        'gemini-pro-latest'
       ];
       
       let workingModel = null;
@@ -1260,12 +1314,19 @@ app.post('/api/apikey', async (req, res) => {
       for (const modelName of modelsToTry) {
         try {
           const model = genAI.getGenerativeModel({ model: modelName });
-          await model.generateContent('test');
+          
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Gemini API call timed out after 25 seconds')), 25000)
+          );
+          const apiCallPromise = model.generateContent('test');
+          await Promise.race([apiCallPromise, timeoutPromise]);
+          
           workingModel = modelName;
           break; // 成功したらループを抜ける
         } catch (e) {
           lastError = e;
-          console.log(`    ℹ️ ${modelName} は利用不可: ${e.message.split('\\n')[0]}`);
+          const errorMsg = e && e.message ? e.message.split('\n')[0] : String(e);
+          console.log(`    ℹ️ ${modelName} は利用不可: ${errorMsg}`);
         }
       }
 
@@ -1349,10 +1410,13 @@ app.delete('/api/cancel/:sessionId', (req, res) => {
         fs.rmSync(voiceDir, { recursive: true, force: true });
       }
       
-      // 注意: public/panels は sessionId がファイル名に含まれるため個別に消すかガベコレに任せる
-      // （安全のためガベコレに任せる形でもOKですが、ここでは明示的に消せるものは消します）
+      // 中断時も5分後にインメモリデータを安全にクリーンアップ
+      scheduleLogCleanup(sessionId);
     } catch (e) {
       console.error('Cancel cleanup error:', e);
+    } finally {
+      // 中断されたら即座にロックファイルを解放
+      releaseLock();
     }
   }
   res.json({ success: true });
@@ -1395,6 +1459,10 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
 
   if (!session) {
     return res.status(404).json({ error: 'セッションが見つかりません' });
+  }
+
+  if (!acquireLock()) {
+    return res.status(409).json({ error: '現在、別の動画生成パイプラインが実行中です。しばらくお待ちください。' });
   }
 
   try {
@@ -1501,7 +1569,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
         const openai = new OpenAI({ apiKey: apiKey });
         const dataUrl = `data:${mimeType};base64,${base64Image}`;
         
-        const openAiFallbackList = ['gpt-4.1', 'gpt-4o', 'gpt-4.1-mini'];
+        const openAiFallbackList = ['gpt-4o', 'gpt-4o-mini'];
         const startIdx = openAiFallbackList.indexOf(runtimeModel);
         const modelsToAttempt = startIdx !== -1 
           ? [runtimeModel, ...openAiFallbackList.filter(m => m !== runtimeModel)]
@@ -1522,6 +1590,8 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
               ],
               response_format: { type: "json_object" },
               temperature: 0.1
+            }, {
+              timeout: 25000
             });
             
             responseText = response.choices[0].message.content;
@@ -1539,7 +1609,14 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
         const { GoogleGenerativeAI } = await import('@google/generative-ai');
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        const geminiFallbackList = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'];
+        const geminiFallbackList = [
+          'gemini-3.5-flash',
+          'gemini-flash-latest',
+          'gemini-2.5-flash',
+          'gemini-2.5-pro',
+          'gemini-1.5-pro',
+          'gemini-pro-latest'
+        ];
         const startIdx = geminiFallbackList.indexOf(runtimeModel);
         const modelsToAttempt = startIdx !== -1 
           ? [runtimeModel, ...geminiFallbackList.filter(m => m !== runtimeModel)]
@@ -1556,10 +1633,14 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
               },
             });
 
-            const result = await model.generateContent([
+            const timeoutPromise = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Gemini API call timed out after 25 seconds')), 25000)
+            );
+            const apiCallPromise = model.generateContent([
               prompt,
               { inlineData: { mimeType, data: base64Image } },
             ]);
+            const result = await Promise.race([apiCallPromise, timeoutPromise]);
 
             responseText = result.response.text();
             sessionLog(sessionId, `📝 Gemini レスポンス受信 (${responseText.length}文字)`);
@@ -1658,7 +1739,7 @@ ${JSON.stringify(cleanDialogues, null, 2)}`;
           const OpenAI = (await import('openai')).default;
           const openai = new OpenAI({ apiKey: apiKey });
           
-          const correctionModels = ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini'];
+          const correctionModels = ['gpt-4o-mini', 'gpt-4o'];
           const modelName = correctionModels.includes(runtimeModel) ? runtimeModel : 'gpt-4o-mini';
 
           const response = await openai.chat.completions.create({
@@ -1669,6 +1750,8 @@ ${JSON.stringify(cleanDialogues, null, 2)}`;
             ],
             response_format: { type: "json_object" },
             temperature: 0.1
+          }, {
+            timeout: 25000
           });
           correctedText = response.choices[0].message.content;
           correctionSuccess = true;
@@ -1686,7 +1769,11 @@ ${JSON.stringify(cleanDialogues, null, 2)}`;
             },
           });
 
-          const result = await model.generateContent([correctionPrompt]);
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Gemini API call timed out after 25 seconds')), 25000)
+          );
+          const apiCallPromise = model.generateContent([correctionPrompt]);
+          const result = await Promise.race([apiCallPromise, timeoutPromise]);
           correctedText = result.response.text();
           correctionSuccess = true;
         }
@@ -1893,6 +1980,7 @@ ${JSON.stringify(cleanDialogues, null, 2)}`;
     session.metadata = metadata;
     session.status = 'analyzed';
 
+    let bgmAudioPath = `audio/bgm.wav`; // デフォルトフォールバック
     // 感情に基づくBGMの動的生成（プロシージャル作曲エンジン）
     try {
       const { execSync } = await import('child_process');
@@ -1907,11 +1995,18 @@ ${JSON.stringify(cleanDialogues, null, 2)}`;
       const bgmSeed = Date.now();
       sessionLog(sessionId, `🎵 [BGM Engine] Dominant Emotion: ${dominantEmotion} (Seed: ${bgmSeed})`);
       
-      const stdout = execSync(`node generate_bgm.js ${dominantEmotion} ${bgmSeed}`, { cwd: process.cwd() });
+      const bgmFilename = `${sessionId}_bgm.wav`;
+      const stdout = execSync(`node generate_bgm.js ${dominantEmotion} ${bgmSeed} ${bgmFilename}`, { cwd: process.cwd() });
       const bgmLogs = stdout.toString().split('\n').filter(line => line.trim());
       bgmLogs.forEach(log => sessionLog(sessionId, log));
+
+      // 生成が成功したか確認
+      if (fs.existsSync(path.join(__dirname, 'public', 'audio', bgmFilename))) {
+        bgmAudioPath = `audio/${bgmFilename}`;
+      }
     } catch (e) {
       console.error('BGMの生成に失敗しました:', e);
+      sessionLog(sessionId, `⚠️ [BGM Engine] BGM生成に失敗したため、デフォルトBGMを使用します: ${e.message}`);
     }
 
     const totalDialogues = metadata.panels.reduce((s, p) => s + p.dialogues.length, 0);
@@ -1927,6 +2022,8 @@ ${JSON.stringify(cleanDialogues, null, 2)}`;
     console.error('❌ Analyze error:', err);
     session.status = 'error';
     res.status(500).json({ error: err.message });
+  } finally {
+    releaseLock();
   }
 });
 
@@ -1943,6 +2040,10 @@ app.post('/api/generate/:sessionId', async (req, res) => {
 
   if (!session.metadata) {
     return res.status(400).json({ error: 'まずAI解析を実行してください' });
+  }
+
+  if (!acquireLock()) {
+    return res.status(409).json({ error: '現在、別の動画生成パイプラインが実行中です。しばらくお待ちください。' });
   }
 
   try {
@@ -1981,6 +2082,9 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     const metadataImg = await sharp(session.imagePath).metadata();
     const width = metadataImg.width;
     const height = metadataImg.height;
+    if (!width || !height) {
+      throw new Error('画像のサイズ情報を取得できませんでした。画像ファイルが破損している可能性があります。');
+    }
     sessionLog(sessionId, `📐 [Sharp] 原画解析: ${width}×${height}px (${(width * height / 1000000).toFixed(1)}MP)`);
 
     const panelCount = Math.max(1, metadata.panels.length);
@@ -2022,26 +2126,19 @@ app.post('/api/generate/:sessionId', async (req, res) => {
           break;
         }
         case 'grid': {
-          const cols = 2; const rows = 2;
+          const cols = 2;
+          const rows = Math.ceil(panelCount / cols);
           const panelWidth = Math.floor(width / cols);
           const panelHeight = Math.floor(height / rows);
           
-          // 日本の漫画（右から左）のZパターンの読む順序（右上→左上→右下→左下）
-          const readingOrder = [
-            { col: 1, row: 0 }, // i=0 (右上)
-            { col: 0, row: 0 }, // i=1 (左上)
-            { col: 1, row: 1 }, // i=2 (右下)
-            { col: 0, row: 1 }, // i=3 (左下)
-          ];
-          
-          const targetIndex = i < 4 ? i : 3;
-          const col = readingOrder[targetIndex].col;
-          const row = readingOrder[targetIndex].row;
+          // 日本の漫画（右から左）の読む順（右上 -> 左上 -> 右下 -> 左下）を動的に計算
+          const targetCol = 1 - (i % cols); // col=1 (右), col=0 (左)
+          const targetRow = Math.floor(i / cols);
 
           extractRegion = {
-            left: panelWidth * col, top: panelHeight * row,
-            width: col < cols - 1 ? panelWidth : width - panelWidth * col,
-            height: row < rows - 1 ? panelHeight : height - panelHeight * row,
+            left: panelWidth * targetCol, top: panelHeight * targetRow,
+            width: targetCol < cols - 1 ? panelWidth : width - panelWidth * targetCol,
+            height: targetRow < rows - 1 ? panelHeight : height - panelHeight * targetRow,
           };
           break;
         }
@@ -2082,10 +2179,20 @@ app.post('/api/generate/:sessionId', async (req, res) => {
       try {
         // audio_query (読み辞書でIT用語等をカタカナ読みに変換してから送信)
         const voiceText = applyPronunciationDict(d.text, sessionId);
+        
+        const queryController = new AbortController();
+        const queryTimeout = setTimeout(() => queryController.abort(), 30000); // 30秒タイムアウト
+
         const queryRes = await fetch(
           `http://127.0.0.1:50021/audio_query?text=${encodeURIComponent(voiceText)}&speaker=${speakerId}`,
-          { method: 'POST' }
+          { 
+            method: 'POST',
+            signal: queryController.signal
+          }
         );
+        clearTimeout(queryTimeout);
+
+        if (!queryRes.ok) throw new Error(`VOICEVOX audio_query failed with status ${queryRes.status}`);
         const query = await queryRes.json();
         
         // ── 感情表現エンジン v2: pitch / intonation / volume で感情を表現 ──
@@ -2127,14 +2234,21 @@ app.post('/api/generate/:sessionId', async (req, res) => {
         sessionLog(sessionId, `   🎚️ 速度正規化: モーラ=${totalMoraDuration.toFixed(2)}s / 文字数=${textLength} → spd=${normalizedSpeed.toFixed(2)}x | pitch=${profile.pitchScale} / inton=${profile.intonationScale} / vol=${profile.volumeScale}`);
 
         // synthesis
+        const synthController = new AbortController();
+        const synthTimeout = setTimeout(() => synthController.abort(), 30000); // 30秒タイムアウト
+
         const synthRes = await fetch(
           `http://127.0.0.1:50021/synthesis?speaker=${speakerId}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(query),
+            signal: synthController.signal
           }
         );
+        clearTimeout(synthTimeout);
+
+        if (!synthRes.ok) throw new Error(`VOICEVOX synthesis failed with status ${synthRes.status}`);
         const wavBuffer = Buffer.from(await synthRes.arrayBuffer());
         fs.writeFileSync(filepath, wavBuffer);
 
@@ -2157,13 +2271,26 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     let titleAudioPublicPath = null;
     try {
       const titleVoiceText = applyPronunciationDict(title, sessionId);
+
+      const titleQueryController = new AbortController();
+      const titleQueryTimeout = setTimeout(() => titleQueryController.abort(), 30000);
+
       const titleQueryRes = await fetch(
         `http://127.0.0.1:50021/audio_query?text=${encodeURIComponent(titleVoiceText)}&speaker=3`,
-        { method: 'POST' }
+        { 
+          method: 'POST',
+          signal: titleQueryController.signal
+        }
       );
+      clearTimeout(titleQueryTimeout);
+
+      if (!titleQueryRes.ok) throw new Error(`VOICEVOX title call audio_query failed with status ${titleQueryRes.status}`);
       const titleQuery = await titleQueryRes.json();
       titleQuery.speedScale = 0.95;
       titleQuery.pitchScale = 0.05;
+
+      const titleSynthController = new AbortController();
+      const titleSynthTimeout = setTimeout(() => titleSynthController.abort(), 30000);
 
       const titleSynthRes = await fetch(
         `http://127.0.0.1:50021/synthesis?speaker=3`,
@@ -2171,8 +2298,12 @@ app.post('/api/generate/:sessionId', async (req, res) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(titleQuery),
+          signal: titleSynthController.signal
         }
       );
+      clearTimeout(titleSynthTimeout);
+
+      if (!titleSynthRes.ok) throw new Error(`VOICEVOX title call synthesis failed with status ${titleSynthRes.status}`);
       const titleWav = Buffer.from(await titleSynthRes.arrayBuffer());
       fs.writeFileSync(titleAudioPath, titleWav);
       titleAudioPublicPath = `voiceover/${sessionId}/title_call.wav`;
@@ -2200,12 +2331,13 @@ app.post('/api/generate/:sessionId', async (req, res) => {
 
     const scriptData = {
       title,
-      version: '1.3.4',
+      version: SYSTEM_VERSION,
       panels: panelPaths, // 分割されたコマ画像パス
       panelAspectRatios, // 各コマのアスペクト比（動的ズーム用）
       originalImage: originalImagePublicPath, // 全体画像
       titleAudio: titleAudioPublicPath,
       titleDurationInFrames: titleDurationFrames,
+      bgmAudio: bgmAudioPath,
       dialogues: audioFiles.map((af, i) => ({
         id: `line_${String(i + 1).padStart(2, '0')}`,
         speaker: af.dialogue.speaker,
@@ -2298,6 +2430,8 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     session.status = 'error';
     scheduleLogCleanup(sessionId);
     res.status(500).json({ error: err.message });
+  } finally {
+    releaseLock();
   }
 });
 
@@ -2363,7 +2497,7 @@ function getWavDuration(wavBuffer) {
 // ──────────────────────────────────────
 // サーバー起動
 // ──────────────────────────────────────
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log('');
   console.log('================================================');
   console.log(`  🚀 AI Voice Comic Maker Backend`);
@@ -2372,3 +2506,21 @@ app.listen(PORT, () => {
   console.log('================================================');
   console.log('');
 });
+
+// ポート衝突(EADDRINUSE)エラー時の安全ガード
+server.on('error', (e) => {
+  if (e.code === 'EADDRINUSE') {
+    console.error('');
+    console.error('================================================');
+    console.error(`❌ [Error] ポート ${PORT} は既に他のプロセスで使用されています。`);
+    console.error(`   バックエンドサーバーが既に起動しているか、ゾンビプロセスが残っている可能性があります。`);
+    console.error(`   ゾンビプロセスが残っている場合は、起動バッチを再起動するか、`);
+    console.error(`   タスクマネージャー等で node.exe を終了させてください。`);
+    console.error('================================================');
+    console.error('');
+    process.exit(1);
+  }
+});
+
+// カスケードタイムアウト30分に追従し、Node.jsデフォルトの5分タイムアウトによる切断を防止
+server.timeout = 30 * 60 * 1000; // 30分

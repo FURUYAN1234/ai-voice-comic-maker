@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.4.7-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.5.4-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.4.7 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.5.4 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['AI_Creative_Studio'](https://github.com/user-attachments/assets/d9b97ee9-5051-4f99-8bd3-fb82967d5c12)](https://youtu.be/Ik59dL_zG1s?si=VduXBkmCTGfz51aJ)
 
@@ -64,9 +64,10 @@ Following the philosophy of Nano Banana 2 and ChatGPT Images 2.0 Powered Super A
 Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System の思想を踏襲し、APIエラー時や制限到達時、あるいは安全フィルタでのブロック時に自動的に最適な別モデルへフォールバックする仕組み（Zenith Protocol）を搭載しています。
 
 **画像解析 / Vision Analysis Fallback Pipeline:**
-1. `gemini-2.5-flash` (Primary / 安定・高速)
-2. `gemini-2.5-pro` (Backup / 高精度)
-3. `gemini-2.0-flash` (Fallback / 追加フォールバック)
+1. `gemini-3.5-flash` または `gemini-flash-latest` (Primary / 最新・最優先)
+2. `gemini-2.5-flash` (Backup / 安定・高速)
+3. `gemini-2.5-pro` (Backup / 高精度)
+4. `gemini-1.5-pro` または `gemini-pro-latest` (Fallback / 追加フォールバック)
 
 ## 📝 Setup & Launch / セットアップと起動
 
@@ -198,6 +199,42 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 *Developed by FURU*
 
 ## 🔄 ChangeLog / 更新履歴
+
+**v1.5.4 (2026-05-25)**
+- [Fix] アップロード画像ファイル名を一律で `source${ext}` に固定化し、マルチバイト（日本語）ファイル名によるWindows文字コードエラーやディレクトリトラバーサル攻撃へのセキュリティ脆弱性を根絶。 / Sanitized uploaded image filenames to a fixed format (`source${ext}`) to prevent environment-specific character encoding issues on Windows and directory traversal vulnerabilities.
+- [Fix] `grid` レイアウトでのコマ切り出し処理を動的グリッドに修正。従来の cols=2, rows=2 固定で4コマ目以降がすべて複製画像になっていた重大なバグを解消し、5コマ以上のグリッド漫画でも正しく右→左、上→下の順でコマ分割されるように改善。 / Refactored the hardcoded 2x2 grid image slicer to calculate rows dynamically (`Math.ceil(panelCount / cols)`) and slice panels in proper right-to-left order, resolving duplicate image rendering bugs for manga with 5+ panels.
+- [Fix] サーバー起動時にポート3001が既に別プロセスで使用されている場合（EADDRINUSEエラー時）、プロセスが異常終了する前に分かりやすい案内メッセージを表示して安全に終了するハンドラーを追加。 / Implemented a graceful port collision (EADDRINUSE) handler that prints actionable hints before exiting instead of throwing an unhandled exception.
+
+**v1.5.3 (2026-05-25)**
+- [Feature] ロックファイル `.pipeline_lock` による二重起動防止（排他制御）機能を実装。並列実行時に発生するRemotionレンダラーのクラッシュやサーバー資源の枯渇を完全に防止。サーバー起動時に古いロックファイルを自動消去する回復ロジックも追加。 / Implemented a pipeline locks exclusive control mechanism (`.pipeline_lock`) to prevent concurrent rendering collisions. Added an automatic cleanup routine for stale lock files at startup.
+- [Fix] VOICEVOX の API コール (`audio_query` / `synthesis`) に対し、`AbortController` を使用した30秒の個別タイムアウト制御を追加。VOICEVOXエンジン側がハングした場合でもサーバーが無限にフリーズする不具合を解消。 / Added a 30-second stage timeout to all VOICEVOX HTTP requests to prevent server infinite hanging when the synthesizer engine hangs.
+
+**v1.5.2 (2026-05-25)**
+- [Fix] 動画生成完了から5分後に、インメモリセッションデータごと早期削除されていたバグを修正。ログデータのみを5分後に消し、セッションデータは24時間後のGCまで維持するようにしたため、5分以上経過した後の動画再生・ダウンロード時における404エラー（動画が見つかりません）を防止。 / Resolved a 404 video playback/download error by deferring session deletion from 5 minutes to 24 hours, while keeping only log memory cleanup at 5 minutes.
+- [Fix] 感情に基づくプロシージャルBGM生成が失敗した場合、動画レンダリングエンジンがファイル欠損（ENOENT）で全クラッシュするバグを修正。BGMが未生成時はデフォルトの `"audio/bgm.wav"` に安全にフォールバックするロジックを実装。 / Prevented pipeline render crashes when BGM file generation fails by automatically falling back to default `"audio/bgm.wav"`.
+- [Fix] OCRや2-Pass校正結果でセリフが `undefined` や `null` の場合に、`applyPronunciationDict` 内で `TypeError` クラッシュを起こすバグを堅牢化ガードにより修正。 / Prevented server crashes by robustly handling non-string inputs in pronunciation parsing.
+- [Fix] ユーザーが生成を途中で「キャンセル（中断）」した際、一時ファイルは消えるがインメモリセッションが残るメモリリークを修正。キャンセル時にも5分後の自動クリーンアップスケジュールを登録。 / Fixed an in-memory session leak during user cancellation by registering a 5-minute cleanup schedule.
+- [Fix] 画像ファイルが破損していてメタデータ（幅・高さ）が取得できない場合に `NaN` 計算による sharp エラーに繋がるのを防ぐため、バリデーションチェックを追加して安全に処理を打ち切るように修正。 / Added safety guards for empty or broken image uploads to fail early and informatively instead of causing calculation errors.
+
+**v1.5.1 (2026-05-25)**
+- [Fix] 複数セッション実行時のBGM上書き競合バグを修正。BGMファイル名をセッション毎にユニーク化 (`session_TIMESTAMP_bgm.wav`) して隔離し、VoiceComic.tsxで動的にBGMを読み込む設計に変更。 / Fixed a concurrency issue where BGMs from concurrent sessions overwrote each other by making BGM filenames session-specific and updating VoiceComic.tsx to load BGMs dynamically.
+- [Fix] APIキー検証時の例外処理で、エラーオブジェクトのmessageプロパティが存在しない場合に次のフォールバックに進めずクラッシュするバグを安全ガードにより修正。 / Prevented failure on catch blocks when logging API validation failures without message properties.
+- [Fix] セッション完了時・エラー時および24時間の自動クリーンアップ時に、インメモリの `sessions` Map からもデータを明示的に削除して解放し、メモリリークを解消。 / Avoided memory leaks by explicitly deleting session entries from the in-memory map.
+- [Fix] App.jsx の `voiceNames` マップに、ボイスプールやタイトルコールで使用されているずんだもん(3)と波音リツ(9)の定義を追加し、キャスト画面でのID生表示を修正。 / Added missing names for speaker 3 and 9 in frontend voice mapping to prevent plain ID display.
+
+**v1.5.0 (2026-05-25)**
+- [Fix] Expressサーバーのリクエストタイムアウト制限を30分に明示的に延長し、動画生成の長時間化による接続の強制切断バグを防止。 / Increased Express request timeout to 30 minutes to prevent socket drop during rendering.
+- [Fix] server.js内で古いバージョン表記が '1.3.4' のままハードコードされていた不整合を修正し、package.json から動的にバージョンを読み取る仕様に変更。 / Replaced hardcoded '1.3.4' string with dynamically loaded package version.
+- [Fix] APIキー設定画面におけるGeminiの検証API呼び出しに25秒のタイムアウト制御を追加し、接続ハングによる画面フリーズを防止。 / Added a 25-second timeout to the Gemini API key verification request to prevent UI freeze on connection hang.
+- [Improve] デフォルトモデル（runtimeModel）の初期値を gemini-2.5-flash から最新の gemini-3.5-flash へ変更。 / Updated default runtime model value from gemini-2.5-flash to gemini-3.5-flash.
+
+**v1.4.9 (2026-05-25)**
+- [Fix] OpenAI API側の存在しないモデル名（gpt-4.1, gpt-4.1-mini）がリストに混入していたバグを修正し、実在する gpt-4o / gpt-4o-mini に差し替え。 / Fixed non-existent OpenAI model names (gpt-4.1, gpt-4.1-mini) in the lists and replaced them with gpt-4o / gpt-4o-mini.
+- [Fix] OpenAI APIの各呼び出し（API検証、OCR画像解析、および2-Passテキスト校正）に25秒のタイムアウトを設定し、レスポンスのハングによるサーバー全体のフリーズを防止。 / Implemented a 25-second timeout on all OpenAI API client requests to prevent server-side infinite hanging.
+
+**v1.4.8 (2026-05-25)**
+- [Feature] Gemini APIモデルの非推奨化（gemini-2.0-flashの廃止）に対応。 / Migrated Gemini API models to support gemini-3.5-flash and gemini-flash-latest.
+- [Improve] OCR画像解析および校正時のGemini API呼び出しに25秒のタイムアウト制御を追加し、エラー時は gemini-1.5-pro / gemini-pro-latest に安全にフォールバックするロジックを実装。 / Implemented a 25-second timeout on Gemini API requests with a safe failover to gemini-1.5-pro / gemini-pro-latest.
 
 **v1.4.7 (2026-05-24)**
 - [Improve] READMEに「英数字・ガジェット・AI用語の発音標準化辞書」に関する詳細解説を追加。 / Added a detailed architectural explanation for the Alphanumeric Pronunciation Standardization dictionary in README.md.

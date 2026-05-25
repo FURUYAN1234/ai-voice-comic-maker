@@ -294,5 +294,6 @@ for (let i = 0; i < numSamples; i++) {
 // ── 出力 ──
 const dir = path.join(__dirname, 'public', 'audio');
 if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-fs.writeFileSync(path.join(dir, 'bgm.wav'), buffer);
-console.log(`✅ ${emotion}風のプロシージャルBGMが生成されました: public/audio/bgm.wav`);
+const outputFilename = process.argv[4] || 'bgm.wav';
+fs.writeFileSync(path.join(dir, outputFilename), buffer);
+console.log(`✅ ${emotion}風のプロシージャルBGMが生成されました: public/audio/${outputFilename}`);
