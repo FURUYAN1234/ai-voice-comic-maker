@@ -14,9 +14,8 @@
  * → ④ プレーヤー＆SNSシェア
  */
 import React, { useState, useCallback, useEffect } from 'react';
-import { PRONUNCIATION_DICT } from './lib/pronunciationDict';
 
-const SYSTEM_VERSION = '1.5.8';
+const SYSTEM_VERSION = '1.5.9';
 const DEBUG_MODE = false;
 
 // タイトルを「」で囲むヘルパー（すでに囲まれていたら二重にしない）
