@@ -14,8 +14,10 @@
  * → ④ プレーヤー＆SNSシェア
  */
 import React, { useState, useCallback, useEffect } from 'react';
+import { PRONUNCIATION_DICT } from './lib/pronunciationDict';
 
-const SYSTEM_VERSION = '1.5.7';
+const SYSTEM_VERSION = '1.5.8';
+const DEBUG_MODE = false;
 
 // タイトルを「」で囲むヘルパー（すでに囲まれていたら二重にしない）
 const wrapKagi = (title) => {
@@ -191,6 +193,8 @@ export default function App() {
     setPhase(PHASE.GENERATING);
     setError(null);
     setOcrPreview(null);
+    setTerminalLogs([]);
+    setCurrentSessionId(null);
     setVideoTitle(imageFile.name.replace(/\.[^.]+$/, ''));
 
     try {

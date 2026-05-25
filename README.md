@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.5.7-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.5.8-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.5.7 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.5.8 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['AI_Creative_Studio'](https://github.com/user-attachments/assets/d9b97ee9-5051-4f99-8bd3-fb82967d5c12)](https://youtu.be/Ik59dL_zG1s?si=VduXBkmCTGfz51aJ)
 
@@ -199,6 +199,11 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 *Developed by FURU*
 
 ## 🔄 ChangeLog / 更新履歴
+
+**v1.5.8 (2026-05-25)**
+- [Fix] フロントエンドの状態管理において古い進捗ログが重複排除されるバグを修正し、動画生成中のターミナルログが確実に全行表示されるよう改善。 / Fixed a frontend state management bug where progress logs were improperly deduplicated.
+- [Fix] 2-Pass AIテキスト校正のペイロードにタイトルを含め、AIが文脈に基づいてメタデータのタイトルも「桶 ➔ 樽」のように自己修正（自己書き換え）できるようアーキテクチャを改修。 / Restructured the 2-Pass AI auto-correction payload to include the manga title, allowing the LLM to self-correct contextual keywords in the title itself.
+- [Improve] OpenAIモデルの特性に合わせ、Vision OCRプロンプトを徹底的に厳格化。張り紙、看板、旗などの小物テキストを抽出対象として強要し、読み飛ばし（ハルシネーション）を根絶。 / Strictly hardened the Vision OCR prompt to coerce OpenAI models into parsing minor texts like posters, flags, and signs, eradicating text skipping issues.
 
 **v1.5.7 (2026-05-25)**
 - [Optimize] Automated the full deployment protocol and reinforced repository build health. / フルデプロイプロトコルの自動化を実行し、ビルドとデプロイの健全性を強化。
