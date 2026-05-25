@@ -1023,10 +1023,11 @@ const JP_READING_REGEX_RULES = [
 ];
 
 // ── 英語辞書: 長いキーを先にマッチさせるためソート済みの正規表現パターンを構築 ──
+// ※前後に英数字が存在しないことをルックアラウンドで保証し、部分一致（NEKO内のKOなど）を防ぐ
 const PRONUNCIATION_KEYS = Object.keys(PRONUNCIATION_DICT)
   .sort((a, b) => b.length - a.length);
 const PRONUNCIATION_REGEX = new RegExp(
-  PRONUNCIATION_KEYS.map(k => k.replace(/[-./\\^$*+?()[\]{}|]/g, '\\$&')).join('|'),
+  PRONUNCIATION_KEYS.map(k => `(?<![a-zA-Z0-9])${k.replace(/[-./\\^$*+?()[\]{}|]/g, '\\$&')}(?![a-zA-Z0-9])`).join('|'),
   'gi'
 );
 
@@ -1060,8 +1061,14 @@ function applyPronunciationDict(text, sessionId = null) {
     return JP_READING_DICT[match] || match;
   });
 
-  // (3) 英語→カタカナ辞書（既存の英字略語・IT用語変換）
+  // (3) 英語→カタカナ辞書（既存の英字略語・IT用語変換、単語境界・代名詞ガード付き）
   result = result.replace(PRONUNCIATION_REGEX, (match) => {
+    // 特別ルール: "IT" と代名詞 "It / it" の混同を防ぐ
+    if (match.toLowerCase() === 'it') {
+      if (match !== 'IT') {
+        return match; // 大文字の IT でなければ置換しない
+      }
+    }
     const key = PRONUNCIATION_KEYS.find(k => k.toLowerCase() === match.toLowerCase());
     return key ? PRONUNCIATION_DICT[key] : match;
   });
