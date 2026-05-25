@@ -18,14 +18,14 @@ v1.4.6で拡充した「発音標準化辞書」の詳細な解説を `README.md
    - `dist/` と `gh-pages` の一時キャッシュ（Permission Deniedの元）をクリーンアップし、再ビルド & GitHub Pages デプロイを完了。
    - アノテーテッドタグ `v1.4.7` の作成および GitHub Release v1.4.7 の新規作成。
 3. **リプレース展開検証**
-   - リリースZIPをTEMPにダウンロードし、`C:\ai-voice-comic-maker-main` を完全に削除して新しいZIPの内容で差し替え展開。展開後の `package.json` が `1.4.7` であることを UTF-8 デコードにより確認。
+   - リリースZIPをTEMPにダウンロードし、`%PROJECT_ROOT%` を完全に削除して新しいZIPの内容で差し替え展開。展開後の `package.json` が `1.4.7` であることを UTF-8 デコードにより確認。
 4. **環境フルバックアップの起動**
-   - デプロイ完了後、`C:\Users\sx717\Antigravity\backup_launch.bat` を直接呼び出し、デスクトップ上に進捗画面（黒い窓）をポップアップ起動してバックアップを完了。
+   - デプロイ完了後、`%BACKUP_SCRIPT_PATH%\backup_launch.bat` を直接呼び出し、デスクトップ上に進捗画面（黒い窓）をポップアップ起動してバックアップを完了。
 
 ### 検証結果
 - クリーンビルドおよび `gh-pages` へのデプロイが正常終了。
 - リモート側の `gh-pages` ブランチの `index.html` にバージョン表記が `<title>AI Voice Comic Maker v1.4.7</title>` で反映されていることを検証。
-- Cドライブの `C:\ai-voice-comic-maker-main` を対象ZIPで正常にリプレース・展開検証完了。
+- Cドライブの `%PROJECT_ROOT%` を対象ZIPで正常にリプレース・展開検証完了。
 - `backup_launch.bat` の実行により、デスクトップ上に黒い窓がポップアップし、進捗バーとともにフルバックアップが問題なく実行され完了したことを確認。
 
 ---

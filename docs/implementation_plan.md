@@ -1,7 +1,7 @@
 # 🎬 AI Voice Comic Maker - 実装計画書
 
 > **プロジェクト名**: short_movie (AI Voice Comic Maker)
-> **ワークスペース**: `c:\Users\sx717\Antigravity\short_movie`
+> **ワークスペース**: `short_movie` (ローカル開発環境)
 > **作成日**: 2026-05-15
 > **ステータス**: Phase 0 - 設計＆骨格構築
 

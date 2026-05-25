@@ -33,6 +33,7 @@ Thumbs.db
 debug*.log
 temp/
 public/voiceover/
+public/audio/
 dist/voiceover/
 
 # AI Agent rules
