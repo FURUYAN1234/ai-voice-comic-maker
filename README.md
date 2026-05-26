@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.6.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.6.1-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.6.0 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.6.1 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['AI_Creative_Studio'](https://github.com/user-attachments/assets/d9b97ee9-5051-4f99-8bd3-fb82967d5c12)](https://youtu.be/Ik59dL_zG1s?si=VduXBkmCTGfz51aJ)
 
@@ -199,6 +199,11 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 *Developed by FURU*
 
 ## 🔄 ChangeLog / 更新履歴
+
+**v1.6.1 (2026-05-26)**
+- [Feature] AI動的発音推定パイプライン（AI Pronunciation Lookup Pipeline）を導入。静的辞書に登録されていない未知の英単語や固有名詞に対して、Gemini や OpenAI を使用して動的にカタカナ読みを推定・置換する機能を実装。 / Implemented an AI dynamic pronunciation lookup pipeline. Uses Gemini or OpenAI to dynamically resolve and convert unknown English words or proper nouns in subtitles to natural Japanese Katakana.
+- [Optimize] 同一セッション内での重複APIコールを避けるため、AI発音推定の結果をセッション単位でキャッシュする仕組みを導入。 / Optimized performance by caching AI pronunciation results per session to prevent duplicate API requests for the same word in a single video.
+- [Clean] 開発中の一時的な `public/audio/bgm.wav` などの不要ファイルを削除。 / Removed temporary/unused files like `public/audio/bgm.wav` to maintain repository hygiene.
 
 **v1.6.0 (2026-05-25)**
 - [Fix] server.js 内のプロンプトテキストで、バッククォートがエスケープされずに構文エラー（SyntaxError: Unexpected identifier 'dialogues'）を引き起こし、バックエンドが起動直後にクラッシュするバグを修正。VOICEVOX 接続確認等の通信遮断問題を解消。 / Fixed a syntax error in server.js's prompt text where unescaped backticks caused a SyntaxError ('Unexpected identifier dialogues'), crashing the backend on startup and blocking VOICEVOX connections.

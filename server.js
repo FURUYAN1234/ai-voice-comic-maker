@@ -697,6 +697,141 @@ const PRONUNCIATION_DICT = {
   'A3': 'エーさん',
   'B5': 'ビーご',
   'B4': 'ビーよん',
+  // --- 素材サイト・ストックフォト ---
+  'PIXTA': 'ピクスタ',
+  'Shutterstock': 'シャッターストック',
+  'iStock': 'アイストック',
+  'Adobe Stock': 'アドビストック',
+  'Getty Images': 'ゲッティイメージズ',
+  'Unsplash': 'アンスプラッシュ',
+  'Pexels': 'ペクセルズ',
+  'Freepik': 'フリーピック',
+  'Dreamstime': 'ドリームスタイム',
+  // --- 出版・メディア企業 ---
+  'KADOKAWA': 'カドカワ',
+  'Shueisha': 'シュウエイシャ',
+  'Kodansha': 'コウダンシャ',
+  'Shogakukan': 'ショウガクカン',
+  'JUMP': 'ジャンプ',
+  'Gangan': 'ガンガン',
+  'Comiket': 'コミケット',
+  'Comico': 'コミコ',
+  'LINE Manga': 'ラインマンガ',
+  'pixiv': 'ピクシブ',
+  'Booth': 'ブース',
+  'DLsite': 'ディーエルサイト',
+  'FANZA': 'ファンザ',
+  'Fantia': 'ファンティア',
+  'Patreon': 'パトレオン',
+  // --- テック企業・ブランド ---
+  'NVIDIA': 'エヌビディア',
+  'GeForce': 'ジーフォース',
+  'Radeon': 'レイディオン',
+  'AMD': 'エーエムディー',
+  'Intel': 'インテル',
+  'Qualcomm': 'クアルコム',
+  'Snapdragon': 'スナップドラゴン',
+  'Tesla': 'テスラ',
+  'SpaceX': 'スペースエックス',
+  'Meta': 'メタ',
+  'Microsoft': 'マイクロソフト',
+  'Samsung': 'サムスン',
+  'Huawei': 'ファーウェイ',
+  'Xiaomi': 'シャオミ',
+  'ASUS': 'エイスース',
+  'Lenovo': 'レノボ',
+  'Dell': 'デル',
+  'HP': 'エイチピー',
+  'IBM': 'アイビーエム',
+  'Oracle': 'オラクル',
+  'Cisco': 'シスコ',
+  'Salesforce': 'セールスフォース',
+  'SAP': 'エスエーピー',
+  'Zoom': 'ズーム',
+  'Teams': 'チームズ',
+  // --- デザイン・クリエイティブツール ---
+  'Canva': 'キャンバ',
+  'Figma': 'フィグマ',
+  'Photoshop': 'フォトショップ',
+  'Illustrator': 'イラストレーター',
+  'Premiere': 'プレミア',
+  'Blender': 'ブレンダー',
+  'Unity': 'ユニティ',
+  'Unreal Engine': 'アンリアルエンジン',
+  'Unreal': 'アンリアル',
+  'Godot': 'ゴドー',
+  'CLIP STUDIO': 'クリップスタジオ',
+  'CLIP': 'クリップ',
+  'Procreate': 'プロクリエイト',
+  'Notion': 'ノーション',
+  'Trello': 'トレロ',
+  // --- 配信・エンタメサービス ---
+  'Hulu': 'フールー',
+  'Twitch': 'トゥイッチ',
+  'Spotify': 'スポティファイ',
+  'Crunchyroll': 'クランチロール',
+  'Disney Plus': 'ディズニープラス',
+  'Prime Video': 'プライムビデオ',
+  'Abema': 'アベマ',
+  'AbemaTV': 'アベマティービー',
+  'niconico': 'ニコニコ',
+  'DAZN': 'ダゾーン',
+  'U-NEXT': 'ユーネクスト',
+  'Kindle': 'キンドル',
+  'Audible': 'オーディブル',
+  // --- ゲームタイトル ---
+  'Fortnite': 'フォートナイト',
+  'Minecraft': 'マインクラフト',
+  'Apex Legends': 'エーペックスレジェンズ',
+  'Apex': 'エーペックス',
+  'Valorant': 'ヴァロラント',
+  'Genshin': 'ゲンシン',
+  'Splatoon': 'スプラトゥーン',
+  'Zelda': 'ゼルダ',
+  'Pokemon': 'ポケモン',
+  'Mario': 'マリオ',
+  'Final Fantasy': 'ファイナルファンタジー',
+  'Dragon Quest': 'ドラゴンクエスト',
+  'Monster Hunter': 'モンスターハンター',
+  'Dark Souls': 'ダークソウル',
+  'Elden Ring': 'エルデンリング',
+  'Roblox': 'ロブロックス',
+  'Among Us': 'アモングアス',
+  'League of Legends': 'リーグオブレジェンズ',
+  'Overwatch': 'オーバーウォッチ',
+  'Call of Duty': 'コールオブデューティー',
+  // --- 自動車・モビリティ ---
+  'Toyota': 'トヨタ',
+  'Honda': 'ホンダ',
+  'Nissan': 'ニッサン',
+  'Mazda': 'マツダ',
+  'Subaru': 'スバル',
+  'Suzuki': 'スズキ',
+  'BMW': 'ビーエムダブリュー',
+  'Mercedes': 'メルセデス',
+  'Porsche': 'ポルシェ',
+  'Ferrari': 'フェラーリ',
+  'Lamborghini': 'ランボルギーニ',
+  // --- 金融・決済 ---
+  'PayPal': 'ペイパル',
+  'Stripe': 'ストライプ',
+  'Bitcoin': 'ビットコイン',
+  'Ethereum': 'イーサリアム',
+  'NFT': 'エヌエフティー',
+  'DAO': 'ダオ',
+  'DeFi': 'ディーファイ',
+  'NISA': 'ニーサ',
+  'iDeCo': 'イデコ',
+  'FIRE': 'ファイア',
+  'FX': 'エフエックス',
+  'ETF': 'イーティーエフ',
+  // --- 教育・資格 ---
+  'TOEIC': 'トーイック',
+  'TOEFL': 'トーフル',
+  'IELTS': 'アイエルツ',
+  'MBA': 'エムビーエー',
+  'PhD': 'ピーエイチディー',
+  'STEM': 'ステム',
 };
 
 // ── 日本語→日本語 読み辞書 (VOICEVOX発音補正用) ──
@@ -1081,6 +1216,155 @@ function applyPronunciationDict(text, sessionId = null) {
   return result;
 }
 
+// ── AI動的読み推定: 辞書にない英単語をAIに問い合わせてカタカナ読みを取得 ──
+// セッション単位のキャッシュにより、同一動画内での重複API呼び出しを回避
+const aiPronunciationCache = new Map(); // sessionId -> Map<word, katakana>
+
+/**
+ * テキスト中の辞書未登録英単語を検出し、AIにカタカナ読みを問い合わせる
+ * @param {string} text - applyPronunciationDict適用済みのテキスト
+ * @param {string} sessionId - セッションID
+ * @returns {string} 英単語がカタカナに置換されたテキスト
+ */
+async function resolveUnknownEnglishWords(text, sessionId = null) {
+  // APIキーが未設定の場合はスキップ（辞書のみで運用）
+  const apiKey = runtimeApiKey || process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY || '';
+  if (!apiKey) return text;
+
+  // 辞書置換後に残っている英単語を検出（3文字以上の英字列）
+  // ※ 1-2文字の英字（I, a, My, He等）は代名詞・冠詞の可能性が高いため除外
+  // ※ カタカナに既に変換済みの部分は対象外
+  const englishWordPattern = /(?<![a-zA-Z])([a-zA-Z]{3,}(?:[-'][a-zA-Z]+)*)(?![a-zA-Z])/g;
+  const matches = [...text.matchAll(englishWordPattern)];
+  if (matches.length === 0) return text;
+
+  // 重複除去
+  const uniqueWords = [...new Set(matches.map(m => m[1]))];
+
+  // セッションキャッシュを取得（なければ作成）
+  if (!aiPronunciationCache.has(sessionId)) {
+    aiPronunciationCache.set(sessionId, new Map());
+  }
+  const cache = aiPronunciationCache.get(sessionId);
+
+  // キャッシュにある単語を除外
+  const uncachedWords = uniqueWords.filter(w => !cache.has(w.toLowerCase()));
+
+  // 全てキャッシュ済みの場合はAPI呼び出し不要
+  if (uncachedWords.length === 0) {
+    let result = text;
+    for (const word of uniqueWords) {
+      const katakana = cache.get(word.toLowerCase());
+      if (katakana) {
+        result = result.replace(new RegExp(`(?<![a-zA-Z])${word.replace(/[-]/g, '\\$&')}(?![a-zA-Z])`, 'g'), katakana);
+      }
+    }
+    if (result !== text && sessionId) {
+      sessionLog(sessionId, `   🤖 [AI Pronunciation/cache] "${text}" ➔ "${result}"`);
+    }
+    return result;
+  }
+
+  // AIに問い合わせ
+  try {
+    const wordList = uncachedWords.join(', ');
+    const aiPrompt = `以下の英単語・固有名詞の日本語での一般的なカタカナ読みを答えてください。
+各単語のカタカナ読みだけをJSON形式で返してください。余計な説明は不要です。
+形式: {"単語": "カタカナ読み", ...}
+
+単語リスト: ${wordList}`;
+
+    let responseText = '';
+
+    if (runtimeEngine === 'openai') {
+      const OpenAI = (await import('openai')).default;
+      const openai = new OpenAI({ apiKey });
+      // コスト最小のminiモデルを使用
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: "system", content: "あなたは英語の固有名詞の日本語読みに精通した言語学の専門家です。必ず指定されたJSON形式で出力してください。" },
+          { role: "user", content: aiPrompt }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.0,
+        max_tokens: 500
+      }, { timeout: 10000 });
+      responseText = response.choices[0].message.content;
+    } else {
+      // Gemini (Flashモデルでコスト最小化)
+      const { GoogleGenerativeAI } = await import('@google/generative-ai');
+      const genAI = new GoogleGenerativeAI(apiKey);
+      // 読み推定には最軽量モデルで十分
+      const pronunciationModels = ['gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+      let aiResult = null;
+      for (const modelName of pronunciationModels) {
+        try {
+          const model = genAI.getGenerativeModel({ model: modelName });
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('AI pronunciation lookup timed out')), 10000)
+          );
+          aiResult = await Promise.race([model.generateContent(aiPrompt), timeoutPromise]);
+          break;
+        } catch (e) {
+          // 次のモデルを試行
+          continue;
+        }
+      }
+      if (aiResult) {
+        responseText = aiResult.response.text();
+      }
+    }
+
+    // JSONパース（```json ... ``` ラッパーを除去してからパース）
+    if (responseText) {
+      const jsonStr = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+      const parsed = JSON.parse(jsonStr);
+
+      // キャッシュに保存 & テキストに適用
+      let result = text;
+      for (const [word, katakana] of Object.entries(parsed)) {
+        if (typeof katakana === 'string' && katakana.length > 0) {
+          cache.set(word.toLowerCase(), katakana);
+          // テキスト内の当該英単語をカタカナに置換（大文字小文字不問）
+          const escapedWord = word.replace(/[-]/g, '\\$&');
+          result = result.replace(new RegExp(`(?<![a-zA-Z])${escapedWord}(?![a-zA-Z])`, 'gi'), katakana);
+        }
+      }
+
+      if (result !== text && sessionId) {
+        sessionLog(sessionId, `   🤖 [AI Pronunciation] "${text}" ➔ "${result}" (${uncachedWords.length}語をAIで解決)`);
+      }
+      return result;
+    }
+  } catch (err) {
+    // AI読み推定に失敗しても処理を止めない（辞書適用済みのテキストをそのまま返す）
+    if (sessionId) {
+      sessionLog(sessionId, `   ⚠️ [AI Pronunciation] AI読み推定失敗 (辞書のみで続行): ${err.message}`);
+    }
+  }
+
+  return text;
+}
+
+/**
+ * 発音補正の統合パイプライン:
+ * (1) 静的辞書 (applyPronunciationDict) → 高速・確実・無料
+ * (2) AI動的推定 (resolveUnknownEnglishWords) → 辞書にない固有名詞をAIで補完
+ */
+async function applyFullPronunciationPipeline(text, sessionId = null) {
+  // Phase 1: 静的辞書による置換
+  const dictApplied = applyPronunciationDict(text, sessionId);
+  // Phase 2: 残った英単語をAIで動的に解決
+  const fullyResolved = await resolveUnknownEnglishWords(dictApplied, sessionId);
+  return fullyResolved;
+}
+
+// セッション終了時にAI読み推定キャッシュもクリーンアップ
+function cleanupAiPronunciationCache(sessionId) {
+  aiPronunciationCache.delete(sessionId);
+}
+
 const app = express();
 const PORT = 3001;
 
@@ -1190,6 +1474,7 @@ function sessionLog(sessionId, message) {
 function scheduleLogCleanup(sessionId) {
   setTimeout(() => {
     sessionLogs.delete(sessionId);
+    cleanupAiPronunciationCache(sessionId);
     // sessions.delete(sessionId); // 404エラー防止のためここでは削除せず、24時間後のガベージコレクション(cleanupOldFiles)に委ねる
     console.log(`🧹 [LogCleanup] セッション ${sessionId} のログを削除`);
   }, 5 * 60 * 1000);
@@ -2196,7 +2481,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
 
       try {
         // audio_query (読み辞書でIT用語等をカタカナ読みに変換してから送信)
-        const voiceText = applyPronunciationDict(d.text, sessionId);
+        const voiceText = await applyFullPronunciationPipeline(d.text, sessionId);
         
         const queryController = new AbortController();
         const queryTimeout = setTimeout(() => queryController.abort(), 30000); // 30秒タイムアウト
@@ -2288,7 +2573,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     const titleAudioPath = path.join(publicVoiceDir, 'title_call.wav');
     let titleAudioPublicPath = null;
     try {
-      const titleVoiceText = applyPronunciationDict(title, sessionId);
+      const titleVoiceText = await applyFullPronunciationPipeline(title, sessionId);
 
       const titleQueryController = new AbortController();
       const titleQueryTimeout = setTimeout(() => titleQueryController.abort(), 30000);
