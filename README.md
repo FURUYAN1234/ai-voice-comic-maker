@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.6.2-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.6.3-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.6.2 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.6.3 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['AI_Creative_Studio'](https://github.com/user-attachments/assets/d9b97ee9-5051-4f99-8bd3-fb82967d5c12)](https://youtu.be/Ik59dL_zG1s?si=VduXBkmCTGfz51aJ)
 
@@ -200,7 +200,17 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 
 ## 🔄 ChangeLog / 更新履歴
 
+**v1.6.3 (2026-05-26)**
+- [Fix] 英語漫画判定時において、音声合成（セリフおよびタイトルコール）をVOICEVOXからEdge-TTSへ完全に分岐し、不要なカタカナ発音辞書適用をスキップするよう修正。 / Fixed an issue where VOICEVOX was incorrectly called instead of Edge-TTS for English manga voice synthesis, and bypassed Katakana pronunciation dictionary adjustments for English texts.
+- [Fix] scriptData.json に isEnglish フラグを正常に出力することで、動画アウトロ（紹介画面・クレジット）が英語に切り替わるように対応。 / Forwarded the isEnglish flag to scriptData.json to correctly trigger English outtro slides and audio credits in the rendered video.
+
+**v1.6.2 (2026-05-26)**
+- [Fix] 英語漫画のOCR解析時（特にOpenAI/gpt-4o使用時）にタイトルが日本語に和訳される問題を修正し、大文字等のヘッダーテキストから自動復元する処理を強化。 / Fixed issues where English manga titles were translated into Japanese during OCR analysis (especially with gpt-4o), and enhanced the auto-restoration logic from header text candidates.
+- [Fix] 英語漫画のOCR解析時に、抽出された日本語の話者名（「黒髪の女性」「張り紙」等）を自動的に英語話者名（「Black-haired woman」「Paper sign」等）に変換・マッピングする処理を実装し、UIプレビューやアウトロ・字幕でもすべて英語で統一されるように改善。 / Auto-translates and maps Japanese speaker names (e.g. "黒髪の女性", "張り紙") to English (e.g. "Black-haired woman", "Paper sign") during English manga parsing, ensuring speaker labels in both the UI preview and the final video outtro/credits are displayed entirely in English.
+
 **v1.6.1 (2026-05-26)**
+- [Feature] フロントエンドUIにEdge-TTS接続ステータスインジケーター（「Edge-TTS 接続中」）を表示するよう改善。 / Added Edge-TTS connection status indicator ("Edge-TTS Connected") in the frontend setup UI.
+- [Improve] 英語漫画検出時に、フロントエンドのステータスバッジを「VOICEVOX接続中」から「Edge-TTS稼働中」へ自動的に切り替える動的バッジ切替機能を実装。 / Implemented dynamic badge switching to automatically update the status from "VOICEVOX Connected" to "Edge-TTS Active" when an English manga is processed.
 - [Feature] AI動的発音推定パイプライン（AI Pronunciation Lookup Pipeline）を導入。静的辞書に登録されていない未知の英単語や固有名詞に対して、Gemini や OpenAI を使用して動的にカタカナ読みを推定・置換する機能を実装。 / Implemented an AI dynamic pronunciation lookup pipeline. Uses Gemini or OpenAI to dynamically resolve and convert unknown English words or proper nouns in subtitles to natural Japanese Katakana.
 - [Optimize] 同一セッション内での重複APIコールを避けるため、AI発音推定の結果をセッション単位でキャッシュする仕組みを導入。 / Optimized performance by caching AI pronunciation results per session to prevent duplicate API requests for the same word in a single video.
 - [Clean] 開発中の一時的な `public/audio/bgm.wav` などの不要ファイルを削除。 / Removed temporary/unused files like `public/audio/bgm.wav` to maintain repository hygiene.
@@ -277,13 +287,7 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 **v1.4.4 (2026-05-23)**
 - [Feature] 「表示（text）と発音（pronunciation）の分離」機能を実装。AI解析時に字幕用の text とは別に音声合成用の pronunciation フィールドを生成し、VOICEVOXの音声合成に適用するように改善。これにより、画面の字幕は英語（「WEBTOON」など）のまま綺麗に表示され、音声は自然な日本語発音（「ウェブトーン」など）で喋る二重構造を実現しました。 / Implemented text and pronunciation separation. The system now synthesizes audio using the AI-generated phonetic `pronunciation` field while keeping the original English spelling in the subtitles, realizing an ideal dual-structure.
 
-**v1.6.2 (2026-05-26)**
-- [Fix] 英語漫画のOCR解析時（特にOpenAI/gpt-4o使用時）にタイトルが日本語に和訳される問題を修正し、大文字等のヘッダーテキストから自動復元する処理を強化。 / Fixed issues where English manga titles were translated into Japanese during OCR analysis (especially with gpt-4o), and enhanced the auto-restoration logic from header text candidates.
-- [Fix] 英語漫画のOCR解析時に、抽出された日本語の話者名（「黒髪の女性」「張り紙」等）を自動的に英語話者名（「Black-haired woman」「Paper sign」等）に変換・マッピングする処理を実装し、UIプレビューやアウトロ・字幕でもすべて英語で統一されるように改善。 / Auto-translates and maps Japanese speaker names (e.g. "黒髪の女性", "張り紙") to English (e.g. "Black-haired woman", "Paper sign") during English manga parsing, ensuring speaker labels in both the UI preview and the final video outtro/credits are displayed entirely in English.
 
-**v1.6.1 (2026-05-26)**
-- [Feature] フロントエンドUIにEdge-TTS接続ステータスインジケーター（「Edge-TTS 接続中」）を表示するよう改善。 / Added Edge-TTS connection status indicator ("Edge-TTS Connected") in the frontend setup UI.
-- [Improve] 英語漫画検出時に、フロントエンドのステータスバッジを「VOICEVOX接続中」から「Edge-TTS稼働中」へ自動的に切り替える動的バッジ切替機能を実装。 / Implemented dynamic badge switching to automatically update the status from "VOICEVOX Connected" to "Edge-TTS Active" when an English manga is processed.
 
 **v1.4.3 (2026-05-23)**
 - [Fix] 英語発音補正辞書（`PRONUNCIATION_DICT`）に `'Webtoon': 'ウェブトーン'` を追加し、セリフ内の「WEBTOON」が「ウェブTOON」と分割して誤読される問題を修正。 / Added 'Webtoon' to the preset pronunciation dictionary to resolve the misreading issue where 'WEBTOON' was split-translated into 'ウェブTOON'.

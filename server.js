@@ -2707,9 +2707,15 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     fs.copyFileSync(session.imagePath, originalImagePath);
     const originalImagePublicPath = `panels/${originalImageName}`;
 
-    // ── VOICEVOX 音声合成 ──
-    sessionLog(sessionId, '🎙️ [VOICEVOX] 音声合成パイプラインを起動...');
-    sessionLog(sessionId, `   ↳ 合成対象: ${dialogues.length}セリフ + タイトルコール`);
+    // ── 音声合成 ──
+    const isEnglish = metadata.isEnglish || false;
+    if (isEnglish) {
+      sessionLog(sessionId, '🎙️ [Edge-TTS] 英語音声合成パイプラインを起動...');
+      sessionLog(sessionId, `   ↳ 合成対象: ${dialogues.length}セリフ + タイトルコール`);
+    } else {
+      sessionLog(sessionId, '🎙️ [VOICEVOX] 音声合成パイプラインを起動...');
+      sessionLog(sessionId, `   ↳ 合成対象: ${dialogues.length}セリフ + タイトルコール`);
+    }
     const publicVoiceDir = path.join(__dirname, 'public', 'voiceover', sessionId);
     if (!fs.existsSync(publicVoiceDir)) fs.mkdirSync(publicVoiceDir, { recursive: true });
 
@@ -2717,151 +2723,185 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     for (let i = 0; i < dialogues.length; i++) {
       if (session.cancelled) throw new Error('CanceledByUser');
       const d = dialogues[i];
-      const speakerId = getSpeakerId(d);
       const filename = `line_${String(i + 1).padStart(2, '0')}.wav`;
       const filepath = path.join(publicVoiceDir, filename);
 
       const displayText = d.text.length > 25 ? d.text.substring(0, 25) + '...' : d.text;
-      sessionLog(sessionId, `🎤 [Casting] ${d.speaker} (${d.gender}, ${d.age}) → Voice ID: ${speakerId}`);
-      sessionLog(sessionId, `  [${i + 1}/${dialogues.length}] "${displayText}"`);
 
-      try {
-        // audio_query (読み辞書でIT用語等をカタカナ読みに変換してから送信)
-        const voiceText = await applyFullPronunciationPipeline(d.text, sessionId);
-        
-        const queryController = new AbortController();
-        const queryTimeout = setTimeout(() => queryController.abort(), 30000); // 30秒タイムアウト
+      if (isEnglish) {
+        // Edge-TTS 音声合成 (英語)
+        const voiceName = d.voiceId || EDGE_TTS_VOICES.female[0];
+        sessionLog(sessionId, `🎤 [Edge-TTS Casting] ${d.speaker} → Voice: ${voiceName}`);
+        sessionLog(sessionId, `  [${i + 1}/${dialogues.length}] "${displayText}"`);
 
-        const queryRes = await fetch(
-          `http://127.0.0.1:50021/audio_query?text=${encodeURIComponent(voiceText)}&speaker=${speakerId}`,
-          { 
-            method: 'POST',
-            signal: queryController.signal
-          }
-        );
-        clearTimeout(queryTimeout);
-
-        if (!queryRes.ok) throw new Error(`VOICEVOX audio_query failed with status ${queryRes.status}`);
-        const query = await queryRes.json();
-        
-        // ── 感情表現エンジン v2: pitch / intonation / volume で感情を表現 ──
-        const EMOTION_PROFILES = {
-          angry:     { pitchScale: -0.03, intonationScale: 1.5, volumeScale: 1.2 },
-          sad:       { pitchScale: -0.05, intonationScale: 0.6, volumeScale: 0.85 },
-          worried:   { pitchScale: 0.0,   intonationScale: 0.7, volumeScale: 0.9 },
-          happy:     { pitchScale: 0.04,  intonationScale: 1.4, volumeScale: 1.1 },
-          excited:   { pitchScale: 0.05,  intonationScale: 1.6, volumeScale: 1.15 },
-          surprised: { pitchScale: 0.06,  intonationScale: 1.7, volumeScale: 1.1 },
-          neutral:   { pitchScale: 0.0,   intonationScale: 1.0, volumeScale: 1.0 },
-        };
-        const profile = EMOTION_PROFILES[d.emotion] || EMOTION_PROFILES.neutral;
-
-        // ── 速度正規化エンジン: モーラデータから実効速度を統一 ──
-        // VOICEVOXの各モデルは固有の発話速度を持つため、speedScale固定では速度差が生じる
-        // audio_queryが返すモーラの合計時間から実際の発話時間を計算し、
-        // 目標速度（1文字あたり0.15秒 ≒ 約6.6文字/秒。ほんの少しだけ遅く微調整）
-        const TARGET_SEC_PER_CHAR = 0.15;
-        let totalMoraDuration = 0;
-        for (const phrase of (query.accent_phrases || [])) {
-          for (const mora of (phrase.moras || [])) {
-            totalMoraDuration += (mora.vowel_length || 0) + (mora.consonant_length || 0);
-          }
-          if (phrase.pause_mora) {
-            totalMoraDuration += phrase.pause_mora.vowel_length || 0;
-          }
+        try {
+          // 英語の場合はカタカナ変換を行わず、生のテキストをそのまま渡す
+          const durationSec = await synthesizeWithEdgeTts(d.text, voiceName, filepath, sessionId);
+          audioFiles.push({ filename, publicPath: `voiceover/${sessionId}/${filename}`, durationSec, dialogue: d });
+          sessionLog(sessionId, `  ✅ ${durationSec.toFixed(2)}s → ${filename}`);
+        } catch (err) {
+          console.error(`      ❌ Edge-TTS音声生成失敗: ${err.message}`);
+          audioFiles.push({ filename, publicPath: null, durationSec: 3, dialogue: d });
         }
-        const textLength = d.text.replace(/[、。！？…\s]/g, '').length || 1;
-        const targetDuration = textLength * TARGET_SEC_PER_CHAR;
-        const normalizedSpeed = totalMoraDuration > 0
-          ? Math.max(0.85, Math.min(1.6, totalMoraDuration / targetDuration))
-          : 1.25; // フォールバック
+      } else {
+        // VOICEVOX 音声合成 (日本語)
+        const speakerId = getSpeakerId(d);
+        sessionLog(sessionId, `🎤 [Casting] ${d.speaker} (${d.gender}, ${d.age}) → Voice ID: ${speakerId}`);
+        sessionLog(sessionId, `  [${i + 1}/${dialogues.length}] "${displayText}"`);
 
-        query.speedScale = normalizedSpeed;
-        query.pitchScale = profile.pitchScale;
-        query.intonationScale = profile.intonationScale;
-        query.volumeScale = profile.volumeScale;
-        sessionLog(sessionId, `   🎚️ 速度正規化: モーラ=${totalMoraDuration.toFixed(2)}s / 文字数=${textLength} → spd=${normalizedSpeed.toFixed(2)}x | pitch=${profile.pitchScale} / inton=${profile.intonationScale} / vol=${profile.volumeScale}`);
+        try {
+          // audio_query (読み辞書でIT用語等をカタカナ読みに変換してから送信)
+          const voiceText = await applyFullPronunciationPipeline(d.text, sessionId);
+          
+          const queryController = new AbortController();
+          const queryTimeout = setTimeout(() => queryController.abort(), 30000); // 30秒タイムアウト
 
-        // synthesis
-        const synthController = new AbortController();
-        const synthTimeout = setTimeout(() => synthController.abort(), 30000); // 30秒タイムアウト
+          const queryRes = await fetch(
+            `http://127.0.0.1:50021/audio_query?text=${encodeURIComponent(voiceText)}&speaker=${speakerId}`,
+            { 
+              method: 'POST',
+              signal: queryController.signal
+            }
+          );
+          clearTimeout(queryTimeout);
 
-        const synthRes = await fetch(
-          `http://127.0.0.1:50021/synthesis?speaker=${speakerId}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(query),
-            signal: synthController.signal
+          if (!queryRes.ok) throw new Error(`VOICEVOX audio_query failed with status ${queryRes.status}`);
+          const query = await queryRes.json();
+          
+          // ── 感情表現エンジン v2: pitch / intonation / volume で感情を表現 ──
+          const EMOTION_PROFILES = {
+            angry:     { pitchScale: -0.03, intonationScale: 1.5, volumeScale: 1.2 },
+            sad:       { pitchScale: -0.05, intonationScale: 0.6, volumeScale: 0.85 },
+            worried:   { pitchScale: 0.0,   intonationScale: 0.7, volumeScale: 0.9 },
+            happy:     { pitchScale: 0.04,  intonationScale: 1.4, volumeScale: 1.1 },
+            excited:   { pitchScale: 0.05,  intonationScale: 1.6, volumeScale: 1.15 },
+            surprised: { pitchScale: 0.06,  intonationScale: 1.7, volumeScale: 1.1 },
+            neutral:   { pitchScale: 0.0,   intonationScale: 1.0, volumeScale: 1.0 },
+          };
+          const profile = EMOTION_PROFILES[d.emotion] || EMOTION_PROFILES.neutral;
+
+          // ── 速度正規化エンジン: モーラデータから実効速度を統一 ──
+          const TARGET_SEC_PER_CHAR = 0.15;
+          let totalMoraDuration = 0;
+          for (const phrase of (query.accent_phrases || [])) {
+            for (const mora of (phrase.moras || [])) {
+              totalMoraDuration += (mora.vowel_length || 0) + (mora.consonant_length || 0);
+            }
+            if (phrase.pause_mora) {
+              totalMoraDuration += phrase.pause_mora.vowel_length || 0;
+            }
           }
-        );
-        clearTimeout(synthTimeout);
+          const textLength = d.text.replace(/[、。！？…\s]/g, '').length || 1;
+          const targetDuration = textLength * TARGET_SEC_PER_CHAR;
+          const normalizedSpeed = totalMoraDuration > 0
+            ? Math.max(0.85, Math.min(1.6, totalMoraDuration / targetDuration))
+            : 1.25; // フォールバック
 
-        if (!synthRes.ok) throw new Error(`VOICEVOX synthesis failed with status ${synthRes.status}`);
-        const wavBuffer = Buffer.from(await synthRes.arrayBuffer());
-        fs.writeFileSync(filepath, wavBuffer);
+          query.speedScale = normalizedSpeed;
+          query.pitchScale = profile.pitchScale;
+          query.intonationScale = profile.intonationScale;
+          query.volumeScale = profile.volumeScale;
+          sessionLog(sessionId, `   🎚️ 速度正規化: モーラ=${totalMoraDuration.toFixed(2)}s / 文字数=${textLength} → spd=${normalizedSpeed.toFixed(2)}x | pitch=${profile.pitchScale} / inton=${profile.intonationScale} / vol=${profile.volumeScale}`);
 
-        // WAVからduration取得
-        const durationSec = getWavDuration(wavBuffer);
-        audioFiles.push({ filename, publicPath: `voiceover/${sessionId}/${filename}`, durationSec, dialogue: d });
-        sessionLog(sessionId, `  ✅ ${durationSec.toFixed(2)}s → ${filename}`);
-      } catch (err) {
-        console.error(`      ❌ 音声生成失敗: ${err.message}`);
-        audioFiles.push({ filename, publicPath: null, durationSec: 3, dialogue: d });
+          // synthesis
+          const synthController = new AbortController();
+          const synthTimeout = setTimeout(() => synthController.abort(), 30000); // 30秒タイムアウト
+
+          const synthRes = await fetch(
+            `http://127.0.0.1:50021/synthesis?speaker=${speakerId}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(query),
+              signal: synthController.signal
+            }
+          );
+          clearTimeout(synthTimeout);
+
+          if (!synthRes.ok) throw new Error(`VOICEVOX synthesis failed with status ${synthRes.status}`);
+          const wavBuffer = Buffer.from(await synthRes.arrayBuffer());
+          fs.writeFileSync(filepath, wavBuffer);
+
+          // WAVからduration取得
+          const durationSec = getWavDuration(wavBuffer);
+          audioFiles.push({ filename, publicPath: `voiceover/${sessionId}/${filename}`, durationSec, dialogue: d });
+          sessionLog(sessionId, `  ✅ ${durationSec.toFixed(2)}s → ${filename}`);
+        } catch (err) {
+          console.error(`      ❌ 音声生成失敗: ${err.message}`);
+          audioFiles.push({ filename, publicPath: null, durationSec: 3, dialogue: d });
+        }
       }
     }
 
     const totalAudioSec = audioFiles.reduce((s, a) => s + a.durationSec, 0);
-    sessionLog(sessionId, `✅ [VOICEVOX] セリフ音声合成完了: ${audioFiles.length}本 / 合計 ${totalAudioSec.toFixed(1)}秒`);
+    if (isEnglish) {
+      sessionLog(sessionId, `✅ [Edge-TTS] セリフ音声合成完了: ${audioFiles.length}本 / 合計 ${totalAudioSec.toFixed(1)}秒`);
+    } else {
+      sessionLog(sessionId, `✅ [VOICEVOX] セリフ音声合成完了: ${audioFiles.length}本 / 合計 ${totalAudioSec.toFixed(1)}秒`);
+    }
 
     // ── タイトルコール音声 ──
-    sessionLog(sessionId, '📢 [Title Call] ずんだもん (ID:3) によるタイトルコール音声を合成中...');
     const titleAudioPath = path.join(publicVoiceDir, 'title_call.wav');
     let titleAudioPublicPath = null;
-    try {
-      const titleVoiceText = await applyFullPronunciationPipeline(title, sessionId);
+    let titleDurationFrames = 90; // デフォルト
 
-      const titleQueryController = new AbortController();
-      const titleQueryTimeout = setTimeout(() => titleQueryController.abort(), 30000);
+    if (isEnglish) {
+      sessionLog(sessionId, `📢 [Title Call] Edge-TTS (${EDGE_TTS_VOICES.titleCall}) によるタイトルコール音声を合成中...`);
+      try {
+        // 英語の場合はカタカナ変換を行わず生のタイトルを渡す
+        const durationSec = await synthesizeWithEdgeTts(title, EDGE_TTS_VOICES.titleCall, titleAudioPath, sessionId);
+        titleAudioPublicPath = `voiceover/${sessionId}/title_call.wav`;
+        titleDurationFrames = Math.ceil(durationSec * 30) + 15;
+        sessionLog(sessionId, `✅ タイトルコール音声生成完了 (${durationSec.toFixed(2)}s)`);
+      } catch (err) {
+        console.log(`    ⚠️ タイトルコール生成スキップ: ${err.message}`);
+      }
+    } else {
+      sessionLog(sessionId, '📢 [Title Call] ずんだもん (ID:3) によるタイトルコール音声を合成中...');
+      try {
+        const titleVoiceText = await applyFullPronunciationPipeline(title, sessionId);
 
-      const titleQueryRes = await fetch(
-        `http://127.0.0.1:50021/audio_query?text=${encodeURIComponent(titleVoiceText)}&speaker=3`,
-        { 
-          method: 'POST',
-          signal: titleQueryController.signal
-        }
-      );
-      clearTimeout(titleQueryTimeout);
+        const titleQueryController = new AbortController();
+        const titleQueryTimeout = setTimeout(() => titleQueryController.abort(), 30000);
 
-      if (!titleQueryRes.ok) throw new Error(`VOICEVOX title call audio_query failed with status ${titleQueryRes.status}`);
-      const titleQuery = await titleQueryRes.json();
-      titleQuery.speedScale = 0.95;
-      titleQuery.pitchScale = 0.05;
+        const titleQueryRes = await fetch(
+          `http://127.0.0.1:50021/audio_query?text=${encodeURIComponent(titleVoiceText)}&speaker=3`,
+          { 
+            method: 'POST',
+            signal: titleQueryController.signal
+          }
+        );
+        clearTimeout(titleQueryTimeout);
 
-      const titleSynthController = new AbortController();
-      const titleSynthTimeout = setTimeout(() => titleSynthController.abort(), 30000);
+        if (!titleQueryRes.ok) throw new Error(`VOICEVOX title call audio_query failed with status ${titleQueryRes.status}`);
+        const titleQuery = await titleQueryRes.json();
+        titleQuery.speedScale = 0.95;
+        titleQuery.pitchScale = 0.05;
 
-      const titleSynthRes = await fetch(
-        `http://127.0.0.1:50021/synthesis?speaker=3`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(titleQuery),
-          signal: titleSynthController.signal
-        }
-      );
-      clearTimeout(titleSynthTimeout);
+        const titleSynthController = new AbortController();
+        const titleSynthTimeout = setTimeout(() => titleSynthController.abort(), 30000);
 
-      if (!titleSynthRes.ok) throw new Error(`VOICEVOX title call synthesis failed with status ${titleSynthRes.status}`);
-      const titleWav = Buffer.from(await titleSynthRes.arrayBuffer());
-      fs.writeFileSync(titleAudioPath, titleWav);
-      titleAudioPublicPath = `voiceover/${sessionId}/title_call.wav`;
-      const titleDurationSec = getWavDuration(titleWav);
-      var titleDurationFrames = Math.ceil(titleDurationSec * 30) + 15;
-      sessionLog(sessionId, `✅ タイトルコール音声生成完了 (${titleDurationSec.toFixed(2)}s)`);
-    } catch (err) {
-      console.log(`    ⚠️ タイトルコール生成スキップ: ${err.message}`);
-      var titleDurationFrames = 90; // フォールバック
+        const titleSynthRes = await fetch(
+          `http://127.0.0.1:50021/synthesis?speaker=3`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(titleQuery),
+            signal: titleSynthController.signal
+          }
+        );
+        clearTimeout(titleSynthTimeout);
+
+        if (!titleSynthRes.ok) throw new Error(`VOICEVOX title call synthesis failed with status ${titleSynthRes.status}`);
+        const titleWav = Buffer.from(await titleSynthRes.arrayBuffer());
+        fs.writeFileSync(titleAudioPath, titleWav);
+        titleAudioPublicPath = `voiceover/${sessionId}/title_call.wav`;
+        const titleDurationSec = getWavDuration(titleWav);
+        titleDurationFrames = Math.ceil(titleDurationSec * 30) + 15;
+        sessionLog(sessionId, `✅ タイトルコール音声生成完了 (${titleDurationSec.toFixed(2)}s)`);
+      } catch (err) {
+        console.log(`    ⚠️ タイトルコール生成スキップ: ${err.message}`);
+      }
     }
 
     sessionLog(sessionId, '🗂️ [Timeline] 動画タイムラインを構築中...');
@@ -2881,6 +2921,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     const scriptData = {
       title,
       version: SYSTEM_VERSION,
+      isEnglish,
       panels: panelPaths, // 分割されたコマ画像パス
       panelAspectRatios, // 各コマのアスペクト比（動的ズーム用）
       originalImage: originalImagePublicPath, // 全体画像
