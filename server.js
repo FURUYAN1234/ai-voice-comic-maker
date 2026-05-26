@@ -2976,11 +2976,8 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     const seconds = String(now.getSeconds()).padStart(2, '0');
     const localTimestamp = `${year}${month}${date}${hours}${minutes}${seconds}`;
 
-    // 4. 数字13桁 (ミリ秒タイムスタンプ)
-    const msec13 = String(Date.now()).padStart(13, '0');
-
-    // 5. ファイル名の合成
-    const filename = `voice_comic_${langCode}_${safeTitle}_${localTimestamp}${msec13}.mp4`;
+    // 4. ファイル名の合成 (年月日時分秒 14桁)
+    const filename = `voice_comic_${langCode}_${safeTitle}_${localTimestamp}.mp4`;
     const outputPath = path.join(outDir, filename);
 
     if (session.cancelled) throw new Error('CanceledByUser');
