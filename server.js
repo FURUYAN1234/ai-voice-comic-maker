@@ -1675,7 +1675,8 @@ app.get('/api/edgetts/status', async (req, res) => {
     });
     clearTimeout(timeout);
 
-    if (response.ok) {
+    // 例外がスローされず、かつ500以上のサーバーエラーでなければ疎通成功とみなす（MicrosoftはヘッダーなしGETに対して400を返すが、これは到達できている証拠）
+    if (response.status >= 200 && response.status < 500) {
       res.json({ connected: true });
     } else {
       res.json({ connected: false, error: `HTTP Status: ${response.status}` });
