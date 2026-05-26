@@ -2464,8 +2464,10 @@ ${JSON.stringify(correctionInput, null, 2)}`;
         })
       }))
     };
-    // ── 日本の漫画読み順を強制適用: 各コマ内のセリフを右→中→左にソート ──
-    const positionOrder = { right: 0, center: 1, left: 2 };
+    // ── 漫画の読み順を強制適用: 各コマ内のセリフをソート (日本語: 右→左, 英語: 左→右) ──
+    const positionOrder = isEnglish
+      ? { left: 0, center: 1, right: 2 }
+      : { right: 0, center: 1, left: 2 };
     for (const panel of metadata.panels) {
       const before = panel.dialogues.map(d => `${d.speaker}(${d.bubblePosition})`).join(' → ');
       panel.dialogues.sort((a, b) => {
@@ -2475,7 +2477,8 @@ ${JSON.stringify(correctionInput, null, 2)}`;
       });
       const after = panel.dialogues.map(d => `${d.speaker}(${d.bubblePosition})`).join(' → ');
       if (before !== after) {
-        sessionLog(sessionId, `📖 [Reading Order] コマ${panel.panelNumber}: セリフ順を右→左に修正`);
+        const directionStr = isEnglish ? '左→右' : '右→左';
+        sessionLog(sessionId, `📖 [Reading Order] コマ${panel.panelNumber}: セリフ順を${directionStr}に修正`);
         sessionLog(sessionId, `   ↳ ${after}`);
       }
     }
