@@ -2960,8 +2960,28 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     const outDir = path.join(__dirname, 'out');
     if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
-    const timestamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
-    const outputPath = path.join(outDir, `voice_comic_${timestamp}.mp4`);
+    // 1. 言語コードの決定
+    const langCode = isEnglish ? 'EN' : 'JP';
+
+    // 2. タイトルのサニタイズ（OSで使えない文字の置換と文字数制限）
+    const safeTitle = title.trim().replace(/[\\/:*?"<>|]/g, '_').substring(0, 30);
+
+    // 3. ローカル時間での年月日時分秒 (YYYYMMDDHHmmss) の生成
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const date = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const localTimestamp = `${year}${month}${date}${hours}${minutes}${seconds}`;
+
+    // 4. 数字13桁 (ミリ秒タイムスタンプ)
+    const msec13 = String(Date.now()).padStart(13, '0');
+
+    // 5. ファイル名の合成
+    const filename = `voice_comic_${langCode}_${safeTitle}_${localTimestamp}${msec13}.mp4`;
+    const outputPath = path.join(outDir, filename);
 
     if (session.cancelled) throw new Error('CanceledByUser');
 
