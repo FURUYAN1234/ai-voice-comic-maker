@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.6.3-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.6.4-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.6.3 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.6.4 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['AI_Creative_Studio'](https://github.com/user-attachments/assets/d9b97ee9-5051-4f99-8bd3-fb82967d5c12)](https://youtu.be/Ik59dL_zG1s?si=VduXBkmCTGfz51aJ)
 
@@ -199,6 +199,10 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 *Developed by FURU*
 
 ## 🔄 ChangeLog / 更新履歴
+
+**v1.6.4 (2026-05-26)**
+- [Fix] server.js 内に msedge-tts モジュール（MsEdgeTTS, OUTPUT_FORMAT）がインポートされておらず、音声合成実行時に ReferenceError で処理が失敗していた致命的バグを修正。 / Fixed a ReferenceError where MsEdgeTTS was not imported in server.js, causing the English TTS pipeline to fail silently and generate silent audio.
+- [Fix] Edge-TTS の音声合成およびタイトルコールの catch ブロックに sessionLog によるログ転送を追加し、不具合発生時にフロントエンド画面で詳細なエラーメッセージが視覚的に追従・検知できるように改善。 / Directed syntax and network error output inside Edge-TTS synthesize catch blocks directly to the frontend session log viewer for better observability.
 
 **v1.6.3 (2026-05-26)**
 - [Fix] 英語漫画判定時において、音声合成（セリフおよびタイトルコール）をVOICEVOXからEdge-TTSへ完全に分岐し、不要なカタカナ発音辞書適用をスキップするよう修正。 / Fixed an issue where VOICEVOX was incorrectly called instead of Edge-TTS for English manga voice synthesis, and bypassed Katakana pronunciation dictionary adjustments for English texts.

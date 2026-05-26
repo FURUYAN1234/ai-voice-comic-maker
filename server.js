@@ -27,6 +27,7 @@ import dotenv from 'dotenv';
 import sharp from 'sharp';
 import { bundle } from '@remotion/bundler';
 import { renderMedia, selectComposition } from '@remotion/renderer';
+import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
 
 dotenv.config();
 
@@ -2741,6 +2742,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
           sessionLog(sessionId, `  ✅ ${durationSec.toFixed(2)}s → ${filename}`);
         } catch (err) {
           console.error(`      ❌ Edge-TTS音声生成失敗: ${err.message}`);
+          sessionLog(sessionId, `      ❌ Edge-TTS音声生成失敗: ${err.message}`);
           audioFiles.push({ filename, publicPath: null, durationSec: 3, dialogue: d });
         }
       } else {
@@ -2855,6 +2857,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
         sessionLog(sessionId, `✅ タイトルコール音声生成完了 (${durationSec.toFixed(2)}s)`);
       } catch (err) {
         console.log(`    ⚠️ タイトルコール生成スキップ: ${err.message}`);
+        sessionLog(sessionId, `    ⚠️ タイトルコール生成スキップ: ${err.message}`);
       }
     } else {
       sessionLog(sessionId, '📢 [Title Call] ずんだもん (ID:3) によるタイトルコール音声を合成中...');
