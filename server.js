@@ -1663,6 +1663,30 @@ app.get('/api/voicevox/status', async (req, res) => {
 });
 
 // ──────────────────────────────────────
+// API: Edge-TTS 接続確認
+// ──────────────────────────────────────
+app.get('/api/edgetts/status', async (req, res) => {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+
+    const response = await fetch('https://speech.platform.bing.com/consumer/speech/synthesize/readaloud/activevoices/list', {
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (response.ok) {
+      res.json({ connected: true });
+    } else {
+      res.json({ connected: false, error: `HTTP Status: ${response.status}` });
+    }
+  } catch (err) {
+    console.error('❌ Edge-TTS status check failed:', err);
+    res.json({ connected: false, error: err.message });
+  }
+});
+
+// ──────────────────────────────────────
 // API: VOICEVOXキャラクター一覧
 // ──────────────────────────────────────
 app.get('/api/voicevox/speakers', async (req, res) => {
