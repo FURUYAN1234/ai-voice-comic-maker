@@ -1365,6 +1365,89 @@ function cleanupAiPronunciationCache(sessionId) {
   aiPronunciationCache.delete(sessionId);
 }
 
+// ── Edge-TTS: 英語音声合成エンジン ──
+// VOICEVOXは日本語専用のため、英語漫画には Microsoft Edge TTS (無料・APIキー不要) を使用する
+
+// 言語自動判定: セリフ群のテキストから漫画全体の言語を推定する
+// 日本語文字（ひらがな・カタカナ・漢字）の比率が低ければ英語と判定
+function detectLanguage(dialogues) {
+  const allText = dialogues.map(d => d.text || '').join('');
+  if (allText.length === 0) return 'ja';
+  // 日本語文字（ひらがな・カタカナ・漢字・全角記号）
+  const jpChars = (allText.match(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\u3000-\u303F\uFF00-\uFFEF]/g) || []).length;
+  const ratio = jpChars / allText.length;
+  // 日本語文字が20%未満なら英語と判定
+  return ratio < 0.2 ? 'en' : 'ja';
+}
+
+// Edge-TTS 英語音声プール（被りを最小化するためバリエーション豊富に）
+const EDGE_TTS_VOICES = {
+  female: [
+    'en-US-JennyNeural',       // 明るく万能な女性声
+    'en-US-AriaNeural',        // 落ち着いた女性声
+    'en-US-MichelleNeural',    // やや低めの女性声
+    'en-GB-SoniaNeural',       // イギリス英語の女性声
+    'en-AU-NatashaNeural',     // オーストラリア英語の女性声
+  ],
+  male: [
+    'en-US-GuyNeural',         // 標準的な男性声
+    'en-US-ChristopherNeural', // やや若い男性声
+    'en-US-EricNeural',        // 落ち着いた男性声
+    'en-GB-RyanNeural',        // イギリス英語の男性声
+    'en-AU-WilliamNeural',     // オーストラリア英語の男性声
+  ],
+  narrator: 'en-US-AriaNeural', // ナレーション専用
+  titleCall: 'en-US-JennyNeural', // 英語タイトルコール
+};
+
+// Edge-TTS キャスティング: キャラクター名と性別からユニークな声を割り当てる
+function assignEdgeTtsVoice(speaker, gender, usedVoices) {
+  // ナレーション判定
+  const narratorPatterns = ['narr', 'narrator', 'ナレ', '語り手', '地の文'];
+  if (narratorPatterns.some(pat => speaker.toLowerCase().includes(pat.toLowerCase()))) {
+    return EDGE_TTS_VOICES.narrator;
+  }
+
+  const genderKey = gender === 'male' ? 'male' : 'female'; // unknown はデフォルト female
+  const pool = EDGE_TTS_VOICES[genderKey];
+
+  // 未使用の声を優先して重複を回避
+  const unusedPool = pool.filter(v => !usedVoices.has(v));
+  const selectFrom = unusedPool.length > 0 ? unusedPool : pool;
+
+  // キャラクター名のハッシュで安定的に選択（同じ名前なら常に同じ声）
+  const hash = [...speaker].reduce((h, c) => h + c.charCodeAt(0), 0);
+  const selected = selectFrom[hash % selectFrom.length];
+  usedVoices.add(selected);
+  return selected;
+}
+
+// Edge-TTS でテキストを音声合成し、WAVファイルとして保存する
+async function synthesizeWithEdgeTts(text, voiceName, outputPath, sessionId) {
+  const tts = new MsEdgeTTS();
+  await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+
+  // まずMP3として生成し、そのバッファを取得
+  const readable = tts.toStream(text);
+  const chunks = [];
+  for await (const chunk of readable.audioStream) {
+    chunks.push(chunk);
+  }
+  const mp3Buffer = Buffer.concat(chunks);
+
+  // MP3をそのまま保存（Remotionは MP3 も読み込み可能）
+  // ただしファイル拡張子は .wav のままにする（既存パイプラインとの互換性のため）
+  fs.writeFileSync(outputPath, mp3Buffer);
+
+  // 簡易的な duration 推定（48kbps mono → 6000 bytes/sec）
+  const estimatedDuration = mp3Buffer.length / 6000;
+
+  if (sessionId) {
+    sessionLog(sessionId, `   🔊 [Edge-TTS] ${voiceName} → ${path.basename(outputPath)} (${estimatedDuration.toFixed(2)}s)`);
+  }
+  return estimatedDuration;
+}
+
 const app = express();
 const PORT = 3001;
 
