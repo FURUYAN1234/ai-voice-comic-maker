@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.6.6-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.6.7-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.6.6 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.6.7 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['AI_Creative_Studio'](https://github.com/user-attachments/assets/d9b97ee9-5051-4f99-8bd3-fb82967d5c12)](https://youtu.be/Ik59dL_zG1s?si=VduXBkmCTGfz51aJ)
 
@@ -201,6 +201,9 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 *Developed by FURU*
 
 ## 🔄 ChangeLog / 更新履歴
+
+**v1.6.7 (2026-05-26)**
+- [Fix] 英語判定（isEnglish）が有効な場合において、セリフ（吹き出し）の読む順番（ソート）を英語の視線移動に合わせて「左→右」にソートするよう修正。また、READMEに「AI動的発音推定パイプライン」の詳細アーキテクチャ解説を追加。 / Fixed dialogue reading order sorting logic to sort left-to-right when isEnglish is enabled, and added detailed explanation of the AI Dynamic Pronunciation Lookup Pipeline to README.md.
 
 **v1.6.6 (2026-05-26)**
 - [Fix] 英語判定（isEnglish）が有効な場合、セリフ（吹き出し）の物理的な読む順番（ソート）を日本語の「右→中→左」ではなく、英語の視線移動に合わせた「左→中→右」にソートするよう修正。 / Fixed dialogue reading order sorting logic to sort from left-to-right (instead of Japanese right-to-left) when isEnglish is enabled.
