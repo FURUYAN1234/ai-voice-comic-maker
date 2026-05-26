@@ -57,6 +57,8 @@ interface ScriptData {
   originalImage?: string;
   /** 各コマのアスペクト比（動的ズーム用） */
   panelAspectRatios?: number[];
+  /** 英語漫画判定フラグ */
+  isEnglish?: boolean;
 }
 
 interface VoiceComicProps {
@@ -165,7 +167,15 @@ export const VoiceComic: React.FC<VoiceComicProps> = ({ scriptData }) => {
             )}
             
             <div style={{ color: "#fff", fontSize: 40, textAlign: "center", fontWeight: "bold", zIndex: 10, textShadow: "0px 4px 16px rgba(0,0,0,0.9)" }}>
-              ネームから全自動の<br/>自律式統合AI漫画システム<br/>
+              {data.isEnglish ? (
+                <>
+                  Fully Automated & Autonomous<br/>AI Manga Video System<br/>
+                </>
+              ) : (
+                <>
+                  ネームから全自動の<br/>自律式統合AI漫画システム<br/>
+                </>
+              )}
               <span style={{ color: "#38bdf8", fontSize: 32, marginTop: 40, display: "block", textShadow: "0px 2px 8px rgba(0,0,0,0.8)" }}>
                 https://x.gd/JiWor
               </span>
@@ -190,7 +200,9 @@ export const VoiceComic: React.FC<VoiceComicProps> = ({ scriptData }) => {
                 textShadow: "0px 2px 4px rgba(0,0,0,0.8)",
               }}>
                 Created with Remotion<br/>
-                <span style={{ fontSize: 20 }}>音声：VOICEVOX</span>
+                <span style={{ fontSize: 20 }}>
+                  {data.isEnglish ? "Audio: Microsoft Edge-TTS" : "音声：VOICEVOX"}
+                </span>
               </div>
               <div style={{
                 color: "rgba(255,255,255,0.9)",

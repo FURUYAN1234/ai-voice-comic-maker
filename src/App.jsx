@@ -15,7 +15,7 @@
  */
 import React, { useState, useCallback, useEffect } from 'react';
 
-const SYSTEM_VERSION = '1.6.1';
+const SYSTEM_VERSION = '1.6.2';
 const DEBUG_MODE = false;
 
 // タイトルを「」で囲むヘルパー（すでに囲まれていたら二重にしない）
@@ -37,6 +37,7 @@ const PHASE = {
 export default function App() {
   const [phase, setPhase] = useState(PHASE.SETUP);
   const [voicevoxStatus, setVoicevoxStatus] = useState('checking'); // checking | connected | error
+  const [edgettsStatus, setEdgettsStatus] = useState('checking'); // checking | connected | error
   const [geminiKey, setGeminiKey] = useState('');
   const [geminiKeyValid, setGeminiKeyValid] = useState(false);
   const [activeEngine, setActiveEngine] = useState('gemini');
@@ -101,6 +102,7 @@ export default function App() {
   // ── 初期化 ──
   useEffect(() => {
     checkVoicevox();
+    checkEdgeTts();
     // サーバー側に保存済みのAPIキーがあるか確認
     checkSavedApiKey();
   }, []);
@@ -131,6 +133,22 @@ export default function App() {
       }
     } catch {
       setVoicevoxStatus('error');
+    }
+  };
+
+  // ── Edge-TTS 接続チェック ──
+  const checkEdgeTts = async () => {
+    setEdgettsStatus('checking');
+    try {
+      const res = await fetch('/api/edgetts/status');
+      const data = await res.json();
+      if (data.connected) {
+        setEdgettsStatus('connected');
+      } else {
+        setEdgettsStatus('error');
+      }
+    } catch {
+      setEdgettsStatus('error');
     }
   };
 
@@ -385,7 +403,7 @@ export default function App() {
                   {voicevoxStatus === 'connected' ? '✅' : voicevoxStatus === 'checking' ? '⏳' : '❌'}
                 </span>
                 <div className="setup-detail">
-                  <strong>VOICEVOX Engine</strong>
+                  <strong>VOICEVOX Engine (日本語音声用)</strong>
                   {voicevoxStatus === 'checking' && (
                     <p className="setup-hint">接続確認中...</p>
                   )}
@@ -402,6 +420,30 @@ export default function App() {
                   )}
                 </div>
               </div>
+
+              {/* Edge-TTS 接続状態 */}
+              <div className="setup-item" style={{ marginTop: '16px' }}>
+                <span className={`setup-status ${edgettsStatus === 'connected' ? 'status-ok' : edgettsStatus === 'checking' ? 'status-pending' : 'status-error'}`}>
+                  {edgettsStatus === 'connected' ? '✅' : edgettsStatus === 'checking' ? '⏳' : '❌'}
+                </span>
+                <div className="setup-detail">
+                  <strong>Edge-TTS Engine (英語音声用)</strong>
+                  {edgettsStatus === 'checking' && (
+                    <p className="setup-hint">接続確認中...</p>
+                  )}
+                  {edgettsStatus === 'connected' && (
+                    <p className="setup-hint success">接続OK (クラウドサービス疎通完了)</p>
+                  )}
+                  {edgettsStatus === 'error' && (
+                    <div>
+                      <p className="setup-hint error">
+                        Microsoft Edge-TTS サーバーへの疎通に失敗しました。インターネット接続環境を確認してください。
+                      </p>
+                      <button className="btn btn-retry" onClick={checkEdgeTts}>🔄 再接続</button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {error && (
@@ -414,10 +456,17 @@ export default function App() {
         {phase === PHASE.DROP && (
           <div className="card drop-card">
             <div className="status-badges">
-              <div className="voicevox-badge">
-                <span className="badge-dot" />
-                VOICEVOX 接続中
-              </div>
+              {ocrPreview && ocrPreview.isEnglish ? (
+                <div className="voicevox-badge" style={{ backgroundColor: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}>
+                  <span className="badge-dot" style={{ backgroundColor: '#38bdf8', boxShadow: '0 0 8px #38bdf8' }} />
+                  Edge-TTS 稼働中
+                </div>
+              ) : (
+                <div className="voicevox-badge">
+                  <span className="badge-dot" />
+                  VOICEVOX 接続中
+                </div>
+              )}
               <div className="gemini-badge">
                 <span className={`badge-dot ${activeEngine === 'openai' ? 'badge-dot--openai' : 'badge-dot--gemini'}`} style={activeEngine === 'openai' ? { backgroundColor: '#10a37f', boxShadow: '0 0 8px #10a37f' } : {}} />
                 {activeEngine === 'openai' ? 'OpenAI 準備完了' : 'Gemini AI 準備完了'}
@@ -481,10 +530,17 @@ export default function App() {
             
             {/* 生成中もステータスバッジを表示 */}
             <div className="status-badges" style={{ marginBottom: '16px' }}>
-              <div className="voicevox-badge">
-                <span className="badge-dot" />
-                VOICEVOX 接続中
-              </div>
+              {ocrPreview && ocrPreview.isEnglish ? (
+                <div className="voicevox-badge" style={{ backgroundColor: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}>
+                  <span className="badge-dot" style={{ backgroundColor: '#38bdf8', boxShadow: '0 0 8px #38bdf8' }} />
+                  Edge-TTS 稼働中
+                </div>
+              ) : (
+                <div className="voicevox-badge">
+                  <span className="badge-dot" />
+                  VOICEVOX 接続中
+                </div>
+              )}
               <div className="gemini-badge">
                 <span className={`badge-dot ${activeEngine === 'openai' ? 'badge-dot--openai' : 'badge-dot--gemini'}`} style={activeEngine === 'openai' ? { backgroundColor: '#10a37f', boxShadow: '0 0 8px #10a37f' } : {}} />
                 {activeEngine === 'openai' ? 'OpenAI 稼働中' : 'Gemini AI 稼働中'}
@@ -571,9 +627,11 @@ export default function App() {
                         14: "冥鳴ひまり", 
                         16: "九州そら" 
                       };
+                      const isNumberId = typeof c.voice === 'number' || (c.voice !== null && c.voice !== undefined && !isNaN(Number(c.voice)));
+                      const displayVoice = isNumberId ? (voiceNames[c.voice] || `VOICEVOX_ID:${c.voice}`) : c.voice;
                       return (
                         <li key={i} style={{ marginBottom: '4px' }}>
-                          ・<strong>{c.name}</strong> <span style={{ color: '#94a3b8' }}>({c.gender === 'female' ? '女性' : c.gender === 'male' ? '男性' : '不明'})</span> ➔ {voiceNames[c.voice] || `VOICEVOX_ID:${c.voice}`}
+                          ・<strong>{c.name}</strong> <span style={{ color: '#94a3b8' }}>({c.gender === 'female' ? '女性' : c.gender === 'male' ? '男性' : '不明'})</span> ➔ {displayVoice}
                         </li>
                       );
                     })}
