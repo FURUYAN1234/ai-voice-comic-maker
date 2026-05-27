@@ -1570,7 +1570,7 @@ const SYSTEM_VERSION = pkg.version;
 
 // ランタイムで設定されたAPIキー（.envより優先）
 let runtimeApiKey = '';
-let runtimeModel = 'gemini-3.5-flash';
+let runtimeModel = 'gemini-2.5-flash';
 let runtimeEngine = 'gemini';
 
 // ファイルアップロード設定（画像のみ）
@@ -1676,12 +1676,10 @@ app.post('/api/apikey', async (req, res) => {
       const genAI = new GoogleGenerativeAI(key);
       
       const modelsToTry = [
-        'gemini-3.5-flash',
-        'gemini-flash-latest',
         'gemini-2.5-flash',
         'gemini-2.5-pro',
-        'gemini-1.5-pro',
-        'gemini-pro-latest'
+        'gemini-1.5-flash',
+        'gemini-1.5-pro'
       ];
       
       let workingModel = null;
@@ -2024,12 +2022,10 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
         const genAI = new GoogleGenerativeAI(apiKey);
 
         const geminiFallbackList = [
-    "gemini-3.5-flash",
-    "gemini-flash-latest",
     "gemini-2.5-flash",
     "gemini-2.5-pro",
-    "gemini-1.5-pro",
-    "gemini-1.5-flash"
+    "gemini-1.5-flash",
+    "gemini-1.5-pro"
         ];
         const startIdx = geminiFallbackList.indexOf(runtimeModel);
         const modelsToAttempt = startIdx !== -1 
