@@ -34,7 +34,8 @@
     "dev:frontend": "vite --host --open",
     "dev:server": "node server.js",
     "build": "vite build",
-    "predeploy": "npm run build",
+    "version:up": "node scripts/update_version.cjs",
+    "predeploy": "node scripts/pre_deploy_check.js && npm run build",
     "deploy": "gh-pages -d dist",
     "preview": "vite preview"
   }
