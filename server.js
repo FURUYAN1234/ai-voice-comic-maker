@@ -2012,12 +2012,12 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
         const genAI = new GoogleGenerativeAI(apiKey);
 
         const geminiFallbackList = [
-          'gemini-3.5-flash',
-          'gemini-flash-latest',
-          'gemini-2.5-flash',
-          'gemini-2.5-pro',
-          'gemini-1.5-pro',
-          'gemini-pro-latest'
+    "gemini-3.5-flash",
+    "gemini-flash-latest",
+    "gemini-2.5-flash",
+    "gemini-2.5-pro",
+    "gemini-1.5-pro",
+    "gemini-1.5-flash"
         ];
         const startIdx = geminiFallbackList.indexOf(runtimeModel);
         const modelsToAttempt = startIdx !== -1 

@@ -436,3 +436,10 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 
 **v1.0.0 (Initial Release)**
 - [Feature] GeminiとVOICEVOXを統合した自動動画生成パイプラインの初版リリース。
+
+
+## ChangeLog
+
+### v1.7.3
+- chore: Sync Gemini API models to latest stable version.
+
