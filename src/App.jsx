@@ -15,7 +15,7 @@
  */
 import React, { useState, useCallback, useEffect } from 'react';
 
-const SYSTEM_VERSION = '1.7.0';
+const SYSTEM_VERSION = '1.7.1';
 const DEBUG_MODE = false;
 
 // タイトルを「」で囲むヘルパー（すでに囲まれていたら二重にしない）
@@ -44,6 +44,7 @@ export default function App() {
   const [dragOver, setDragOver] = useState(false);
   const [progress, setProgress] = useState({ step: 0, total: 5, message: '' });
   const [videoUrl, setVideoUrl] = useState(null);
+  const [videoFilename, setVideoFilename] = useState(''); // サーバーから返されるファイル名
   const [videoTitle, setVideoTitle] = useState('');
   const [ocrPreview, setOcrPreview] = useState(null);
   const [error, setError] = useState(null);
@@ -259,6 +260,11 @@ export default function App() {
       // Step 5: 完了
       setProgress({ step: 5, total: 5, message: '完了！ 🎉' });
       setVideoUrl(`/api/video/${sessionId}`);
+      // サーバーから返された正しいファイル名を保持（voice_comic_JP/EN_タイトル名_YYYYMMDDHHmmss.mp4）
+      const genData = await genRes.json();
+      if (genData.videoFilename) {
+        setVideoFilename(genData.videoFilename);
+      }
       setPhase(PHASE.COMPLETE);
 
     } catch (err) {
@@ -290,6 +296,7 @@ export default function App() {
     setTimeout(() => {
       setPhase(PHASE.DROP);
       setVideoUrl(null);
+      setVideoFilename('');
       setVideoTitle('');
       setOcrPreview(null);
       setProgress({ step: 0, total: 5, message: '' });
@@ -302,7 +309,8 @@ export default function App() {
     if (!videoUrl) return;
     const a = document.createElement('a');
     a.href = videoUrl;
-    a.download = `voice_comic_${Date.now()}.mp4`;
+    // サーバーから返された正しいファイル名を使用（voice_comic_JP/EN_タイトル名_YYYYMMDDHHmmss.mp4）
+    a.download = videoFilename || `voice_comic_${new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)}.mp4`;
     a.click();
   };
 
@@ -332,6 +340,7 @@ export default function App() {
   const handleReset = () => {
     setPhase(PHASE.DROP);
     setVideoUrl(null);
+    setVideoFilename('');
     setVideoTitle('');
     setOcrPreview(null);
     setProgress({ step: 0, total: 5, message: '' });

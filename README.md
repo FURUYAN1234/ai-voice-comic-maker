@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.7.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.7.1-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.7.0 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.7.1 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['AI_Creative_Studio'](https://github.com/user-attachments/assets/d9b97ee9-5051-4f99-8bd3-fb82967d5c12)](https://youtu.be/Ik59dL_zG1s?si=VduXBkmCTGfz51aJ)
 
@@ -201,6 +201,9 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 *Developed by FURU*
 
 ## 🔄 ChangeLog / 更新履歴
+
+**v1.7.1 (2026-05-27)**
+- [Fix] ダウンロードされる動画ファイル名がミリ秒タイムスタンプ（`voice_comic_xxxxxx.mp4`）のままになっていたバグを修正。サーバー側で生成した正しい命名規則（`voice_comic_JP/EN_タイトル名_年月日時分秒.mp4`）でフロントエンドからそのままダウンロードできるように変更しました。 / Fixed a bug where downloaded files had millisecond timestamps. Updated the frontend to download files using the correct server-generated naming format (`voice_comic_JP/EN_Title_YYYYMMDDHHmmss.mp4`).
 
 **v1.7.0 (2026-05-27)**
 - [Feature] 日本語・英語の言語判定に連動し、出力する動画ファイル名のフォーマットを指定の形式（`voice_comic_JP_タイトル名_年月日時分秒` / `voice_comic_EN_タイトル名_年月日時分秒`）で保存されるように変更。タイトルの禁止文字を自動サニタイズし、ローカル時間タイムスタンプのみ（年月日時分秒 14桁）を付与して保存します。 / Modified video file naming logic to automatically name output files according to the detected language, title (sanitized), and a 14-digit local timestamp (e.g., `voice_comic_JP_Title_YYYYMMDDHHmmss.mp4`).

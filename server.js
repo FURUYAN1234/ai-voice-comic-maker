@@ -3028,15 +3028,17 @@ app.post('/api/generate/:sessionId', async (req, res) => {
 
     session.status = 'complete';
     session.videoPath = outputPath;
+    session.videoFilename = filename; // ダウンロード時のファイル名を保持
     session.scriptData = scriptData;
 
     // 出力ファイルサイズを取得
     const outputStats = fs.statSync(outputPath);
     const fileSizeMB = (outputStats.size / (1024 * 1024)).toFixed(2);
     sessionLog(sessionId, `✅ [Generate] エンコード完了! → ${fileSizeMB} MB`);
+    sessionLog(sessionId, `📁 出力ファイル名: ${filename}`);
     sessionLog(sessionId, `🎉 ボイスコミック動画の生成が完了しました!`);
     scheduleLogCleanup(sessionId);
-    res.json({ videoPath: outputPath, scriptData });
+    res.json({ videoPath: outputPath, videoFilename: filename, scriptData });
 
   } catch (err) {
     console.error('❌ Generation error:', err);
@@ -3055,6 +3057,10 @@ app.get('/api/video/:sessionId', (req, res) => {
   const session = sessions.get(req.params.sessionId);
   if (!session?.videoPath || !fs.existsSync(session.videoPath)) {
     return res.status(404).json({ error: '動画が見つかりません' });
+  }
+  // ダウンロード時に正しいファイル名（voice_comic_JP/EN_タイトル名_YYYYMMDDHHmmss.mp4）を返す
+  if (session.videoFilename) {
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(session.videoFilename)}"`);
   }
   res.sendFile(session.videoPath);
 });
