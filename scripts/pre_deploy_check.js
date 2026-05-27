@@ -12,7 +12,7 @@ try {
     }
 
     console.log("🔄 [Sync] Checking remote status...");
-    execSync('git fetch origin main');
+    execSync('git fetch origin master');
 
     console.log("🔢 [Version Sync] Checking version consistency across files...");
 
@@ -21,7 +21,7 @@ try {
 
     // Check version progression (patch = 9 -> minor increment check)
     try {
-        const remotePkgRaw = execSync('git show origin/main:package.json').toString();
+        const remotePkgRaw = execSync('git show origin/master:package.json').toString();
         const remotePkg = JSON.parse(remotePkgRaw);
         const remoteVer = remotePkg.version;
         const remoteParts = remoteVer.split('-')[0].split('.').map(Number);
@@ -38,7 +38,7 @@ try {
             }
         }
     } catch (e) {
-        console.warn("⚠️ [Version Progression] Warning: Could not verify version progression with origin/main: " + e.message);
+        console.warn("⚠️ [Version Progression] Warning: Could not verify version progression with origin/master: " + e.message);
     }
 
     const appVersionMatch = fs.readFileSync('src/App.jsx', 'utf-8').match(/const SYSTEM_VERSION = ['"]([^'"]+)['"]/);
