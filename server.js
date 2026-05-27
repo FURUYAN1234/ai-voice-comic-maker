@@ -1640,30 +1640,30 @@ app.post('/api/apikey', async (req, res) => {
       const OpenAI = (await import('openai')).default;
       const openai = new OpenAI({ apiKey: key });
       
-      const modelsToTry = ['gpt-4o', 'gpt-4o-mini', 'gpt-5.5', 'gpt-5.4-mini'];
+      // OpenAI Models APIを利用して実際に利用可能なモデル一覧を動的取得
       let workingModel = null;
-      let lastError = null;
-
-      for (const modelName of modelsToTry) {
+      try {
+        const response = await openai.models.list();
+        const availableIds = response.data.map(m => m.id);
+        const modelsToTry = ['gpt-4o', 'gpt-4o-mini', 'gpt-5.5', 'gpt-5.4-mini'];
+        
+        workingModel = modelsToTry.find(m => availableIds.includes(m));
+        if (!workingModel) {
+          // もしリストになければ、実際に利用可能なリストのうち最初のものを選択するか、gpt-4oとする
+          workingModel = availableIds.includes('gpt-4o') ? 'gpt-4o' : (availableIds[0] || 'gpt-4o');
+        }
+      } catch (e) {
+        console.warn(`    ℹ️ OpenAI Models APIの取得に失敗したため、直接gpt-4oを検証します: ${e.message}`);
         try {
           await openai.chat.completions.create({
-            model: modelName,
+            model: 'gpt-4o',
             messages: [{ role: "user", content: "test" }],
             max_tokens: 5
-          }, {
-            timeout: 25000
           });
-          workingModel = modelName;
-          break;
-        } catch (e) {
-          lastError = e;
-          const errorMsg = e && e.message ? e.message.split('\n')[0] : String(e);
-          console.log(`    ℹ️ OpenAI ${modelName} は利用不可: ${errorMsg}`);
+          workingModel = 'gpt-4o';
+        } catch (err) {
+          throw err;
         }
-      }
-
-      if (!workingModel) {
-        throw lastError || new Error("利用可能なOpenAIモデルが見つかりませんでした");
       }
 
       runtimeApiKey = key;
@@ -1972,10 +1972,22 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
         const dataUrl = `data:${mimeType};base64,${base64Image}`;
         
         const openAiFallbackList = ['gpt-4o', 'gpt-4o-mini', 'gpt-5.5', 'gpt-5.5-instant', 'gpt-5.4', 'gpt-5.4-mini', 'gpt-5.4-nano'];
-        const startIdx = openAiFallbackList.indexOf(runtimeModel);
+        
+        // 動的モデルフィルタリング
+        let activeFallbackList = openAiFallbackList;
+        try {
+          const modelList = await openai.models.list();
+          const availableIds = modelList.data.map(m => m.id);
+          activeFallbackList = openAiFallbackList.filter(m => availableIds.includes(m));
+          if (activeFallbackList.length === 0) activeFallbackList = openAiFallbackList;
+        } catch (e) {
+          console.warn("[OpenAI server] Failed to fetch models list, fallback to default list:", e.message);
+        }
+
+        const startIdx = activeFallbackList.indexOf(runtimeModel);
         const modelsToAttempt = startIdx !== -1 
-          ? [runtimeModel, ...openAiFallbackList.filter(m => m !== runtimeModel)]
-          : [runtimeModel, ...openAiFallbackList];
+          ? [runtimeModel, ...activeFallbackList.filter(m => m !== runtimeModel)]
+          : [runtimeModel, ...activeFallbackList];
 
         for (const modelName of modelsToAttempt) {
           try {
