@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.7.1-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.7.2-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.7.1 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.7.2 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['AI_Creative_Studio'](https://github.com/user-attachments/assets/d9b97ee9-5051-4f99-8bd3-fb82967d5c12)](https://youtu.be/Ik59dL_zG1s?si=VduXBkmCTGfz51aJ)
 

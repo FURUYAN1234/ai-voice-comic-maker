@@ -177,7 +177,7 @@ export const VoiceComic: React.FC<VoiceComicProps> = ({ scriptData }) => {
                 </>
               )}
               <span style={{ color: "#38bdf8", fontSize: 32, marginTop: 40, display: "block", textShadow: "0px 2px 8px rgba(0,0,0,0.8)" }}>
-                https://x.gd/JiWor
+                https://note.com/happy_duck780
               </span>
             </div>
             
