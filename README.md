@@ -440,6 +440,9 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 
 ## ChangeLog
 
+### v1.7.4
+- chore: Sync Gemini & OpenAI API models to latest stable version.
+
 ### v1.7.3
 - chore: Sync Gemini API models to latest stable version.
 

@@ -1640,7 +1640,7 @@ app.post('/api/apikey', async (req, res) => {
       const OpenAI = (await import('openai')).default;
       const openai = new OpenAI({ apiKey: key });
       
-      const modelsToTry = ['gpt-4o', 'gpt-4o-mini'];
+      const modelsToTry = ['gpt-5.5', 'gpt-5.4-mini', 'gpt-4o', 'gpt-4o-mini'];
       let workingModel = null;
       let lastError = null;
 
@@ -1971,7 +1971,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
         const openai = new OpenAI({ apiKey: apiKey });
         const dataUrl = `data:${mimeType};base64,${base64Image}`;
         
-        const openAiFallbackList = ['gpt-4o', 'gpt-4o-mini'];
+        const openAiFallbackList = ['gpt-5.5', 'gpt-5.5-instant', 'gpt-5.4', 'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-4o', 'gpt-4o-mini'];
         const startIdx = openAiFallbackList.indexOf(runtimeModel);
         const modelsToAttempt = startIdx !== -1 
           ? [runtimeModel, ...openAiFallbackList.filter(m => m !== runtimeModel)]
@@ -2178,7 +2178,7 @@ ${JSON.stringify(correctionInput, null, 2)}`;
           const OpenAI = (await import('openai')).default;
           const openai = new OpenAI({ apiKey: apiKey });
           
-          const correctionModels = ['gpt-4o-mini', 'gpt-4o'];
+          const correctionModels = ['gpt-5.4-mini', 'gpt-5.5', 'gpt-4o-mini', 'gpt-4o'];
           const modelName = correctionModels.includes(runtimeModel) ? runtimeModel : 'gpt-4o-mini';
 
           const response = await openai.chat.completions.create({
