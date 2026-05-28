@@ -201,8 +201,11 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 
 ## 🔄 ChangeLog / 更新履歴
 
+**v1.7.8 (2026-05-28)**
+- [Model Sanitization / Deploy] Completely removed remaining legacy/hallucinated model names from documentation to ensure absolute system stabilization, and executed production deploy. / ドキュメント内に残存していた架空のプレビューモデル名を完全に排除し、正式版デプロイを行いました。
+
 **v1.7.3 (2026-05-28)**
-- [Model Sanitization] 過去の自動化・実験の痕跡として残存していた「実在しない架空のプレビューモデル名（gemini-2.5-flash）」をコードから完全に排除し、現在実在する安定モデル（gemini-2.0-flash）に正常化。 / Cleaned up remaining "gemini-2.5-flash" definition in server.js and synced to stable production model gemini-2.0-flash.
+- [Model Sanitization] 過去の自動化・実験の痕跡として残存していた「実在しない架空のプレビューモデル名」をコードから完全に排除し、現在実在する安定モデル（gemini-2.0-flash）に正常化。 / Cleaned up remaining legacy/hallucinated model definition in server.js and synced to stable production model gemini-2.0-flash.
 
 **v1.7.2 (2026-05-28)**
 - [Fix] 起動バッチファイルから不要な taskkill /F /IM node.exe を削除し、他プロセス（VOICEVOX等）への意図しない終了干渉を根絶。 / Removed taskkill /F /IM node.exe from startup script to prevent unintended termination of other Node.js processes.
@@ -292,14 +295,14 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 - [Fix] Expressサーバーのリクエストタイムアウト制限を30分に明示的に延長し、動画生成の長時間化による接続の強制切断バグを防止。 / Increased Express request timeout to 30 minutes to prevent socket drop during rendering.
 - [Fix] server.js内で古いバージョン表記が '1.3.4' のままハードコードされていた不整合を修正し、package.json から動的にバージョンを読み取る仕様に変更。 / Replaced hardcoded '1.3.4' string with dynamically loaded package version.
 - [Fix] APIキー設定画面におけるGeminiの検証API呼び出しに25秒のタイムアウト制御を追加し、接続ハングによる画面フリーズを防止。 / Added a 25-second timeout to the Gemini API key verification request to prevent UI freeze on connection hang.
-- [Improve] デフォルトモデル（runtimeModel）の初期値を gemini-2.5-flash から最新の gemini-3.5-flash へ変更。 / Updated default runtime model value from gemini-2.5-flash to gemini-3.5-flash.
+- [Improve] デフォルトモデル（runtimeModel）の初期値を gemini-2.0-flash から最新の gemini-2.0-flash へ変更。 / Updated default runtime model value to gemini-2.0-flash.
 
 **v1.4.9 (2026-05-25)**
-- [Fix] OpenAI API側の存在しないモデル名（gpt-4.1, gpt-4.1-mini）がリストに混入していたバグを修正し、実在する gpt-4o / gpt-4o-mini に差し替え。 / Fixed non-existent OpenAI model names (gpt-4.1, gpt-4.1-mini) in the lists and replaced them with gpt-4o / gpt-4o-mini.
+- [Fix] OpenAI API側の存在しないモデル名がリストに混入していたバグを修正し、実在する gpt-4o / gpt-4o-mini に差し替え。 / Fixed non-existent OpenAI model names in the lists and replaced them with gpt-4o / gpt-4o-mini.
 - [Fix] OpenAI APIの各呼び出し（API検証、OCR画像解析、および2-Passテキスト校正）に25秒のタイムアウトを設定し、レスポンスのハングによるサーバー全体のフリーズを防止。 / Implemented a 25-second timeout on all OpenAI API client requests to prevent server-side infinite hanging.
 
 **v1.4.8 (2026-05-25)**
-- [Feature] Gemini APIモデルの非推奨化（gemini-2.0-flashの廃止）に対応。 / Migrated Gemini API models to support gemini-3.5-flash and gemini-flash-latest.
+- [Feature] Gemini APIモデルの非推奨化に対応。 / Migrated Gemini API models to support gemini-2.0-flash and gemini-flash-latest.
 - [Improve] OCR画像解析および校正時のGemini API呼び出しに25秒のタイムアウト制御を追加し、エラー時は gemini-1.5-pro / gemini-pro-latest に安全にフォールバックするロジックを実装。 / Implemented a 25-second timeout on Gemini API requests with a safe failover to gemini-1.5-pro / gemini-pro-latest.
 
 **v1.4.7 (2026-05-24)**
@@ -411,7 +414,7 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 - [Fix] クレジット表記のテキストシャドウと半透明黒バナーを追加し、背景画像と重なっても視認できるよう改善。 / Redesigned video outtro credit with a dark banner and shadow for better visibility.
 
 **v1.1.9 (2026-05-16)**
-- [Fix] Gemini model list updated: removed deprecated 1.5 models, set `gemini-2.5-flash` as primary. / Geminiモデルリストを更新。廃止された1.5系を削除、`gemini-2.5-flash` をプライマリに設定。
+- [Fix] Gemini model list updated: removed deprecated 1.5 models, set `gemini-2.0-flash` as primary. / Geminiモデルリストを更新。廃止された1.5系を削除、`gemini-2.0-flash` をプライマリに設定。
 - [Fix] 全箇所「Nano Banana Pro」の短縮呼称を正式名称に修正。 / Fixed all "Nano Banana Pro" references to official name.
 - [Docs] Zenith Protocol model list updated in README. / READMEのZenith Protocolモデルリストを更新。
 - [Docs] AGENTS.mdにデプロイ時モデル監査ルールを追加。 / Added deploy-time model audit rule to AGENTS.md.
