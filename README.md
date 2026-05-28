@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.7.3-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.7.9-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.7.3 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.7.9 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['AI_Creative_Studio'](https://github.com/user-attachments/assets/d9b97ee9-5051-4f99-8bd3-fb82967d5c12)](https://youtu.be/Ik59dL_zG1s?si=VduXBkmCTGfz51aJ)
 
@@ -66,9 +66,11 @@ Following the philosophy of Nano Banana 2 and ChatGPT Images 2.0 Powered Super A
 Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System の思想を踏襲し、APIエラー時や制限到達時、あるいは安全フィルタでのブロック時に自動的に最適な別モデルへフォールバックする仕組み（Zenith Protocol）を搭載しています。
 
 **画像解析 / Vision Analysis Fallback Pipeline:**
-1. `gemini-2.0-flash` (Primary / 最新・最優先)
-2. `gemini-flash-latest` (Backup / 安定・高速)
-3. `gemini-1.5-pro` または `gemini-pro-latest` (Fallback / 追加フォールバック)
+1. `gemini-3.5-flash` (Primary / Next-Gen 優先)
+2. `gemini-flash-latest` (Backup 1 / 最新・安定)
+3. `gemini-2.5-flash` (Backup 2 / 高速安定)
+4. `gemini-2.5-pro` (Backup 3 / プロ仕様高品質)
+5. `gemini-1.5-pro` または `gemini-pro-latest` (Fallback / 安定フォールバック)
 
 ## 📝 Setup & Launch / セットアップと起動
 
@@ -200,6 +202,9 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 *Developed by FURU*
 
 ## 🔄 ChangeLog / 更新履歴
+
+**v1.7.9 (2026-05-28)**
+- [Model Restore / Deploy] Restored original model definitions (gemini-3.5-flash, gemini-2.5-flash, gpt-4.1) and executed production deploy. / オリジナルのモデル定義（gemini-3.5-flash, gemini-2.5-flash, gpt-4.1）に復元し、正式版デプロイを行いました。
 
 **v1.7.8 (2026-05-28)**
 - [Model Sanitization / Deploy] Completely removed remaining legacy/hallucinated model names from documentation to ensure absolute system stabilization, and executed production deploy. / ドキュメント内に残存していた架空のプレビューモデル名を完全に排除し、正式版デプロイを行いました。
