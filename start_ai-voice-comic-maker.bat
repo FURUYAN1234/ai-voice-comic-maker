@@ -1,10 +1,7 @@
-﻿@echo off
+@echo off
 chcp 65001 > nul
 setlocal EnableDelayedExpansion
 cd /d "%~dp0"
-
-echo [System] Clearing zombie node processes...
-taskkill /F /IM node.exe >nul 2>&1
 
 echo ============================================
 echo   AI Voice Comic Maker - Starting...

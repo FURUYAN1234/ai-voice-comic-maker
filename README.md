@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.7.2-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.7.3-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.7.2 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.7.3 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['AI_Creative_Studio'](https://github.com/user-attachments/assets/d9b97ee9-5051-4f99-8bd3-fb82967d5c12)](https://youtu.be/Ik59dL_zG1s?si=VduXBkmCTGfz51aJ)
 
@@ -66,10 +66,9 @@ Following the philosophy of Nano Banana 2 and ChatGPT Images 2.0 Powered Super A
 Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System の思想を踏襲し、APIエラー時や制限到達時、あるいは安全フィルタでのブロック時に自動的に最適な別モデルへフォールバックする仕組み（Zenith Protocol）を搭載しています。
 
 **画像解析 / Vision Analysis Fallback Pipeline:**
-1. `gemini-3.5-flash` または `gemini-flash-latest` (Primary / 最新・最優先)
-2. `gemini-2.5-flash` (Backup / 安定・高速)
-3. `gemini-2.5-pro` (Backup / 高精度)
-4. `gemini-1.5-pro` または `gemini-pro-latest` (Fallback / 追加フォールバック)
+1. `gemini-2.0-flash` (Primary / 最新・最優先)
+2. `gemini-flash-latest` (Backup / 安定・高速)
+3. `gemini-1.5-pro` または `gemini-pro-latest` (Fallback / 追加フォールバック)
 
 ## 📝 Setup & Launch / セットアップと起動
 
@@ -201,6 +200,12 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 *Developed by FURU*
 
 ## 🔄 ChangeLog / 更新履歴
+
+**v1.7.3 (2026-05-28)**
+- [Model Sanitization] 過去の自動化・実験の痕跡として残存していた「実在しない架空のプレビューモデル名（gemini-2.5-flash）」をコードから完全に排除し、現在実在する安定モデル（gemini-2.0-flash）に正常化。 / Cleaned up remaining "gemini-2.5-flash" definition in server.js and synced to stable production model gemini-2.0-flash.
+
+**v1.7.2 (2026-05-28)**
+- [Fix] 起動バッチファイルから不要な taskkill /F /IM node.exe を削除し、他プロセス（VOICEVOX等）への意図しない終了干渉を根絶。 / Removed taskkill /F /IM node.exe from startup script to prevent unintended termination of other Node.js processes.
 
 **v1.7.1 (2026-05-27)**
 - [Fix] ダウンロードされる動画ファイル名がミリ秒タイムスタンプ（`voice_comic_xxxxxx.mp4`）のままになっていたバグを修正。サーバー側で生成した正しい命名規則（`voice_comic_JP/EN_タイトル名_年月日時分秒.mp4`）でフロントエンドからそのままダウンロードできるように変更しました。 / Fixed a bug where downloaded files had millisecond timestamps. Updated the frontend to download files using the correct server-generated naming format (`voice_comic_JP/EN_Title_YYYYMMDDHHmmss.mp4`).
