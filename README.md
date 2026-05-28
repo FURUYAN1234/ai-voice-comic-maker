@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.7.9-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.8.0-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.7.9 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.8.0 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['AI_Creative_Studio'](https://github.com/user-attachments/assets/d9b97ee9-5051-4f99-8bd3-fb82967d5c12)](https://youtu.be/Ik59dL_zG1s?si=VduXBkmCTGfz51aJ)
 
@@ -65,12 +65,41 @@ This system is not merely a video editor. It is an automated orchestration engin
 Following the philosophy of Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System, this system features a robust fallback mechanism (Zenith Protocol) that automatically switches to optimal alternative models upon API errors, rate limits, or safety filter blocks.  
 Nano Banana 2 and ChatGPT Images 2.0 Powered Super AI 4-koma System の思想を踏襲し、APIエラー時や制限到達時、あるいは安全フィルタでのブロック時に自動的に最適な別モデルへフォールバックする仕組み（Zenith Protocol）を搭載しています。
 
-**画像解析 / Vision Analysis Fallback Pipeline:**
-1. `gemini-3.5-flash` (Primary / Next-Gen 優先)
-2. `gemini-flash-latest` (Backup 1 / 最新・安定)
-3. `gemini-2.5-flash` (Backup 2 / 高速安定)
-4. `gemini-2.5-pro` (Backup 3 / プロ仕様高品質)
-5. `gemini-1.5-pro` または `gemini-pro-latest` (Fallback / 安定フォールバック)
+All model lists are centralized in a single `AI_MODELS` configuration block at the top of `server.js`. To swap models, edit only this one block — all downstream references update automatically.  
+全モデルリストは `server.js` 先頭の `AI_MODELS` 設定ブロックに集約されており、モデル入替時はこの1ブロックだけ変更すれば全箇所に反映されます。
+
+### Gemini API Fallback Pipeline (画像解析 / Vision Analysis):
+| 優先度 | モデル | 用途 |
+|--------|---------|------|
+| Primary | `gemini-3.5-flash` | Next-Gen 優先 |
+| Backup 1 | `gemini-2.5-flash` | 高速安定 |
+| Backup 2 | `gemini-2.5-pro` | プロ仕様高品質 |
+| Backup 3 | `gemini-flash-latest` | 最新・安定 |
+| Fallback | `gemini-pro-latest` | 安定フォールバック |
+
+### OpenAI API Fallback Pipeline (画像解析 / Vision Analysis):
+| 優先度 | モデル | 用途 |
+|--------|---------|------|
+| Primary | `gpt-4.1` | Vision対応・高品質 |
+| Backup 1 | `gpt-4o` | Vision安定実績 |
+| Backup 2 | `gpt-4.1-mini` | コスト効率 |
+
+### Gemini API Fallback Pipeline (テキスト生成 / Text Generation):
+| 優先度 | モデル | 用途 |
+|--------|---------|------|
+| Primary | `gemini-3.5-flash` | Next-Gen優先・無料枠優先 |
+| Backup 1 | `gemini-2.5-flash` | 高速安定 |
+| Backup 2 | `gemini-2.5-pro` | プロ仕様 |
+| Backup 3 | `gemini-flash-latest` | 最新 |
+| Fallback | `gemini-pro-latest` | 安定 |
+
+### OpenAI API Fallback Pipeline (テキスト生成 / Text Generation):
+| 優先度 | モデル | 用途 |
+|--------|---------|------|
+| Primary | `gpt-4.1` | 高品質・1Mコンテキスト |
+| Backup 1 | `gpt-4.1-mini` | コスト効率・高速 |
+| Backup 2 | `gpt-4.1-nano` | 最軽量・最速 |
+| Fallback | `gpt-4o` | 安定実績 |
 
 ## 📝 Setup & Launch / セットアップと起動
 
@@ -114,8 +143,8 @@ The browser will open `http://localhost:5174` automatically. / ブラウザが `
 - **Frontend**: React / Remotion
 - **Bundler**: Vite
 - **Backend**: Node.js / Express
-- **AI**: Google GenAI SDK (Gemini 2.5 Flash) / OpenAI SDK (gpt-4o)
-- **Audio**: VOICEVOX API
+- **AI**: Google GenAI SDK (Gemini 3.5 Flash / 2.5 Flash / 2.5 Pro) / OpenAI SDK (gpt-4.1 / gpt-4o)
+- **Audio**: VOICEVOX API / Microsoft Edge-TTS (English)
 
 ## ⚖️ Compliance & Legal Stance / 法的遵守について
 
@@ -202,6 +231,14 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 *Developed by FURU*
 
 ## 🔄 ChangeLog / 更新履歴
+
+**v1.8.0 (2026-05-29)**
+- [Major / 大幅改変] **Nano Banana Pro 4.4.5 最適化APIフォールバックリスト統一 + モデル集約化**: server.js内の全AIモデルフォールバックリストﾈ7箇所ﾉをNano Banana Pro 4.4.5指定の最適化リストに完全一致させました。さらに、全モデルリストをファイル先頭の `AI_MODELS` 定数に集約し、モデル入替時は1ブロックの変更だけで全箇所に反映される設計にリファクタリングしました。 / Unified all 7 AI model fallback lists in server.js to match the Nano Banana Pro 4.4.5 optimized specification and centralized them into a single `AI_MODELS` constant block for easy model swapping.
+  - **Geminiテキスト/画像**: `gemini-3.5-flash` → `gemini-2.5-flash` → `gemini-2.5-pro` → `gemini-flash-latest` → `gemini-pro-latest`
+  - **OpenAIテキスト**: `gpt-4.1` → `gpt-4.1-mini` → `gpt-4.1-nano` → `gpt-4o`
+  - **OpenAI Vision**: `gpt-4.1` → `gpt-4o` → `gpt-4.1-mini`
+- [UI / ユーザー体験改善] **API切替ボタンの明確化**: 「APIを切替」「⚙️ APIキーを変更」ボタンを「🔄 API切替（Gemini / OpenAI）」に変更しました。 / Renamed API switch buttons to "🔄 API Switch (Gemini / OpenAI)" for clearer user experience.
+- [Doc / ドキュメント] **README大改修**: Zenith ProtocolセクションをGemini・OpenAI両APIのフォールバックリスト一覧表に拡張しました。 / Expanded the Zenith Protocol section with full Gemini/OpenAI fallback list tables.
 
 **v1.7.9 (2026-05-28)**
 - [Model Restore / Deploy] Restored original model definitions (gemini-3.5-flash, gemini-2.5-flash, gpt-4.1) and executed production deploy. / オリジナルのモデル定義（gemini-3.5-flash, gemini-2.5-flash, gpt-4.1）に復元し、正式版デプロイを行いました。

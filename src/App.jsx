@@ -15,7 +15,7 @@
  */
 import React, { useState, useCallback, useEffect } from 'react';
 
-const SYSTEM_VERSION = '1.7.9';
+const SYSTEM_VERSION = '1.8.0';
 const DEBUG_MODE = false;
 
 // タイトルを「」で囲むヘルパー（すでに囲まれていたら二重にしない）
@@ -376,7 +376,7 @@ export default function App() {
                   {geminiKeyValid ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
                       <p className="setup-hint success" style={{ margin: 0 }}>設定済み ({activeEngine === 'openai' ? 'OpenAI' : 'Gemini (推奨/高精度)'})</p>
-                      <button className="btn-change-key" onClick={() => { setGeminiKey(''); setGeminiKeyValid(false); }}>APIを切替</button>
+                      <button className="btn-change-key" onClick={() => { setGeminiKey(''); setGeminiKeyValid(false); }}>🔄 API切替（Gemini / OpenAI）</button>
                     </div>
                   ) : (
                     <div className="api-key-form">
@@ -490,7 +490,7 @@ export default function App() {
                 style={{ height: '32px', display: 'flex', alignItems: 'center', alignSelf: 'center' }}
                 title="APIキーを変更する"
               >
-                ⚙️ APIキーを変更
+                🔄 API切替（Gemini / OpenAI）
               </button>
             </div>
 

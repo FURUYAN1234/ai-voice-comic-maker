@@ -1280,9 +1280,9 @@ async function resolveUnknownEnglishWords(text, sessionId = null) {
     if (runtimeEngine === 'openai') {
       const OpenAI = (await import('openai')).default;
       const openai = new OpenAI({ apiKey });
-      // コスト最小のminiモデルを使用
+      // コスト最小の軽量モデルを使用
       const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: AI_MODELS.openai.lite,
         messages: [
           { role: "system", content: "あなたは英語の固有名詞の日本語読みに精通した言語学の専門家です。必ず指定されたJSON形式で出力してください。" },
           { role: "user", content: aiPrompt }
@@ -1297,7 +1297,7 @@ async function resolveUnknownEnglishWords(text, sessionId = null) {
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
       const genAI = new GoogleGenerativeAI(apiKey);
       // 読み推定には最軽量モデルで十分
-      const pronunciationModels = ['gemini-2.0-flash-lite', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+      const pronunciationModels = AI_MODELS.gemini.lite;
       let aiResult = null;
       for (const modelName of pronunciationModels) {
         try {
@@ -1573,6 +1573,31 @@ let runtimeApiKey = '';
 let runtimeModel = 'gemini-3.5-flash';
 let runtimeEngine = 'gemini';
 
+// ──────────────────────────────────────
+// AIモデル設定（一括管理）
+// モデル入替時はここだけ変更すれば全箇所に反映される
+// nano banana pro 4.4.5 最適化フォールバックリスト準拠
+// ──────────────────────────────────────
+const AI_MODELS = {
+  gemini: {
+    // テキスト生成・画像解析共通: Next-Gen優先・無料枠優先
+    text:  ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-flash-latest', 'gemini-pro-latest'],
+    image: ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-flash-latest', 'gemini-pro-latest'],
+    // 発音推定用（軽量タスク）
+    lite:  ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-flash-latest'],
+  },
+  openai: {
+    // テキスト生成: 高品質→コスト効率→最軽量→安定実績
+    text:   ['gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-4o'],
+    // 画像解析（Vision）: Vision対応優先
+    vision: ['gpt-4.1', 'gpt-4o', 'gpt-4.1-mini'],
+    // 発音推定用（軽量タスク・単一モデル）
+    lite:   'gpt-4.1-nano',
+    // 2-Pass校正用
+    correction: ['gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-4o'],
+  },
+};
+
 // ファイルアップロード設定（画像のみ）
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -1640,7 +1665,7 @@ app.post('/api/apikey', async (req, res) => {
       const OpenAI = (await import('openai')).default;
       const openai = new OpenAI({ apiKey: key });
       
-      const modelsToTry = ['gpt-4o', 'gpt-4o-mini'];
+      const modelsToTry = AI_MODELS.openai.text;
       let workingModel = null;
       let lastError = null;
 
@@ -1675,14 +1700,7 @@ app.post('/api/apikey', async (req, res) => {
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
       const genAI = new GoogleGenerativeAI(key);
       
-      const modelsToTry = [
-        'gemini-3.5-flash',
-        'gemini-flash-latest',
-        'gemini-2.5-flash',
-        'gemini-2.5-pro',
-        'gemini-1.5-pro',
-        'gemini-pro-latest'
-      ];
+      const modelsToTry = AI_MODELS.gemini.text;
       
       let workingModel = null;
       let lastError = null;
@@ -1971,7 +1989,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
         const openai = new OpenAI({ apiKey: apiKey });
         const dataUrl = `data:${mimeType};base64,${base64Image}`;
         
-        const openAiFallbackList = ['gpt-4o', 'gpt-4o-mini'];
+        const openAiFallbackList = AI_MODELS.openai.vision;
         const startIdx = openAiFallbackList.indexOf(runtimeModel);
         const modelsToAttempt = startIdx !== -1 
           ? [runtimeModel, ...openAiFallbackList.filter(m => m !== runtimeModel)]
@@ -2011,14 +2029,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
         const { GoogleGenerativeAI } = await import('@google/generative-ai');
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        const geminiFallbackList = [
-          'gemini-3.5-flash',
-          'gemini-flash-latest',
-          'gemini-2.5-flash',
-          'gemini-2.5-pro',
-          'gemini-1.5-pro',
-          'gemini-pro-latest'
-        ];
+        const geminiFallbackList = AI_MODELS.gemini.image;
         const startIdx = geminiFallbackList.indexOf(runtimeModel);
         const modelsToAttempt = startIdx !== -1 
           ? [runtimeModel, ...geminiFallbackList.filter(m => m !== runtimeModel)]
@@ -2178,8 +2189,8 @@ ${JSON.stringify(correctionInput, null, 2)}`;
           const OpenAI = (await import('openai')).default;
           const openai = new OpenAI({ apiKey: apiKey });
           
-          const correctionModels = ['gpt-4o-mini', 'gpt-4o'];
-          const modelName = correctionModels.includes(runtimeModel) ? runtimeModel : 'gpt-4o-mini';
+          const correctionModels = AI_MODELS.openai.correction;
+          const modelName = correctionModels.includes(runtimeModel) ? runtimeModel : AI_MODELS.openai.correction[0];
 
           const response = await openai.chat.completions.create({
             model: modelName,
