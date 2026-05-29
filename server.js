@@ -23,6 +23,7 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { execFileSync } from 'child_process';
 import dotenv from 'dotenv';
 import sharp from 'sharp';
 import { bundle } from '@remotion/bundler';
@@ -1424,11 +1425,15 @@ function assignEdgeTtsVoice(speaker, gender, usedVoices) {
 }
 
 // Edge-TTS でテキストを音声合成し、WAVファイルとして保存する
+// Remotionのffprobeは拡張子とコンテナ形式の一致を要求するため、
+// MP3で生成後にffmpegで正規のPCM WAVに変換する
+const FFMPEG_PATH = path.join(__dirname, 'node_modules', '@remotion', 'compositor-win32-x64-msvc', 'ffmpeg.exe');
+
 async function synthesizeWithEdgeTts(text, voiceName, outputPath, sessionId) {
   const tts = new MsEdgeTTS();
   await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
 
-  // まずMP3として生成し、そのバッファを取得
+  // MP3として生成し、バッファを取得
   const readable = tts.toStream(text);
   const chunks = [];
   for await (const chunk of readable.audioStream) {
@@ -1436,17 +1441,36 @@ async function synthesizeWithEdgeTts(text, voiceName, outputPath, sessionId) {
   }
   const mp3Buffer = Buffer.concat(chunks);
 
-  // MP3をそのまま保存（Remotionは MP3 も読み込み可能）
-  // ただしファイル拡張子は .wav のままにする（既存パイプラインとの互換性のため）
-  fs.writeFileSync(outputPath, mp3Buffer);
+  // MP3を一時ファイルに書き出し
+  const tempMp3Path = outputPath.replace(/\.wav$/i, '.tmp.mp3');
+  fs.writeFileSync(tempMp3Path, mp3Buffer);
 
-  // 簡易的な duration 推定（48kbps mono → 6000 bytes/sec）
-  const estimatedDuration = mp3Buffer.length / 6000;
+  try {
+    // ffmpegでMP3→PCM WAV変換（24kHz, 16bit, モノラル）
+    execFileSync(FFMPEG_PATH, [
+      '-y',               // 上書き許可
+      '-i', tempMp3Path,  // 入力: MP3
+      '-ar', '24000',     // サンプルレート 24kHz
+      '-ac', '1',         // モノラル
+      '-sample_fmt', 's16', // 16bit PCM
+      '-f', 'wav',        // WAVフォーマット強制
+      outputPath           // 出力: WAV
+    ], { timeout: 15000, stdio: 'pipe' });
+  } finally {
+    // 一時MP3ファイルを削除
+    try { fs.unlinkSync(tempMp3Path); } catch (_) {}
+  }
+
+  // WAVファイルサイズからdurationを正確に算出
+  // PCM WAV: 24000Hz * 1ch * 2bytes = 48000 bytes/sec
+  const wavSize = fs.statSync(outputPath).size;
+  const pcmDataSize = Math.max(0, wavSize - 44); // WAVヘッダー44バイトを除去
+  const duration = pcmDataSize / 48000;
 
   if (sessionId) {
-    sessionLog(sessionId, `   🔊 [Edge-TTS] ${voiceName} → ${path.basename(outputPath)} (${estimatedDuration.toFixed(2)}s)`);
+    sessionLog(sessionId, `   🔊 [Edge-TTS] ${voiceName} → ${path.basename(outputPath)} (${duration.toFixed(2)}s)`);
   }
-  return estimatedDuration;
+  return duration;
 }
 
 const app = express();
