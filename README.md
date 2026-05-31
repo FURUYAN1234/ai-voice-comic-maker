@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.8.1-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.8.2-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.8.1 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.8.2 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['AI_Creative_Studio'](https://github.com/user-attachments/assets/d9b97ee9-5051-4f99-8bd3-fb82967d5c12)](https://youtu.be/Ik59dL_zG1s?si=VduXBkmCTGfz51aJ)
 
@@ -231,6 +231,10 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 *Developed by FURU*
 
 ## 🔄 ChangeLog / 更新履歴
+
+**v1.8.2 (2026-05-31)**
+- [Fix] APIキー入力欄をform化してDOM警告を解消し、Enterキーでの送信に対応しました。 / Fixed DOM warning by placing API key password input in a form and enabled Enter key submission.
+- [Fix] favicon.ico が未設定で404エラーになっていた問題を解消しました。 / Fixed 404 error caused by missing favicon.ico.
 
 **v1.8.1 (2026-05-29)**
 - [Fix] 英語の漫画（Edge-TTS使用時）でWAVファイルが壊れるエラーを修正。Edge-TTSが生成するMP3データを正しくPCM WAVに変換してから保存するよう改善し、動画生成が途中で停止する問題を解消しました。 / Fixed a bug where WAV files were corrupted for English manga (when using Edge-TTS). Improved the process to properly convert Edge-TTS generated MP3 data into PCM WAV before saving, resolving the issue where video generation would stop midway.

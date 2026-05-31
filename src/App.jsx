@@ -15,7 +15,7 @@
  */
 import React, { useState, useCallback, useEffect } from 'react';
 
-const SYSTEM_VERSION = '1.8.1';
+const SYSTEM_VERSION = '1.8.2';
 const DEBUG_MODE = false;
 
 // タイトルを「」で囲むヘルパー（すでに囲まれていたら二重にしない）
@@ -390,17 +390,23 @@ export default function App() {
                           <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">OpenAIキー取得</a>
                         </span>
                       </p>
-                      <div className="api-key-input-row">
+                      <form
+                        className="api-key-input-row"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          handleSetApiKey();
+                        }}
+                      >
                         <input
                           type="password"
                           className="api-key-input"
                           placeholder="AIza... または sk-..."
                           value={geminiKey}
                           onChange={(e) => setGeminiKey(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleSetApiKey()}
+                          autoComplete="off"
                         />
-                        <button className="btn btn-set-key" onClick={handleSetApiKey}>設定</button>
-                      </div>
+                        <button className="btn btn-set-key" type="submit">設定</button>
+                      </form>
                     </div>
                   )}
                 </div>
