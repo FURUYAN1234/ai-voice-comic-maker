@@ -1597,6 +1597,12 @@ let runtimeApiKey = '';
 let runtimeModel = 'gemini-3.5-flash';
 let runtimeEngine = 'gemini';
 
+const AI_TIMEOUTS = {
+  keyCheck: 25000,
+  vision: 120000,
+  correction: 60000,
+};
+
 // ──────────────────────────────────────
 // AIモデル設定（一括管理）
 // モデル入替時はここだけ変更すれば全箇所に反映される
@@ -1606,7 +1612,7 @@ const AI_MODELS = {
   gemini: {
     // テキスト生成・画像解析共通: Next-Gen優先・無料枠優先
     text:  ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-flash-latest', 'gemini-pro-latest'],
-    image: ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-flash-latest', 'gemini-pro-latest'],
+    vision: ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-flash-latest', 'gemini-pro-latest'],
     // 発音推定用（軽量タスク）
     lite:  ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-flash-latest'],
   },
@@ -1614,13 +1620,19 @@ const AI_MODELS = {
     // テキスト生成: 高品質→コスト効率→最軽量→安定実績
     text:   ['gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-4o'],
     // 画像解析（Vision）: Vision対応優先
-    vision: ['gpt-4.1', 'gpt-4o', 'gpt-4.1-mini'],
+    vision: ['gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-4o'],
     // 発音推定用（軽量タスク・単一モデル）
     lite:   'gpt-4.1-nano',
     // 2-Pass校正用
-    correction: ['gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-4o'],
+    correction: ['gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-4o'],
   },
 };
+
+function buildFallbackSequence(models, preferredModel) {
+  const list = (Array.isArray(models) ? models : [models]).filter(Boolean);
+  if (!preferredModel || !list.includes(preferredModel)) return list;
+  return [preferredModel, ...list.filter((model) => model !== preferredModel)];
+}
 
 // ファイルアップロード設定（画像のみ）
 const storage = multer.diskStorage({
@@ -1700,7 +1712,7 @@ app.post('/api/apikey', async (req, res) => {
             messages: [{ role: "user", content: "test" }],
             max_tokens: 5
           }, {
-            timeout: 25000
+            timeout: AI_TIMEOUTS.keyCheck
           });
           workingModel = modelName;
           break;
@@ -1734,7 +1746,7 @@ app.post('/api/apikey', async (req, res) => {
           const model = genAI.getGenerativeModel({ model: modelName });
           
           const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Gemini API call timed out after 25 seconds')), 25000)
+            setTimeout(() => reject(new Error(`Gemini API call timed out after ${AI_TIMEOUTS.keyCheck / 1000} seconds`)), AI_TIMEOUTS.keyCheck)
           );
           const apiCallPromise = model.generateContent('test');
           await Promise.race([apiCallPromise, timeoutPromise]);
@@ -2013,11 +2025,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
         const openai = new OpenAI({ apiKey: apiKey });
         const dataUrl = `data:${mimeType};base64,${base64Image}`;
         
-        const openAiFallbackList = AI_MODELS.openai.vision;
-        const startIdx = openAiFallbackList.indexOf(runtimeModel);
-        const modelsToAttempt = startIdx !== -1 
-          ? [runtimeModel, ...openAiFallbackList.filter(m => m !== runtimeModel)]
-          : [runtimeModel, ...openAiFallbackList];
+        const modelsToAttempt = buildFallbackSequence(AI_MODELS.openai.vision, runtimeModel);
 
         for (const modelName of modelsToAttempt) {
           try {
@@ -2035,7 +2043,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
               response_format: { type: "json_object" },
               temperature: 0.1
             }, {
-              timeout: 25000
+              timeout: AI_TIMEOUTS.vision
             });
             
             responseText = response.choices[0].message.content;
@@ -2053,11 +2061,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
         const { GoogleGenerativeAI } = await import('@google/generative-ai');
         const genAI = new GoogleGenerativeAI(apiKey);
 
-        const geminiFallbackList = AI_MODELS.gemini.image;
-        const startIdx = geminiFallbackList.indexOf(runtimeModel);
-        const modelsToAttempt = startIdx !== -1 
-          ? [runtimeModel, ...geminiFallbackList.filter(m => m !== runtimeModel)]
-          : [runtimeModel, ...geminiFallbackList];
+        const modelsToAttempt = buildFallbackSequence(AI_MODELS.gemini.vision, runtimeModel);
 
         for (const modelName of modelsToAttempt) {
           try {
@@ -2071,7 +2075,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
             });
 
             const timeoutPromise = new Promise((_, reject) =>
-              setTimeout(() => reject(new Error('Gemini API call timed out after 25 seconds')), 25000)
+              setTimeout(() => reject(new Error(`Gemini API call timed out after ${AI_TIMEOUTS.vision / 1000} seconds`)), AI_TIMEOUTS.vision)
             );
             const apiCallPromise = model.generateContent([
               prompt,
@@ -2212,44 +2216,71 @@ ${JSON.stringify(correctionInput, null, 2)}`;
         if (runtimeEngine === 'openai') {
           const OpenAI = (await import('openai')).default;
           const openai = new OpenAI({ apiKey: apiKey });
-          
-          const correctionModels = AI_MODELS.openai.correction;
-          const modelName = correctionModels.includes(runtimeModel) ? runtimeModel : AI_MODELS.openai.correction[0];
 
-          const response = await openai.chat.completions.create({
-            model: modelName,
-            messages: [
-              { role: "system", content: "You are a helpful assistant." },
-              { role: "user", content: correctionPrompt }
-            ],
-            response_format: { type: "json_object" },
-            temperature: 0.1
-          }, {
-            timeout: 25000
-          });
-          correctedText = response.choices[0].message.content;
-          correctionSuccess = true;
+          const correctionModels = buildFallbackSequence(AI_MODELS.openai.correction, runtimeModel);
+          let lastCorrectionError = null;
+
+          for (const modelName of correctionModels) {
+            try {
+              sessionLog(sessionId, `[OpenAI 2-Pass Correction] Requesting model: ${modelName}`);
+              const response = await openai.chat.completions.create({
+                model: modelName,
+                messages: [
+                  { role: "system", content: "You are a helpful assistant." },
+                  { role: "user", content: correctionPrompt }
+                ],
+                response_format: { type: "json_object" },
+                temperature: 0.1
+              }, {
+                timeout: AI_TIMEOUTS.correction
+              });
+              correctedText = response.choices[0].message.content;
+              correctionSuccess = true;
+              break;
+            } catch (err) {
+              lastCorrectionError = err;
+              sessionLog(sessionId, `[Fallback] OpenAI 2-Pass correction failed on ${modelName}: ${err.message}`);
+            }
+          }
+
+          if (!correctionSuccess) {
+            throw lastCorrectionError || new Error('OpenAI correction failed for all fallback models');
+          }
         } else {
           // Gemini
           const { GoogleGenerativeAI } = await import('@google/generative-ai');
           const genAI = new GoogleGenerativeAI(apiKey);
-          const modelName = runtimeModel.includes('gemini') ? runtimeModel : 'gemini-2.5-flash';
+          const correctionModels = buildFallbackSequence(AI_MODELS.gemini.text, runtimeModel);
+          let lastCorrectionError = null;
 
-          const model = genAI.getGenerativeModel({
-            model: modelName,
-            generationConfig: {
-              temperature: 0.1,
-              responseMimeType: "application/json"
-            },
-          });
+          for (const modelName of correctionModels) {
+            try {
+              sessionLog(sessionId, `[Gemini 2-Pass Correction] Requesting model: ${modelName}`);
+              const model = genAI.getGenerativeModel({
+                model: modelName,
+                generationConfig: {
+                  temperature: 0.1,
+                  responseMimeType: "application/json"
+                },
+              });
 
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Gemini API call timed out after 25 seconds')), 25000)
-          );
-          const apiCallPromise = model.generateContent([correctionPrompt]);
-          const result = await Promise.race([apiCallPromise, timeoutPromise]);
-          correctedText = result.response.text();
-          correctionSuccess = true;
+              const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error(`Gemini API call timed out after ${AI_TIMEOUTS.correction / 1000} seconds`)), AI_TIMEOUTS.correction)
+              );
+              const apiCallPromise = model.generateContent([correctionPrompt]);
+              const result = await Promise.race([apiCallPromise, timeoutPromise]);
+              correctedText = result.response.text();
+              correctionSuccess = true;
+              break;
+            } catch (err) {
+              lastCorrectionError = err;
+              sessionLog(sessionId, `[Fallback] Gemini 2-Pass correction failed on ${modelName}: ${err.message}`);
+            }
+          }
+
+          if (!correctionSuccess) {
+            throw lastCorrectionError || new Error('Gemini correction failed for all fallback models');
+          }
         }
 
         if (correctionSuccess && correctedText) {
