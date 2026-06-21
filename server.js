@@ -1403,6 +1403,109 @@ const EDGE_TTS_VOICES = {
 };
 
 // Edge-TTS キャスティング: キャラクター名と性別からユニークな声を割り当てる
+const SUPERTONIC_API_BASE = 'http://127.0.0.1:7789';
+const VALID_TTS_ENGINES = new Set(['auto', 'voicevox', 'supertonic']);
+
+// Supertonic 3 voice pools (personality x gender mapping).
+const SUPERTONIC_VOICE_POOLS = {
+  male: {
+    energetic: ['M5', 'M2'],
+    calm: ['M4', 'M1'],
+    cool: ['M3', 'M5'],
+    cute: ['M2', 'M1'],
+    serious: ['M3', 'M1'],
+  },
+  female: {
+    energetic: ['F2', 'F5'],
+    calm: ['F4', 'F1'],
+    cool: ['F3', 'F5'],
+    cute: ['F2', 'F1'],
+    serious: ['F3', 'F1'],
+  },
+  unknown: {
+    energetic: ['F2', 'M2'],
+    calm: ['F1', 'M1'],
+    cool: ['F3', 'M3'],
+    cute: ['F2', 'M2'],
+    serious: ['F3', 'M3'],
+  },
+};
+
+const SUPERTONIC_EMOTION_TAGS = {
+  happy: { suffix: ' <laugh>' },
+  excited: { suffix: ' <laugh>' },
+  sad: { suffix: ' <sigh>' },
+  worried: { suffix: ' <sigh>' },
+  surprised: { prefix: '<breath> ' },
+  angry: {},
+  neutral: {},
+};
+
+function normalizeTtsEngine(engine) {
+  return VALID_TTS_ENGINES.has(engine) ? engine : 'auto';
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 3000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function isVoicevoxAvailable(timeoutMs = 3000) {
+  try {
+    const response = await fetchWithTimeout('http://127.0.0.1:50021/version', {}, timeoutMs);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function getSupertonicStatus(timeoutMs = 3000) {
+  try {
+    const response = await fetchWithTimeout(`${SUPERTONIC_API_BASE}/v1/health`, {}, timeoutMs);
+    if (!response.ok) return { connected: false };
+    const data = await response.json().catch(() => ({}));
+    return {
+      connected: true,
+      version: data.version || 'unknown',
+      model: data.model || 'supertonic-3',
+      sampleRate: data.sample_rate,
+      voicesLoaded: data.voices_loaded,
+    };
+  } catch {
+    return { connected: false };
+  }
+}
+
+async function isSupertonicAvailable(timeoutMs = 3000) {
+  const status = await getSupertonicStatus(timeoutMs);
+  return status.connected;
+}
+
+function getSupertonicLang(isEnglish) {
+  return isEnglish ? 'en' : 'ja';
+}
+
+function assignSupertonicVoice(speaker, gender, personality, usedVoices) {
+  const narratorPatterns = ['narr', 'narrator', 'nare', 'katari', 'jibun'];
+  if (narratorPatterns.some(pat => speaker.toLowerCase().includes(pat))) {
+    return gender === 'male' ? 'M3' : 'F3';
+  }
+
+  const genderKey = SUPERTONIC_VOICE_POOLS[gender] ? gender : 'unknown';
+  const pool = SUPERTONIC_VOICE_POOLS[genderKey][personality] || SUPERTONIC_VOICE_POOLS[genderKey].calm;
+  const unusedPool = pool.filter(v => !usedVoices.has(v));
+  const selectFrom = unusedPool.length > 0 ? unusedPool : pool;
+  const hash = [...speaker].reduce((h, c) => h + c.charCodeAt(0), 0);
+  const selected = selectFrom[hash % selectFrom.length];
+  usedVoices.add(selected);
+  return selected;
+}
+
 function assignEdgeTtsVoice(speaker, gender, usedVoices) {
   // ナレーション判定
   const narratorPatterns = ['narr', 'narrator', 'ナレ', '語り手', '地の文'];
@@ -1428,6 +1531,52 @@ function assignEdgeTtsVoice(speaker, gender, usedVoices) {
 // Remotionのffprobeは拡張子とコンテナ形式の一致を要求するため、
 // MP3で生成後にffmpegで正規のPCM WAVに変換する
 const FFMPEG_PATH = path.join(__dirname, 'node_modules', '@remotion', 'compositor-win32-x64-msvc', 'ffmpeg.exe');
+
+function normalizeFinalVideoAudio(videoPath, sessionId) {
+  const tmpPath = videoPath.replace(/\.mp4$/i, '.audio-normalized.tmp.mp4');
+  try {
+    if (!fs.existsSync(FFMPEG_PATH)) {
+      sessionLog(sessionId, '⚠️ [Audio Normalize] ffmpeg が見つからないためスキップしました');
+      return false;
+    }
+    if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
+    sessionLog(sessionId, '🔊 [Audio Normalize] 最終MP4の音量を正規化中...');
+    execFileSync(FFMPEG_PATH, [
+      '-y',
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-i',
+      videoPath,
+      '-map',
+      '0:v:0',
+      '-map',
+      '0:a:0',
+      '-c:v',
+      'copy',
+      '-c:a',
+      'aac',
+      '-b:a',
+      '192k',
+      '-ar',
+      '48000',
+      '-ac',
+      '2',
+      '-af',
+      'loudnorm=I=-14:TP=-1.5:LRA=11',
+      '-movflags',
+      '+faststart',
+      tmpPath,
+    ], { stdio: ['ignore', 'ignore', 'pipe'] });
+    fs.renameSync(tmpPath, videoPath);
+    sessionLog(sessionId, '✅ [Audio Normalize] 音量正規化完了');
+    return true;
+  } catch (err) {
+    if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
+    sessionLog(sessionId, `⚠️ [Audio Normalize] 失敗: ${err.message}`);
+    return false;
+  }
+}
 
 async function synthesizeWithEdgeTts(text, voiceName, outputPath, sessionId) {
   const tts = new MsEdgeTTS();
@@ -1469,6 +1618,48 @@ async function synthesizeWithEdgeTts(text, voiceName, outputPath, sessionId) {
 
   if (sessionId) {
     sessionLog(sessionId, `   🔊 [Edge-TTS] ${voiceName} → ${path.basename(outputPath)} (${duration.toFixed(2)}s)`);
+  }
+  return duration;
+}
+
+async function synthesizeWithSupertonic(text, voiceName, lang, emotion, outputPath, sessionId) {
+  const emotionConfig = SUPERTONIC_EMOTION_TAGS[emotion] || {};
+  let taggedText = text;
+  if (emotionConfig.prefix) taggedText = emotionConfig.prefix + taggedText;
+  if (emotionConfig.suffix) taggedText += emotionConfig.suffix;
+
+  const response = await fetchWithTimeout(`${SUPERTONIC_API_BASE}/v1/tts`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      text: taggedText,
+      voice: voiceName,
+      lang: lang || 'ja',
+      speed: 1.05,
+      total_steps: 8,
+    }),
+  }, 30000);
+
+  if (!response.ok) throw new Error(`Supertonic synthesis failed: ${response.status}`);
+  const wavBuffer44k = Buffer.from(await response.arrayBuffer());
+  const temp44kPath = outputPath.replace(/\.wav$/i, '.tmp44k.wav');
+  fs.writeFileSync(temp44kPath, wavBuffer44k);
+
+  try {
+    execFileSync(FFMPEG_PATH, [
+      '-y', '-i', temp44kPath,
+      '-ar', '24000', '-ac', '1', '-sample_fmt', 's16', '-f', 'wav',
+      outputPath,
+    ], { timeout: 15000, stdio: 'pipe' });
+  } finally {
+    try { fs.unlinkSync(temp44kPath); } catch (_) {}
+  }
+
+  const wavBuffer24k = fs.readFileSync(outputPath);
+  const duration = getWavDuration(wavBuffer24k);
+
+  if (sessionId) {
+    sessionLog(sessionId, `   [Supertonic] ${voiceName} -> ${path.basename(outputPath)} (${duration.toFixed(2)}s)`);
   }
   return duration;
 }
@@ -1828,6 +2019,11 @@ app.get('/api/edgetts/status', async (req, res) => {
 // ──────────────────────────────────────
 // API: VOICEVOXキャラクター一覧
 // ──────────────────────────────────────
+app.get('/api/supertonic/status', async (req, res) => {
+  const status = await getSupertonicStatus(3000);
+  res.json(status);
+});
+
 app.get('/api/voicevox/speakers', async (req, res) => {
   try {
     const response = await fetch('http://127.0.0.1:50021/speakers');
@@ -1924,6 +2120,9 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
     sessionLog(sessionId, `🔍 [Analyze] AI Vision OCR 開始 (${runtimeEngine} / ${runtimeModel})...`);
     sessionLog(sessionId, `🧠 統合解析エンジン起動: 画像構造 / セリフ抽出 / 感情推定 の並列タスクを構築中...`);
     session.status = 'analyzing';
+    const requestedTtsEngine = normalizeTtsEngine(req.body?.ttsEngine || req.query?.ttsEngine || 'auto');
+    session.requestedTtsEngine = requestedTtsEngine;
+    sessionLog(sessionId, `[TTS Selection] Requested at analyze: ${requestedTtsEngine}`);
 
     const apiKey = runtimeApiKey || process.env.GEMINI_API_KEY;
     let metadata;
@@ -2334,8 +2533,16 @@ ${JSON.stringify(correctionInput, null, 2)}`;
       }
     }
 
+    const analysisCastingEngine = isEnglish
+      ? (requestedTtsEngine === 'supertonic' ? 'supertonic' : 'edge')
+      : requestedTtsEngine;
+
     if (isEnglish) {
-      sessionLog(sessionId, `🌐 [Language] 漫画言語判定: 英語 (English) → Edge-TTS 用にキャスティングを行います`);
+      if (analysisCastingEngine === 'supertonic') {
+        sessionLog(sessionId, `🌐 [Language] 漫画言語判定: 英語 (English) → Supertonic 3 用にキャスティングを行います`);
+      } else {
+        sessionLog(sessionId, `🌐 [Language] 漫画言語判定: 英語 (English) → Edge-TTS 用にキャスティングを行います`);
+      }
       
       // OpenAIなどで稀にタイトルが日本語に翻訳されてしまう現象に対するフォールバック
       const titleJpChars = (metadata.title.match(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]/g) || []).length;
@@ -2356,13 +2563,19 @@ ${JSON.stringify(correctionInput, null, 2)}`;
         sessionLog(sessionId, `   ↳ 英語の原題に復元しました: "${englishTitleCandidate}"`);
         metadata.title = englishTitleCandidate;
       }
-    } else {
+    } else if (analysisCastingEngine === 'supertonic') {
+      sessionLog(sessionId, `🌐 [Language] 漫画言語判定: 日本語 (Japanese) → Supertonic 3 用にキャスティングを行います`);
+    } else if (analysisCastingEngine === 'voicevox') {
       sessionLog(sessionId, `🌐 [Language] 漫画言語判定: 日本語 (Japanese) → VOICEVOX 用にキャスティングを行います`);
+    } else {
+      sessionLog(sessionId, `🌐 [Language] 漫画言語判定: 日本語 (Japanese) → Auto TTS 用にキャスティングを行います`);
     }
 
     // 構造を正規化しつつ、キャラごとの声の重複を防ぐ（性格ベースキャスティング v2）
     const characterVoiceMap = new Map();
+    const characterSupertonicVoiceMap = new Map();
     const usedVoiceIds = new Set();
+    const usedSupertonicVoiceIds = new Set();
 
     // 性格×性別ベースのボイスプール定義
     const VOICE_POOLS = {
@@ -2476,8 +2689,29 @@ ${JSON.stringify(correctionInput, null, 2)}`;
           // ナレーション判定
           const isNarrator = narratorPatterns.some(pat => speaker.toLowerCase().includes(pat.toLowerCase()));
 
+          let supertonicVoiceId;
+          let didAssignSupertonicVoice = false;
+          if (characterSupertonicVoiceMap.has(speaker)) {
+            supertonicVoiceId = characterSupertonicVoiceMap.get(speaker);
+          } else if (isNarrator) {
+            supertonicVoiceId = gender === 'male' ? 'M3' : 'F3';
+            characterSupertonicVoiceMap.set(speaker, supertonicVoiceId);
+            usedSupertonicVoiceIds.add(supertonicVoiceId);
+            didAssignSupertonicVoice = true;
+          } else {
+            supertonicVoiceId = assignSupertonicVoice(speaker, gender, personality, usedSupertonicVoiceIds);
+            characterSupertonicVoiceMap.set(speaker, supertonicVoiceId);
+            didAssignSupertonicVoice = true;
+          }
+
           let voiceId;
-          if (characterVoiceMap.has(speaker)) {
+          if (analysisCastingEngine === 'supertonic') {
+            if (didAssignSupertonicVoice) {
+              sessionLog(sessionId, `🎭 [Casting Supertonic] 検出話者: ${speaker} (${gender}, ${age}, ${personality})`);
+              sessionLog(sessionId, `   ↳ 性格プロファイル "${personality}" からSupertonic 3ボイスプールを選択`);
+              sessionLog(sessionId, `   ↳ 重複回避アルゴリズム適用 -> Supertonic 3 Voice: ${supertonicVoiceId} をアサイン`);
+            }
+          } else if (characterVoiceMap.has(speaker)) {
             voiceId = characterVoiceMap.get(speaker);
           } else {
             if (isEnglish) {
@@ -2525,7 +2759,8 @@ ${JSON.stringify(correctionInput, null, 2)}`;
             bubblePosition: d.bubblePosition || 'center',
             text: d.text || '',
             emotion: d.emotion || 'neutral',
-            voiceId
+            voiceId,
+            supertonicVoiceId
           };
         })
       }))
@@ -2667,6 +2902,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
   try {
     sessionLog(sessionId, `🎬 [Generate] 動画生成を開始...`);
     session.status = 'generating';
+    const requestedTtsEngine = normalizeTtsEngine(req.body?.ttsEngine || session.requestedTtsEngine || 'auto');
 
     const metadata = session.metadata;
     const title = metadata.title;
@@ -2679,7 +2915,9 @@ app.post('/api/generate/:sessionId', async (req, res) => {
           speaker: d.speaker,
           gender: d.gender,
           age: d.age,
+          personality: d.personality,
           voiceId: d.voiceId,
+          supertonicVoiceId: d.supertonicVoiceId,
           bubblePosition: d.bubblePosition || 'center',
           text: d.text,
           emotion: d.emotion,
@@ -2779,7 +3017,28 @@ app.post('/api/generate/:sessionId', async (req, res) => {
 
     // ── 音声合成 ──
     const isEnglish = metadata.isEnglish || false;
-    if (isEnglish) {
+    let activeTtsEngine;
+    if (requestedTtsEngine === 'supertonic') {
+      activeTtsEngine = 'supertonic';
+      if (!(await isSupertonicAvailable(3000))) {
+        throw new Error('Supertonic 3 is selected but the local server is not available.');
+      }
+    } else if (isEnglish) {
+      activeTtsEngine = 'edge';
+    } else if (requestedTtsEngine === 'voicevox') {
+      activeTtsEngine = 'voicevox';
+    } else {
+      activeTtsEngine = (await isVoicevoxAvailable(1500)) ? 'voicevox' : 'supertonic';
+      if (activeTtsEngine === 'supertonic' && !(await isSupertonicAvailable(3000))) {
+        throw new Error('Neither VOICEVOX nor Supertonic 3 is available for Japanese TTS.');
+      }
+    }
+    session.ttsEngine = activeTtsEngine;
+    sessionLog(sessionId, `[TTS Selection] requested=${requestedTtsEngine} effective=${activeTtsEngine}`);
+    if (activeTtsEngine === 'supertonic') {
+      sessionLog(sessionId, '[Supertonic] TTS pipeline starting...');
+      sessionLog(sessionId, `   -> Target: ${dialogues.length} dialogue lines + title call`);
+    } else if (isEnglish) {
       sessionLog(sessionId, '🎙️ [Edge-TTS] 英語音声合成パイプラインを起動...');
       sessionLog(sessionId, `   ↳ 合成対象: ${dialogues.length}セリフ + タイトルコール`);
     } else {
@@ -2788,6 +3047,27 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     }
     const publicVoiceDir = path.join(__dirname, 'public', 'voiceover', sessionId);
     if (!fs.existsSync(publicVoiceDir)) fs.mkdirSync(publicVoiceDir, { recursive: true });
+
+    const runtimeSupertonicVoiceMap = new Map();
+    const runtimeSupertonicUsedVoices = new Set();
+    const getSupertonicVoiceName = (dialogue) => {
+      if (typeof dialogue.supertonicVoiceId === 'string' && dialogue.supertonicVoiceId) {
+        return dialogue.supertonicVoiceId;
+      }
+      const speaker = dialogue.speaker || 'Unknown';
+      if (!runtimeSupertonicVoiceMap.has(speaker)) {
+        runtimeSupertonicVoiceMap.set(
+          speaker,
+          assignSupertonicVoice(
+            speaker,
+            dialogue.gender || 'unknown',
+            dialogue.personality || 'calm',
+            runtimeSupertonicUsedVoices
+          )
+        );
+      }
+      return runtimeSupertonicVoiceMap.get(speaker);
+    };
 
     const audioFiles = [];
     for (let i = 0; i < dialogues.length; i++) {
@@ -2798,7 +3078,28 @@ app.post('/api/generate/:sessionId', async (req, res) => {
 
       const displayText = d.text.length > 25 ? d.text.substring(0, 25) + '...' : d.text;
 
-      if (isEnglish) {
+      if (activeTtsEngine === 'supertonic') {
+        const voiceName = getSupertonicVoiceName(d);
+        sessionLog(sessionId, `[Supertonic Casting] ${d.speaker} -> Voice: ${voiceName}`);
+        sessionLog(sessionId, `  [${i + 1}/${dialogues.length}] "${displayText}"`);
+
+        try {
+          const durationSec = await synthesizeWithSupertonic(
+            d.text,
+            voiceName,
+            getSupertonicLang(isEnglish),
+            d.emotion || 'neutral',
+            filepath,
+            sessionId
+          );
+          audioFiles.push({ filename, publicPath: `voiceover/${sessionId}/${filename}`, durationSec, dialogue: d });
+          sessionLog(sessionId, `  OK ${durationSec.toFixed(2)}s -> ${filename}`);
+        } catch (err) {
+          console.error(`      Supertonic synthesis failed: ${err.message}`);
+          sessionLog(sessionId, `      Supertonic synthesis failed: ${err.message}`);
+          audioFiles.push({ filename, publicPath: null, durationSec: 3, dialogue: d });
+        }
+      } else if (isEnglish) {
         // Edge-TTS 音声合成 (英語)
         const voiceName = d.voiceId || EDGE_TTS_VOICES.female[0];
         sessionLog(sessionId, `🎤 [Edge-TTS Casting] ${d.speaker} → Voice: ${voiceName}`);
@@ -2905,7 +3206,9 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     }
 
     const totalAudioSec = audioFiles.reduce((s, a) => s + a.durationSec, 0);
-    if (isEnglish) {
+    if (activeTtsEngine === 'supertonic') {
+      sessionLog(sessionId, `[Supertonic] Dialogue synthesis complete: ${audioFiles.length} files / ${totalAudioSec.toFixed(1)} sec`);
+    } else if (isEnglish) {
       sessionLog(sessionId, `✅ [Edge-TTS] セリフ音声合成完了: ${audioFiles.length}本 / 合計 ${totalAudioSec.toFixed(1)}秒`);
     } else {
       sessionLog(sessionId, `✅ [VOICEVOX] セリフ音声合成完了: ${audioFiles.length}本 / 合計 ${totalAudioSec.toFixed(1)}秒`);
@@ -2916,7 +3219,26 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     let titleAudioPublicPath = null;
     let titleDurationFrames = 90; // デフォルト
 
-    if (isEnglish) {
+    if (activeTtsEngine === 'supertonic') {
+      sessionLog(sessionId, '[Title Call] Supertonic 3 title call synthesis starting...');
+      try {
+        const titleVoiceName = isEnglish ? 'F1' : 'F3';
+        const durationSec = await synthesizeWithSupertonic(
+          title,
+          titleVoiceName,
+          getSupertonicLang(isEnglish),
+          'neutral',
+          titleAudioPath,
+          sessionId
+        );
+        titleAudioPublicPath = `voiceover/${sessionId}/title_call.wav`;
+        titleDurationFrames = Math.ceil(durationSec * 30) + 15;
+        sessionLog(sessionId, `OK title call generated (${durationSec.toFixed(2)}s)`);
+      } catch (err) {
+        console.log(`    Supertonic title call skipped: ${err.message}`);
+        sessionLog(sessionId, `    Supertonic title call skipped: ${err.message}`);
+      }
+    } else if (isEnglish) {
       sessionLog(sessionId, `📢 [Title Call] Edge-TTS (${EDGE_TTS_VOICES.titleCall}) によるタイトルコール音声を合成中...`);
       try {
         // 英語の場合はカタカナ変換を行わず生のタイトルを渡す
@@ -2994,6 +3316,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
       title,
       version: SYSTEM_VERSION,
       isEnglish,
+      ttsEngine: activeTtsEngine,
       panels: panelPaths, // 分割されたコマ画像パス
       panelAspectRatios, // 各コマのアスペクト比（動的ズーム用）
       originalImage: originalImagePublicPath, // 全体画像
@@ -3091,6 +3414,8 @@ app.post('/api/generate/:sessionId', async (req, res) => {
         }
       },
     });
+
+    normalizeFinalVideoAudio(outputPath, sessionId);
 
     session.status = 'complete';
     session.videoPath = outputPath;

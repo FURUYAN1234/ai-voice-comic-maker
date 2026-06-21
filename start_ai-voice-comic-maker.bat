@@ -89,10 +89,9 @@ echo [WARN] VOICEVOX is not installed on this system.
 echo [INFO] Method 4/4: Attempting automatic install via winget...
 winget install -e --id HiroshibaKazuyuki.VOICEVOX --accept-source-agreements --accept-package-agreements
 if errorlevel 1 (
-    echo [ERROR] winget install failed. Please install VOICEVOX manually.
+    echo [WARN] winget install failed. Continuing without VOICEVOX.
     echo         Download: https://voicevox.hiroshiba.jp/
-    pause
-    exit /b
+    goto LAUNCH_APP
 )
 echo.
 echo ========================================================
@@ -110,7 +109,9 @@ REM ========================================================
 echo [INFO] Starting VOICEVOX: !VV_EXE!
 start "" "!VV_EXE!"
 
+set VV_ATTEMPTS=0
 :WAIT_VV
+set /a VV_ATTEMPTS+=1
 echo [INFO] Waiting for VOICEVOX Engine to respond...
 timeout /t 5 /nobreak >nul
 curl -s -o nul -w "%%{http_code}" http://127.0.0.1:50021/version > "%TEMP%\vv_status.txt" 2>nul
@@ -120,12 +121,63 @@ if "!VV_RECHECK!"=="200" (
     echo [OK] VOICEVOX Engine is ready.
     goto LAUNCH_APP
 )
+if !VV_ATTEMPTS! GEQ 12 (
+    echo [WARN] VOICEVOX Engine did not respond. Continuing to Supertonic 3 check.
+    goto LAUNCH_APP
+)
 goto WAIT_VV
 
 REM ========================================================
 REM   Launch Application
 REM ========================================================
 :LAUNCH_APP
+REM --- Supertonic 3 TTS Engine Check ---
+echo [INFO] Checking Supertonic 3 TTS Engine...
+
+where python >nul 2>nul
+if errorlevel 1 (
+    echo [WARN] Python is not installed. Supertonic 3 will not be available.
+    echo [WARN] VOICEVOX will be used as the primary local Japanese TTS engine.
+    goto RUN_APP
+)
+
+python -c "import supertonic" >nul 2>nul
+if errorlevel 1 (
+    echo [INFO] Supertonic 3 not found. Installing via pip...
+    python -m pip install "supertonic[serve]"
+    if errorlevel 1 (
+        echo [WARN] Failed to install Supertonic 3. Continuing without it.
+        goto RUN_APP
+    )
+)
+
+curl -s -o nul -w "%%{http_code}" http://127.0.0.1:7789/v1/health > "%TEMP%\st_status.txt" 2>nul
+set /p STSTATUS=<"%TEMP%\st_status.txt"
+del "%TEMP%\st_status.txt" 2>nul
+if "!STSTATUS!"=="200" (
+    echo [OK] Supertonic 3 serve is already running.
+    goto RUN_APP
+)
+
+echo [INFO] Starting Supertonic 3 serve on port 7789...
+start /B supertonic serve --host 127.0.0.1 --port 7789
+
+set ST_ATTEMPTS=0
+:WAIT_ST
+set /a ST_ATTEMPTS+=1
+echo [INFO] Waiting for Supertonic 3 to respond...
+timeout /t 3 /nobreak >nul
+curl -s -o nul -w "%%{http_code}" http://127.0.0.1:7789/v1/health > "%TEMP%\st_status.txt" 2>nul
+set /p ST_RECHECK=<"%TEMP%\st_status.txt"
+del "%TEMP%\st_status.txt" 2>nul
+if "!ST_RECHECK!"=="200" (
+    echo [OK] Supertonic 3 is ready.
+    goto RUN_APP
+)
+if !ST_ATTEMPTS! LSS 5 goto WAIT_ST
+echo [WARN] Supertonic 3 did not start. Continuing with VOICEVOX only.
+
+:RUN_APP
 echo [INFO] Launching frontend + backend server...
 call npm run dev
 

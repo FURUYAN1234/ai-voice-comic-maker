@@ -59,6 +59,7 @@ interface ScriptData {
   panelAspectRatios?: number[];
   /** 英語漫画判定フラグ */
   isEnglish?: boolean;
+  ttsEngine?: string;
 }
 
 interface VoiceComicProps {
@@ -94,7 +95,7 @@ export const VoiceComic: React.FC<VoiceComicProps> = ({ scriptData }) => {
       />
 
       {/* AI自動作曲BGM (ループ再生) */}
-      <Audio src={staticFile(data.bgmAudio || "audio/bgm.wav")} volume={0.4} loop />
+      <Audio src={staticFile(data.bgmAudio || "audio/bgm.wav")} volume={0.75} loop />
 
       {/* タイトルコール */}
       {data.title && (
@@ -104,7 +105,7 @@ export const VoiceComic: React.FC<VoiceComicProps> = ({ scriptData }) => {
               {data.title && data.title.startsWith("\u300c") && data.title.endsWith("\u300d") ? data.title : `\u300c${data.title}\u300d`}
             </div>
           </AbsoluteFill>
-          {data.titleAudio && <Audio src={staticFile(data.titleAudio)} />}
+          {data.titleAudio && <Audio src={staticFile(data.titleAudio)} volume={1.4} />}
         </Sequence>
       )}
 
@@ -132,7 +133,7 @@ export const VoiceComic: React.FC<VoiceComicProps> = ({ scriptData }) => {
 
             {/* セリフ音声 */}
             {dialogue.audioFile && (
-              <Audio src={staticFile(dialogue.audioFile)} />
+              <Audio src={staticFile(dialogue.audioFile)} volume={1.4} />
             )}
 
             {/* 字幕 */}
@@ -201,7 +202,7 @@ export const VoiceComic: React.FC<VoiceComicProps> = ({ scriptData }) => {
               }}>
                 Created with Remotion<br/>
                 <span style={{ fontSize: 20 }}>
-                  {data.isEnglish ? "Audio: Microsoft Edge-TTS" : "音声：VOICEVOX"}
+                  {data.ttsEngine === "supertonic" ? "Sound: Supertonic 3" : data.isEnglish ? "Audio: Microsoft Edge-TTS" : "Sound: VOICEVOX"}
                 </span>
               </div>
               <div style={{

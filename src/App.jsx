@@ -2,20 +2,20 @@
  * AI Voice Comic Maker - メインアプリケーション
  * 
  * 正式仕様:
- * 漫画画像をドロップするだけ → Gemini Vision OCR で全自動解析
- * → VOICEVOX音声合成 → Remotion動画レンダリング
+ * 漫画画像をドロップするだけ → Gemini/OpenAI Vision OCR で全自動解析
+ * → VOICEVOX / Supertonic 3 / Edge-TTS 音声合成 → Remotion動画レンダリング
  * 
  * JSONは一切不要。全てAIが判断する。
  * 
  * 画面フロー:
- * ① 初期設定（APIキー入力 + VOICEVOX接続確認）
+ * ① 初期設定（APIキー入力 + ローカルTTS接続確認）
  * → ② 画像ドロップゾーン
  * → ③ AI解析 & 生成中
  * → ④ プレーヤー＆SNSシェア
  */
 import React, { useState, useCallback, useEffect } from 'react';
 
-const SYSTEM_VERSION = '1.8.4';
+const SYSTEM_VERSION = '1.8.5';
 const DEBUG_MODE = false;
 
 // タイトルを「」で囲むヘルパー（すでに囲まれていたら二重にしない）
@@ -23,6 +23,17 @@ const wrapKagi = (title) => {
   if (!title) return '';
   if (title.startsWith('「') && title.endsWith('」')) return title;
   return `「${title}」`;
+};
+
+const getTtsEngineLabel = (engine) => {
+  switch (engine) {
+    case 'supertonic':
+      return 'Supertonic 3';
+    case 'voicevox':
+      return 'VOICEVOX';
+    default:
+      return 'Auto';
+  }
 };
 
 // アプリの状態
@@ -38,6 +49,8 @@ export default function App() {
   const [phase, setPhase] = useState(PHASE.SETUP);
   const [voicevoxStatus, setVoicevoxStatus] = useState('checking'); // checking | connected | error
   const [edgettsStatus, setEdgettsStatus] = useState('checking'); // checking | connected | error
+  const [supertonicStatus, setSupertonicStatus] = useState('checking'); // checking | connected | error
+  const [ttsEngine, setTtsEngine] = useState('auto'); // auto | voicevox | supertonic
   const [geminiKey, setGeminiKey] = useState('');
   const [geminiKeyValid, setGeminiKeyValid] = useState(false);
   const [activeEngine, setActiveEngine] = useState('gemini');
@@ -53,6 +66,7 @@ export default function App() {
   const [isCopied, setIsCopied] = useState(false);
   const logEndRef = React.useRef(null);
   const abortControllerRef = React.useRef(null);
+  const ttsEngineRef = React.useRef('auto');
 
   // ターミナルの自動スクロール
   useEffect(() => {
@@ -60,6 +74,15 @@ export default function App() {
       logEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [terminalLogs]);
+
+  useEffect(() => {
+    ttsEngineRef.current = ttsEngine;
+  }, [ttsEngine]);
+
+  useEffect(() => {
+    if (ttsEngine === 'voicevox' && voicevoxStatus !== 'connected') setTtsEngine('auto');
+    if (ttsEngine === 'supertonic' && supertonicStatus !== 'connected') setTtsEngine('auto');
+  }, [ttsEngine, voicevoxStatus, supertonicStatus]);
 
   // ── リアルタイムバックエンドログのポーリング ──
   useEffect(() => {
@@ -104,6 +127,7 @@ export default function App() {
   useEffect(() => {
     checkVoicevox();
     checkEdgeTts();
+    checkSupertonic();
     // サーバー側に保存済みのAPIキーがあるか確認
     checkSavedApiKey();
   }, []);
@@ -154,6 +178,24 @@ export default function App() {
   };
 
   // ── APIキー設定 ──
+  const checkSupertonic = async () => {
+    setSupertonicStatus('checking');
+    try {
+      const res = await fetch('/api/supertonic/status');
+      const data = await res.json();
+      setSupertonicStatus(data.connected ? 'connected' : 'error');
+    } catch {
+      setSupertonicStatus('error');
+    }
+  };
+
+  useEffect(() => {
+    if (supertonicStatus === 'connected') return;
+    if (phase !== PHASE.SETUP && phase !== PHASE.DROP) return;
+    const timer = setInterval(checkSupertonic, 3000);
+    return () => clearInterval(timer);
+  }, [phase, supertonicStatus]);
+
   const handleSetApiKey = async () => {
     if (!geminiKey.trim()) return;
     try {
@@ -176,7 +218,7 @@ export default function App() {
   };
 
   // ── 両方OKならドロップフェーズに遷移 ──
-  const canProceed = voicevoxStatus === 'connected' && geminiKeyValid;
+  const canProceed = (voicevoxStatus === 'connected' || supertonicStatus === 'connected') && geminiKeyValid;
   useEffect(() => {
     if (canProceed && phase === PHASE.SETUP) {
       setPhase(PHASE.DROP);
@@ -214,6 +256,7 @@ export default function App() {
     setTerminalLogs([]);
     setCurrentSessionId(null);
     setVideoTitle(imageFile.name.replace(/\.[^.]+$/, ''));
+    const selectedTtsEngine = ttsEngineRef.current;
 
     try {
       abortControllerRef.current = new AbortController();
@@ -235,7 +278,12 @@ export default function App() {
 
       // Step 2: Gemini OCR で AI解析
       setProgress({ step: 2, total: 5, message: 'AI が漫画を解析中... 🔍' });
-      const ocrRes = await fetch(`/api/analyze/${sessionId}`, { method: 'POST', signal });
+      const ocrRes = await fetch(`/api/analyze/${sessionId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ttsEngine: selectedTtsEngine }),
+        signal
+      });
       if (!ocrRes.ok) {
         const errData = await ocrRes.json().catch(() => ({}));
         throw new Error(errData.error || 'AI解析に失敗しました');
@@ -244,14 +292,19 @@ export default function App() {
       setVideoTitle(metadata.title || imageFile.name.replace(/\.[^.]+$/, ''));
       setOcrPreview(metadata);
 
-      // Step 3: VOICEVOX 音声合成
-      setProgress({ step: 3, total: 5, message: 'VOICEVOX で音声合成中... 🎙️' });
+      // Step 3: 音声合成
+      setProgress({ step: 3, total: 5, message: `${getTtsEngineLabel(selectedTtsEngine)} で音声合成中... 🎙️` });
 
       // Step 4: 動画レンダリング
       setProgress({ step: 4, total: 5, message: 'Remotion で動画レンダリング中... 🎬' });
 
       // Step 3-4 を一括実行
-      const genRes = await fetch(`/api/generate/${sessionId}`, { method: 'POST', signal });
+      const genRes = await fetch(`/api/generate/${sessionId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ttsEngine: selectedTtsEngine }),
+        signal
+      });
       if (!genRes.ok) {
         const errData = await genRes.json().catch(() => ({}));
         throw new Error(errData.error || '動画生成に失敗しました');
@@ -459,6 +512,27 @@ export default function App() {
                   )}
                 </div>
               </div>
+
+              <div className="setup-item" style={{ marginTop: '16px' }}>
+                <span className={`setup-status ${supertonicStatus === 'connected' ? 'status-ok' : supertonicStatus === 'checking' ? 'status-pending' : 'status-error'}`}>
+                  {supertonicStatus === 'connected' ? 'OK' : supertonicStatus === 'checking' ? '...' : 'NG'}
+                </span>
+                <div className="setup-detail">
+                  <strong>Supertonic 3 Engine (local TTS fallback)</strong>
+                  {supertonicStatus === 'checking' && (
+                    <p className="setup-hint">Checking local Supertonic 3 server...</p>
+                  )}
+                  {supertonicStatus === 'connected' && (
+                    <p className="setup-hint success">Connected on localhost:7789</p>
+                  )}
+                  {supertonicStatus === 'error' && (
+                    <div>
+                      <p className="setup-hint error">Not connected. Use the launcher to start Supertonic 3, or continue with VOICEVOX if available.</p>
+                      <button className="btn btn-retry" onClick={checkSupertonic}>Retry</button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {error && (
@@ -471,17 +545,10 @@ export default function App() {
         {phase === PHASE.DROP && (
           <div className="card drop-card">
             <div className="status-badges">
-              {ocrPreview && ocrPreview.isEnglish ? (
-                <div className="voicevox-badge" style={{ backgroundColor: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}>
-                  <span className="badge-dot" style={{ backgroundColor: '#38bdf8', boxShadow: '0 0 8px #38bdf8' }} />
-                  Edge-TTS 稼働中
-                </div>
-              ) : (
-                <div className="voicevox-badge">
-                  <span className="badge-dot" />
-                  VOICEVOX 接続中
-                </div>
-              )}
+              <div className="voicevox-badge" style={ttsEngine === 'supertonic' ? { backgroundColor: 'rgba(168, 85, 247, 0.12)', color: '#c084fc', borderColor: 'rgba(168, 85, 247, 0.35)' } : undefined}>
+                <span className="badge-dot" style={ttsEngine === 'supertonic' ? { backgroundColor: '#a855f7', boxShadow: '0 0 8px #a855f7' } : undefined} />
+                TTS: {getTtsEngineLabel(ttsEngine)}
+              </div>
               <div className="gemini-badge">
                 <span className={`badge-dot ${activeEngine === 'openai' ? 'badge-dot--openai' : 'badge-dot--gemini'}`} style={activeEngine === 'openai' ? { backgroundColor: '#10a37f', boxShadow: '0 0 8px #10a37f' } : {}} />
                 {activeEngine === 'openai' ? 'OpenAI 準備完了' : 'Gemini AI 準備完了'}
@@ -498,6 +565,25 @@ export default function App() {
               >
                 🔄 API切替（Gemini / OpenAI）
               </button>
+              <select
+                value={ttsEngine}
+                onChange={(e) => setTtsEngine(e.target.value)}
+                title="TTS Engine"
+                style={{
+                  height: '32px',
+                  alignSelf: 'center',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(56, 189, 248, 0.35)',
+                  background: '#0f172a',
+                  color: '#e2e8f0',
+                  padding: '0 10px',
+                  fontSize: '13px',
+                }}
+              >
+                <option value="auto">Auto (VOICEVOX priority)</option>
+                <option value="voicevox" disabled={voicevoxStatus !== 'connected'}>VOICEVOX</option>
+                <option value="supertonic" disabled={supertonicStatus !== 'connected'}>Supertonic 3</option>
+              </select>
             </div>
 
             <div
@@ -545,17 +631,10 @@ export default function App() {
             
             {/* 生成中もステータスバッジを表示 */}
             <div className="status-badges" style={{ marginBottom: '16px' }}>
-              {ocrPreview && ocrPreview.isEnglish ? (
-                <div className="voicevox-badge" style={{ backgroundColor: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}>
-                  <span className="badge-dot" style={{ backgroundColor: '#38bdf8', boxShadow: '0 0 8px #38bdf8' }} />
-                  Edge-TTS 稼働中
-                </div>
-              ) : (
-                <div className="voicevox-badge">
-                  <span className="badge-dot" />
-                  VOICEVOX 接続中
-                </div>
-              )}
+              <div className="voicevox-badge" style={ttsEngine === 'supertonic' ? { backgroundColor: 'rgba(168, 85, 247, 0.12)', color: '#c084fc', borderColor: 'rgba(168, 85, 247, 0.35)' } : undefined}>
+                <span className="badge-dot" style={ttsEngine === 'supertonic' ? { backgroundColor: '#a855f7', boxShadow: '0 0 8px #a855f7' } : undefined} />
+                TTS: {getTtsEngineLabel(ttsEngine)}
+              </div>
               <div className="gemini-badge">
                 <span className={`badge-dot ${activeEngine === 'openai' ? 'badge-dot--openai' : 'badge-dot--gemini'}`} style={activeEngine === 'openai' ? { backgroundColor: '#10a37f', boxShadow: '0 0 8px #10a37f' } : {}} />
                 {activeEngine === 'openai' ? 'OpenAI 稼働中' : 'Gemini AI 稼働中'}
@@ -627,7 +706,11 @@ export default function App() {
                   <h4 style={{ color: '#38bdf8', marginBottom: '8px', fontSize: '14px' }}>🎭 話者とキャスティング（AI自動配役）</h4>
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '13px' }}>
                     {Array.from(new Set(
-                      ocrPreview.panels.flatMap(p => (p.dialogues || []).map(d => JSON.stringify({ name: d.speaker, voice: d.voiceId, gender: d.gender })))
+                      ocrPreview.panels.flatMap(p => (p.dialogues || []).map(d => JSON.stringify({
+                        name: d.speaker,
+                        voice: ttsEngine === 'supertonic' ? d.supertonicVoiceId : d.voiceId,
+                        gender: d.gender
+                      })))
                     )).map((str, i) => {
                       const c = JSON.parse(str);
                       const voiceNames = { 
@@ -643,7 +726,9 @@ export default function App() {
                         16: "九州そら" 
                       };
                       const isNumberId = typeof c.voice === 'number' || (c.voice !== null && c.voice !== undefined && !isNaN(Number(c.voice)));
-                      const displayVoice = isNumberId ? (voiceNames[c.voice] || `VOICEVOX_ID:${c.voice}`) : c.voice;
+                      const displayVoice = ttsEngine === 'supertonic'
+                        ? (c.voice ? `Supertonic ${c.voice}` : 'Supertonic未割当')
+                        : (isNumberId ? (voiceNames[c.voice] || `VOICEVOX_ID:${c.voice}`) : c.voice);
                       return (
                         <li key={i} style={{ marginBottom: '4px' }}>
                           ・<strong>{c.name}</strong> <span style={{ color: '#94a3b8' }}>({c.gender === 'female' ? '女性' : c.gender === 'male' ? '男性' : '不明'})</span> ➔ {displayVoice}
@@ -712,8 +797,12 @@ export default function App() {
                 className="video-player"
                 src={videoUrl}
                 controls
-                autoPlay
                 playsInline
+                preload="auto"
+                onLoadedMetadata={(e) => {
+                  e.currentTarget.muted = false;
+                  e.currentTarget.volume = 1;
+                }}
               />
             </div>
 
