@@ -9,7 +9,7 @@
 # AI Voice Comic Maker
 v1.8.5 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
-[!['AI_Creative_Studio'](https://github.com/user-attachments/assets/d9b97ee9-5051-4f99-8bd3-fb82967d5c12)](https://youtu.be/Ik59dL_zG1s?si=VduXBkmCTGfz51aJ)
+[!['ChatGPT Image 2026年6月25日 22_19_30'](https://github.com/user-attachments/assets/d850ac7f-aa1c-40cc-a378-b8c6673c726c)](https://youtu.be/pqYVxUUg0Cs?si=27g1I3tO2EuZkOuxJ)
 
 **[Super FURU AI 4-koma System](https://github.com/FURUYAN1234/nano-banana-pro)** Integration / 連携対応
 The generated voice comic videos provide overwhelming immersion for TikTok, Shorts, and social media platforms. / 生成された声付き動画は、TikTokやYouTube Shorts向けの動画素材として圧倒的な没入感を提供します。
