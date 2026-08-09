@@ -2124,18 +2124,18 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
     session.requestedTtsEngine = requestedTtsEngine;
     sessionLog(sessionId, `[TTS Selection] Requested at analyze: ${requestedTtsEngine}`);
 
-    const apiKey = runtimeApiKey || process.env.GEMINI_API_KEY;
-    let metadata;
-
+    const apiKey = runtimeApiKey || process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY || '';
     if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-      console.log('    ⚠️ Gemini API Key が設定されていません。モックデータ(input/sample/metadata.json)を使用します。');
-      const mockPath = path.join(__dirname, 'input', 'sample', 'metadata.json');
-      if (fs.existsSync(mockPath)) {
-        metadata = JSON.parse(fs.readFileSync(mockPath, 'utf8'));
-      } else {
-        return res.status(400).json({ error: 'Gemini API Keyが設定されておらず、モックデータも見つかりません' });
-      }
-    } else {
+      session.status = 'uploaded';
+      sessionLog(sessionId, '❌ [Analyze] APIキーが未設定のため解析を中止しました。');
+      return res.status(400).json({
+        error: 'APIキーが設定されていません。設定画面でGeminiまたはOpenAI APIキーを入力してください。',
+        code: 'API_KEY_REQUIRED',
+      });
+    }
+
+    let metadata;
+    {
       // Gemini OCR モジュールを動的インポート
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
       const genAI = new GoogleGenerativeAI(apiKey);

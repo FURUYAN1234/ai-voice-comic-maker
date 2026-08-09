@@ -63,6 +63,20 @@ try {
     }
     console.log(`✅ [Version Sync] All files consistent: v${pkgVersion}`);
 
+    console.log("🧪 [Runtime Integrity] Checking that AI analysis fails closed without an API key...");
+    const serverSource = fs.readFileSync('server.js', 'utf-8');
+    const forbiddenMockMarkers = [
+        'input/sample/metadata.json',
+        'mockPath',
+        'モックデータ',
+    ];
+    const presentMockMarkers = forbiddenMockMarkers.filter(marker => serverSource.includes(marker));
+    if (presentMockMarkers.length > 0) {
+        console.error(`❌ [Runtime Integrity] Mock analysis fallback remains in server.js: ${presentMockMarkers.join(', ')}`);
+        process.exit(1);
+    }
+    console.log("✅ [Runtime Integrity] No mock analysis fallback is present.");
+
     console.log("🎉 [Pre-Deploy] All checks passed!");
 } catch (error) {
     console.error("❌ [ERROR] Pre-deploy check failed:", error.message);

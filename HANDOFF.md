@@ -1,7 +1,7 @@
 # HANDOFF
 
 ## Last Updated
-2026-06-21 22:45 JST
+2026-08-10 JST
 
 ## Last Agent
 Codex
@@ -10,10 +10,16 @@ Codex
 <Antigravity>\short_movie
 
 ## Current Version
-v1.8.5
+v1.8.6
 
 ## Current Goal
-**Supertonic 3 TTS Engine Integration** - Add Supertonic 3 as a fallback & user-selectable TTS engine alongside VOICEVOX.
+**v1.8.6 API Analysis Fail-Closed Release** - Publish the removal of the no-key analysis mock fallback through the unified seven-app release transaction.
+
+## v1.8.6 Release Candidate (2026-08-10 JST)
+
+- `POST /api/analyze/:sessionId` now returns `400 API_KEY_REQUIRED` when neither configured Gemini nor OpenAI key is available; it never reads sample metadata as a production fallback.
+- The pre-deploy check rejects the historical mock-path markers, and a real Gemini + TTS + Remotion run produced a playable 1080x1920 MP4 in the in-app browser.
+- Release/backup authorization is active. The candidate remains incomplete until the unified receipt verifies source push, tag, bilingual GitHub Release, Pages, release-copy, public verification, and the separately run full backup.
 
 ## Codex Correction Update (2026-06-21 22:15 JST)
 
