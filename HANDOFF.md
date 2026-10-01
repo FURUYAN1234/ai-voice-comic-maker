@@ -1,5 +1,15 @@
 # HANDOFF
 
+## OCR page-credit speech correction — 2026-10-01
+
+Root cause: mandatory background-text OCR had no distinction between story content and credits outside panel frames. Added required textRole/pageRegion classification, common filtering before correction, after correction and at speech boundary, and classification preservation through voice casting. Missing/invalid classification fails closed without model retry. Four focused regressions pass, including real prior generation fixture: 2 visually verified footer credits excluded, all 11 story lines retained; genuine bottom narration/URL/SFX preserved. No paid API/active process interruption. Root owns no-API existing-audio rerender and live outcome verification.
+
+Live evidence: original normal OCR/correction calls both selected, tried and adopted GPT-6.1 Sol; VOICEVOX and Remotion completed session 1790812060275. After visually identifying both credits, the local repaired render reused existing image/audio assets with the shared speech gate: 11 story lines retained, 2 credits excluded, no additional API/TTS calls. `output_sol61/voice-comic-footer-fixed.mp4` rendered successfully and fully decoded with FFmpeg. Classification for this repaired artifact was manual visual evidence; a fresh API classification run is not claimed. Final production build and all four footer regressions pass. Root PLAN owns remaining release/social/backup state.
+
+## GPT-6.1 Sol candidate v1.8.7 — 2026-10-01
+
+OpenAI text/Vision/correction: all 11 options, Astra highest, 6.1 Sol default; request selection overrides last-success model; downward-only routing and unknown-ID rejection. Selected/tried/adopted shown. Incomplete/refused/empty completion guard and terminal output-budget/authentication/quota/policy gate added. Image/lite paths unchanged. Local checks pass: node syntax, 15/15 focused regression checks across both apps, both production builds, Comic Translation strict lint. Real API, official release, SNS and backup remain unverified; root owns those stages. No external effects by worker.
+
 ## Last Updated
 2026-08-10 JST
 

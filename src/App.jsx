@@ -13,9 +13,10 @@
  * → ③ AI解析 & 生成中
  * → ④ プレーヤー＆SNSシェア
  */
+import { OPENAI_MODEL_OPTIONS, DEFAULT_OPENAI_MODEL, fallbackModels } from '../openai-chat-contract.js';
 import React, { useState, useCallback, useEffect } from 'react';
 
-const SYSTEM_VERSION = '1.8.6';
+const SYSTEM_VERSION = '1.8.7';
 const DEBUG_MODE = false;
 
 // タイトルを「」で囲むヘルパー（すでに囲まれていたら二重にしない）
@@ -53,6 +54,8 @@ export default function App() {
   const [ttsEngine, setTtsEngine] = useState('auto'); // auto | voicevox | supertonic
   const [geminiKey, setGeminiKey] = useState('');
   const [geminiKeyValid, setGeminiKeyValid] = useState(false);
+  const [openaiModel, setOpenaiModel] = useState(DEFAULT_OPENAI_MODEL);
+  const [modelStatus, setModelStatus] = useState(null);
   const [activeEngine, setActiveEngine] = useState('gemini');
   const [dragOver, setDragOver] = useState(false);
   const [progress, setProgress] = useState({ step: 0, total: 5, message: '' });
@@ -202,7 +205,7 @@ export default function App() {
       const res = await fetch('/api/apikey', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: geminiKey.trim() }),
+        body: JSON.stringify({ apiKey: geminiKey.trim(), openaiModel }),
       });
       const data = await res.json();
       if (data.valid) {
@@ -281,14 +284,16 @@ export default function App() {
       const ocrRes = await fetch(`/api/analyze/${sessionId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ttsEngine: selectedTtsEngine }),
+        body: JSON.stringify({ ttsEngine: selectedTtsEngine, openaiModel }),
         signal
       });
       if (!ocrRes.ok) {
         const errData = await ocrRes.json().catch(() => ({}));
+        setModelStatus(errData.modelStatus || null);
         throw new Error(errData.error || 'AI解析に失敗しました');
       }
-      const { metadata } = await ocrRes.json();
+      const { metadata, modelStatus: resultModelStatus } = await ocrRes.json();
+      setModelStatus(resultModelStatus);
       setVideoTitle(metadata.title || imageFile.name.replace(/\.[^.]+$/, ''));
       setOcrPreview(metadata);
 
@@ -410,6 +415,17 @@ export default function App() {
         </h1>
         <p className="header-subtitle">漫画画像をドロップするだけ。AIが全自動でボイスコミック動画を生成</p>
       </header>
+      {(activeEngine === 'openai' || geminiKey.trim().startsWith('sk-')) && <div className="card openai-model-card">
+        <label htmlFor="openai-model">解析・校正モデル <span>OPENAI</span></label>
+        <select id="openai-model" value={openaiModel} onChange={event => { fallbackModels(event.target.value); setOpenaiModel(event.target.value); setModelStatus(null); }} disabled={phase === PHASE.GENERATING || phase === PHASE.CANCELLING}>
+          {OPENAI_MODEL_OPTIONS.map(model => <option key={model.id} value={model.id}>{model.label}</option>)}
+        </select>
+        <small className="openai-model-help">{OPENAI_MODEL_OPTIONS.find(model => model.id === openaiModel)?.description}<br/>入力 ${OPENAI_MODEL_OPTIONS.find(model => model.id === openaiModel)?.inputPriceUsdPerM} / 出力 ${OPENAI_MODEL_OPTIONS.find(model => model.id === openaiModel)?.outputPriceUsdPerM} per 1M tokens</small>
+        <p className="openai-model-help">選択: {openaiModel} / 試行: {modelStatus?.attempted.join(' → ') || 'なし'} / 採用: {modelStatus?.adopted || '未採用'}</p>
+        {modelStatus && <p className="openai-model-help">校正の試行: {modelStatus.correctionAttempted.join(' → ') || 'なし'} / 採用: {modelStatus.correctionAdopted || '未採用'}</p>}
+        <details className="openai-model-help"><summary>下位フォールバック / 料金</summary><p>{fallbackModels(openaiModel).join(' → ')}</p><p>入力/出力 USD per 1M tokens。推論トークン・校正回数で総額は変わります。価格確認日: 2026-09-30。</p></details>
+      </div>}
+
 
       <main className="main">
         {/* ──────── Phase: SETUP (APIキー + VOICEVOX接続確認) ──────── */}
@@ -435,6 +451,7 @@ export default function App() {
                     <div className="api-key-form">
                       <p className="setup-hint">
                         漫画画像の解析に使用します。<br/>
+
                         <strong>Gemini</strong> または <strong>OpenAI (sk-...)</strong> のAPIキーを入力すると自動で認識します。<br/>
                         <span style={{ fontSize: '12px', color: 'var(--accent-pink)' }}>※ OpenAI APIは、Geminiと比べて日本語テキストの誤認識が発生する場合があります。</span><br/>
                         <span style={{ marginTop: '8px', display: 'inline-block' }}>

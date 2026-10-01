@@ -845,3 +845,17 @@ body::before {
     flex-direction: column;
   }
 }
+
+.openai-model-help { display: block; font-size: 10px; font-weight: 400; line-height: 1.35; color: var(--text-secondary); overflow-wrap: anywhere; }
+
+.openai-model-card { width: calc(100% - 40px); max-width: var(--max-width); margin: 0 auto 18px; padding: 20px 24px; text-align: left; }
+.openai-model-card > label { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 700; margin-bottom: 9px; }
+.openai-model-card > label span { font-size: 10px; letter-spacing: .1em; color: var(--accent-cyan); }
+.openai-model-card select { display: block; width: 100%; min-height: 44px; padding: 10px 12px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); font: inherit; font-size: 14px; color-scheme: dark; }
+.openai-model-card select:focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 2px; }
+.openai-model-card > small { margin: 8px 0; }
+.openai-model-card > p { margin: 7px 0; padding-top: 8px; border-top: 1px solid var(--border-color); }
+.openai-model-card details { margin-top: 10px; }
+.openai-model-card summary { cursor: pointer; }
+.openai-model-card details p { margin-top: 8px; }
+@media (max-width: 480px) { .openai-model-card { width: calc(100% - 24px); padding: 16px; } }

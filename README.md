@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.8.6-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.8.7-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -7,12 +7,22 @@
 </p>
 
 # AI Voice Comic Maker
-v1.8.6 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.8.7 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['ChatGPT Image 2026年6月25日 22_19_30'](https://github.com/user-attachments/assets/d850ac7f-aa1c-40cc-a378-b8c6673c726c)](https://youtu.be/pqYVxUUg0Cs?si=27g1I3tO2EuZkOuxJ)
 
 **[Super FURU AI 4-koma System](https://github.com/FURUYAN1234/nano-banana-pro)** Integration / 連携対応
 The generated voice comic videos provide overwhelming immersion for TikTok, Shorts, and social media platforms. / 生成された声付き動画は、TikTokやYouTube Shorts向けの動画素材として圧倒的な没入感を提供します。
+
+**v1.8.7 (2026-10-01)** — OpenAI text/Vision default: GPT-6.1 Sol. / OpenAIテキスト・画像解析の既定をGPT-6.1 Solに更新。
+
+ページ下部・余白のアプリ名、生成元、制作クレジットを読み上げ対象から除外します。OCRの文字役割とページ領域を検証し、校正前後・音声直前にも同じチェックを適用します。物語内の台詞、ナレーション、看板、必要なURL、擬音は下部にあっても保持します。分類が欠落した解析結果は、勝手に再課金せず音声生成を停止します。 / Exclude page-footer and margin production credits from narration; preserve story dialogue, narration, signs, URLs and SFX. Validate text role and page region before/after correction and before speech. Missing classification stops synthesis without automatic paid retries.
+
+
+全11モデルを選択できます。GPT-6 Astraを最上位、GPT-6.1 Solを既定とし、選択モデルから下位のみ試行します。選択・試行・採用を表示し、未知IDはAPI呼び出し前に拒否します。価格は入力/出力USD per 1M tokensで表示し、推論トークンや処理回数で実費が変わります。 / Select from all 11 models, with Astra highest and 6.1 Sol default. Fallback starts at the selected model and only moves downward; selection, attempts and adoption are shown. Unknown IDs are rejected before API calls.
+
+
+OpenAI fallback: `gpt-6-astra` → `gpt-6.1-sol` → `gpt-6-sol` → `gpt-5.6-sol` → `gpt-5.6-terra` → `gpt-6-luna` → `gpt-5.6-luna` → `gpt-4.1` → `gpt-4.1-mini` → `gpt-4.1-nano` → `gpt-4o`. GPT-6.1 Sol uses a 32,768-token completion budget. Incomplete, refused and empty responses are rejected; output-budget exhaustion, authentication, billing/quota and policy failures stop retries. / 途中終了・拒否・空応答を成功扱いせず、出力上限到達・認証・残高不足・ポリシー拒否は連続試行を停止します。画像モデルと軽量発音推定は維持します。
 
 ## 🚀 Overview / 概要
 AI Voice Comic Maker is a fully automated tool that generates "dynamic, fully-voiced vertical short videos" from text or a single 4-koma manga image, allowing immediate compilation and export. It automatically detects the language (Japanese/English) and routes voice generation through VOICEVOX, Supertonic 3, or Edge-TTS depending on the selected local engine and script language.
@@ -28,7 +38,7 @@ Super FURU AI 4-koma System などの漫画制作システムによって生成�
 
 ## Current Runtime Boundary / 現行ランタイム境界
 
-The current release is **v1.8.6**. It is a local production tool composed of a Vite UI, a Node/Express API server, local TTS services, and Remotion rendering; it is not a static demo.
+The current release is **v1.8.7**. It is a local production tool composed of a Vite UI, a Node/Express API server, local TTS services, and Remotion rendering; it is not a static demo.
 現行リリースは **v1.8.6** です。Vite UI、Node/Express APIサーバー、ローカルTTSサービス、Remotionレンダリングを組み合わせるローカル制作ツールであり、静的デモではありません。
 
 * **Ports / ポート**: The UI uses `http://127.0.0.1:5174/`; the backend API uses `http://127.0.0.1:3001/`.
@@ -37,13 +47,13 @@ The current release is **v1.8.6**. It is a local production tool composed of a V
   Autoモードでは `localhost:50021` のVOICEVOXを優先し、使えない場合は `localhost:7789` のSupertonic 3へフォールバックします。手動選択したVOICEVOX / Supertonic 3も解析からレンダリングまで保持します。
 * **Status checks / 状態確認**: The backend exposes health checks for local engines such as `/api/voicevox/status` and `/api/supertonic/status`, then writes the selected engine into the Remotion render payload.
   バックエンドは `/api/voicevox/status` や `/api/supertonic/status` でローカル音声エンジンを確認し、選択されたエンジンをRemotionレンダリング用データへ渡します。
-* **AI fallback / AIフォールバック**: Gemini text/vision uses the `gemini-3.5-flash` family fallback chain, while OpenAI uses `gpt-4.1` -> `gpt-4.1-mini` -> `gpt-4.1-nano` -> `gpt-4o`.
-  Geminiのテキスト/画像解析は `gemini-3.5-flash` 系のフォールバックチェーンを使い、OpenAIは `gpt-4.1` -> `gpt-4.1-mini` -> `gpt-4.1-nano` -> `gpt-4o` の順に切り替えます。
+* **AI fallback / AIフォールバック**: Gemini text/vision uses the `gemini-3.5-flash` family fallback chain, while OpenAI uses `gpt-6-astra` → `gpt-6.1-sol` → `gpt-6-sol` → `gpt-5.6-sol` → `gpt-5.6-terra` → `gpt-6-luna` → `gpt-5.6-luna` → `gpt-4.1` → `gpt-4.1-mini` → `gpt-4.1-nano` → `gpt-4o`.
+  Geminiのテキスト/画像解析は `gemini-3.5-flash` 系のフォールバックチェーンを使い、OpenAIは `gpt-6-astra` → `gpt-6.1-sol` → `gpt-6-sol` → `gpt-5.6-sol` → `gpt-5.6-terra` → `gpt-6-luna` → `gpt-5.6-luna` → `gpt-4.1` → `gpt-4.1-mini` → `gpt-4.1-nano` → `gpt-4o` の順に切り替えます。
 
 ## ✨ Features / 機能
 
 ### 🧠 Dual API Architecture (Gemini & OpenAI 両対応)
-- **Automatic Engine Detection / 自動エンジン認識**: Enter either a Gemini API Key (`AIza...`) or an OpenAI API Key (`sk-...`), and the backend automatically routes the request to the optimal vision model. / ユーザーが入力したAPIキーの形式から、バックエンドが自動的に「Gemini」か「OpenAI (gpt-4.1 fallback chain)」かを認識し、最適なルーティングを行います。手動のトグルスイッチは不要です。
+- **Automatic Engine Detection / 自動エンジン認識**: Enter either a Gemini API Key (`AIza...`) or an OpenAI API Key (`sk-...`), and the backend automatically routes the request to the optimal vision model. / ユーザーが入力したAPIキーの形式から、バックエンドが自動的に「Gemini」か「OpenAI (gpt-6.1-sol fallback chain)」かを認識し、最適なルーティングを行います。手動のトグルスイッチは不要です。
 - **Accuracy & Contextual Fallback / 精度と文脈補完**: Gemini is recommended as the primary engine due to its superior Japanese OCR capabilities. However, when using OpenAI, the system applies a "Contextual OCR Verification" prompt to self-correct kanji misreadings based on conversational context. / 日本語OCRの精度において圧倒的に優れる **Gemini** の使用を強く推奨します。OpenAIを使用する場合は、誤読（ルビの誤認や濁点の欠落など）を軽減するため、AI自身に前後の文脈からテキストを再考証させる強力な自己検証プロンプトが実行されます。
 
 ### 🖼️ 2-Stage Analysis (2段階解析)
@@ -88,11 +98,11 @@ This system is not merely a video editor. It is an automated orchestration engin
 - **AI Dynamic Pronunciation Lookup Pipeline (AI動的発音推定パイプライン)**: For unknown English words or proper nouns not registered in the preset dictionary, the system automatically detects them (using a 3+ character regex filter) and queries the AI (Gemini or OpenAI) in real-time to obtain the standard Japanese Katakana pronunciation. To prevent redundant API calls, results are cached per session. This ensures that even obscure technical terms, new product names, or character names are read naturally in Japanese without silent failures or phonetic breakdown. / 静的辞書に登録されていない未知の英単語や固有名詞に対して、バックエンドが自動的に検出し（3文字以上の英単語が対象）、Gemini や OpenAI を使用して動的に一般的なカタカナ読みをリアルタイムで推定・置換する機能を実装。同一セッション内での重複APIコールを避けるため、推定結果はセッション単位でキャッシュされます。これにより、辞書にない最新のIT用語やキャラクターの固有名詞でも、不自然な誤読を極限まで減らして滑らかに読み上げることができます。
 
 ## 🧠 Zenith Protocol（AIモデル自動切替 / Auto AI Model Fallback）
-Following the philosophy of Super FURU AI 4-koma System, this system features a robust fallback mechanism (Zenith Protocol) that automatically switches to optimal alternative models upon API errors, rate limits, or safety filter blocks.
-Super FURU AI 4-koma System の思想を踏襲し、APIエラー時や制限到達時、あるいは安全フィルタでのブロック時に自動的に最適な別モデルへフォールバックする仕組み（Zenith Protocol）を搭載しています。
+Following the philosophy of Super FURU AI 4-koma System, this system features a robust fallback mechanism (Zenith Protocol) that automatically switches to optimal alternative models upon API errors, rate limits, or transient service failures.
+Super FURU AI 4-koma System の思想を踏襲し、APIエラー時や制限到達時、一時的なサービス障害時に自動的に最適な別モデルへフォールバックする仕組み（Zenith Protocol）を搭載しています。
 
-All model lists are centralized in a single `AI_MODELS` configuration block at the top of `server.js`. To swap models, edit only this one block — all downstream references update automatically.  
-全モデルリストは `server.js` 先頭の `AI_MODELS` 設定ブロックに集約されており、モデル入替時はこの1ブロックだけ変更すれば全箇所に反映されます。
+All model lists are centralized in `AI_MODELS` in `server.js` and `openai-chat-contract.js`. Update the applicable list to synchronize its callers.
+全モデルリストは `server.js` の `AI_MODELS` と `openai-chat-contract.js`に集約されており、モデル入替時は該当リストを更新すると呼び出し元に反映されます。
 
 ### Gemini API Fallback Pipeline (画像解析 / Vision Analysis):
 | 優先度 | モデル | 用途 |
@@ -104,12 +114,19 @@ All model lists are centralized in a single `AI_MODELS` configuration block at t
 | Fallback | `gemini-pro-latest` | 安定フォールバック |
 
 ### OpenAI API Fallback Pipeline (画像解析 / Vision Analysis):
-| 優先度 | モデル | 用途 |
-|--------|---------|------|
-| Primary | `gpt-4.1` | Vision対応・高品質 |
-| Backup 1 | `gpt-4.1-mini` | コスト効率 |
-| Backup 2 | `gpt-4.1-nano` | 最軽量・最速 |
-| Fallback | `gpt-4o` | Vision安定実績 |
+| 順位 | モデル | 入力/出力 USD per MTok |
+|---|---|---|
+| 1 | `gpt-6-astra` | $10/$50 |
+| 2 (既定) | `gpt-6.1-sol` | $2/$10 |
+| 3 | `gpt-6-sol` | $2/$10 |
+| 4 | `gpt-5.6-sol` | $4/$20 |
+| 5 | `gpt-5.6-terra` | $2/$12 |
+| 6 | `gpt-6-luna` | $0.1/$0.5 |
+| 7 | `gpt-5.6-luna` | $0.2/$1.2 |
+| 8 | `gpt-4.1` | $2/$8 |
+| 9 | `gpt-4.1-mini` | $0.4/$1.6 |
+| 10 | `gpt-4.1-nano` | $0.1/$0.4 |
+| 11 | `gpt-4o` | $2.5/$10 |
 
 ### Gemini API Fallback Pipeline (テキスト生成 / Text Generation):
 | 優先度 | モデル | 用途 |
@@ -121,12 +138,19 @@ All model lists are centralized in a single `AI_MODELS` configuration block at t
 | Fallback | `gemini-pro-latest` | 安定 |
 
 ### OpenAI API Fallback Pipeline (テキスト生成 / Text Generation):
-| 優先度 | モデル | 用途 |
-|--------|---------|------|
-| Primary | `gpt-4.1` | 高品質・1Mコンテキスト |
-| Backup 1 | `gpt-4.1-mini` | コスト効率・高速 |
-| Backup 2 | `gpt-4.1-nano` | 最軽量・最速 |
-| Fallback | `gpt-4o` | 安定実績 |
+| 順位 | モデル | 入力/出力 USD per MTok |
+|---|---|---|
+| 1 | `gpt-6-astra` | $10/$50 |
+| 2 (既定) | `gpt-6.1-sol` | $2/$10 |
+| 3 | `gpt-6-sol` | $2/$10 |
+| 4 | `gpt-5.6-sol` | $4/$20 |
+| 5 | `gpt-5.6-terra` | $2/$12 |
+| 6 | `gpt-6-luna` | $0.1/$0.5 |
+| 7 | `gpt-5.6-luna` | $0.2/$1.2 |
+| 8 | `gpt-4.1` | $2/$8 |
+| 9 | `gpt-4.1-mini` | $0.4/$1.6 |
+| 10 | `gpt-4.1-nano` | $0.1/$0.4 |
+| 11 | `gpt-4o` | $2.5/$10 |
 
 ## 📝 Setup & Launch / セットアップと起動
 
@@ -179,7 +203,7 @@ The browser will open `http://localhost:5174` automatically. / ブラウザが `
 - **Frontend**: React / Remotion
 - **Bundler**: Vite
 - **Backend**: Node.js / Express
-- **AI**: Google GenAI SDK (Gemini 3.5 Flash / 2.5 Flash / 2.5 Pro) / OpenAI SDK (gpt-4.1 / gpt-4o)
+- **AI**: Google GenAI SDK (Gemini 3.5 Flash / 2.5 Flash / 2.5 Pro) / OpenAI SDK (gpt-6.1-sol / gpt-4.1 / gpt-4o)
 - **Audio**: VOICEVOX API / Supertonic 3 local server / Microsoft Edge-TTS (English)
 
 ## ⚖️ Compliance & Legal Stance / 法的遵守について

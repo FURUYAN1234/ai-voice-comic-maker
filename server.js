@@ -1,3 +1,4 @@
+import { filterSpeechMetadata } from './ocr-speech-boundary.js';
 /**
  * AI Voice Comic Maker - バックエンドサーバー
  * 
@@ -17,6 +18,7 @@
  * - POST /api/gemini/key       : Gemini APIキーを設定
  */
 
+import { OPENAI_TEXT_MODELS, DEFAULT_OPENAI_MODEL, fallbackModels, chatOptions, completedText, terminalOpenAIError } from './openai-chat-contract.js';
 import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
@@ -1791,7 +1793,7 @@ let runtimeEngine = 'gemini';
 const AI_TIMEOUTS = {
   keyCheck: 25000,
   vision: 120000,
-  correction: 60000,
+  correction: 120000,
 };
 
 // ──────────────────────────────────────
@@ -1809,13 +1811,13 @@ const AI_MODELS = {
   },
   openai: {
     // テキスト生成: 高品質→コスト効率→最軽量→安定実績
-    text:   ['gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-4o'],
+    text:   OPENAI_TEXT_MODELS,
     // 画像解析（Vision）: Vision対応優先
-    vision: ['gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-4o'],
+    vision: OPENAI_TEXT_MODELS,
     // 発音推定用（軽量タスク・単一モデル）
     lite:   'gpt-4.1-nano',
     // 2-Pass校正用
-    correction: ['gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-4o'],
+    correction: OPENAI_TEXT_MODELS,
   },
 };
 
@@ -1877,6 +1879,10 @@ app.get('/api/logs/:sessionId', (req, res) => {
 // ──────────────────────────────────────
 app.post('/api/apikey', async (req, res) => {
   const { apiKey } = req.body;
+  const selectedOpenAIModel = req.body.openaiModel === undefined ? DEFAULT_OPENAI_MODEL : req.body.openaiModel;
+  if (typeof apiKey === 'string' && apiKey.trim().startsWith('sk-')) {
+    try { fallbackModels(selectedOpenAIModel); } catch (error) { return res.status(400).json({valid:false,error:error.message}); }
+  }
   if (!apiKey || !apiKey.trim()) {
     return res.status(400).json({ valid: false, error: 'APIキーが空です' });
   }
@@ -1892,7 +1898,7 @@ app.post('/api/apikey', async (req, res) => {
       const OpenAI = (await import('openai')).default;
       const openai = new OpenAI({ apiKey: key });
       
-      const modelsToTry = AI_MODELS.openai.text;
+      const modelsToTry = fallbackModels(selectedOpenAIModel);
       let workingModel = null;
       let lastError = null;
 
@@ -1901,13 +1907,14 @@ app.post('/api/apikey', async (req, res) => {
           await openai.chat.completions.create({
             model: modelName,
             messages: [{ role: "user", content: "test" }],
-            max_tokens: 5
+            ...chatOptions(modelName, { max_tokens: 5 })
           }, {
-            timeout: AI_TIMEOUTS.keyCheck
+            timeout: /^gpt-(?:6|5\.6)(?:[.-]|$)/.test(modelName) ? AI_TIMEOUTS.vision : AI_TIMEOUTS.keyCheck
           });
           workingModel = modelName;
           break;
         } catch (e) {
+          if (terminalOpenAIError(e)) throw e;
           lastError = e;
           const errorMsg = e && e.message ? e.message.split('\n')[0] : String(e);
           console.log(`    ℹ️ OpenAI ${modelName} は利用不可: ${errorMsg}`);
@@ -1922,7 +1929,7 @@ app.post('/api/apikey', async (req, res) => {
       runtimeModel = workingModel;
       runtimeEngine = 'openai';
       console.log(`🔑 OpenAI API Key が設定されました (使用モデル: ${runtimeModel})`);
-      res.json({ valid: true, engine: 'openai' });
+      res.json({ valid: true, engine: 'openai', selectedModel: selectedOpenAIModel, adoptedModel: workingModel });
     } else {
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
       const genAI = new GoogleGenerativeAI(key);
@@ -2116,8 +2123,13 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
     return res.status(409).json({ error: '現在、別の動画生成パイプラインが実行中です。しばらくお待ちください。' });
   }
 
+  const selectedOpenAIModel = req.body?.openaiModel === undefined ? DEFAULT_OPENAI_MODEL : req.body.openaiModel;
+  if (runtimeEngine === 'openai') {
+    try { fallbackModels(selectedOpenAIModel); } catch (error) { return res.status(400).json({error:error.message,code:'INVALID_OPENAI_MODEL'}); }
+  }
+  const modelStatus = { selected: selectedOpenAIModel, attempted: [], adopted: null, correctionAttempted: [], correctionAdopted: null };
   try {
-    sessionLog(sessionId, `🔍 [Analyze] AI Vision OCR 開始 (${runtimeEngine} / ${runtimeModel})...`);
+    sessionLog(sessionId, `🔍 [Analyze] AI Vision OCR 開始 (${runtimeEngine} / ${runtimeEngine === 'openai' ? selectedOpenAIModel : runtimeModel})...`);
     sessionLog(sessionId, `🧠 統合解析エンジン起動: 画像構造 / セリフ抽出 / 感情推定 の並列タスクを構築中...`);
     session.status = 'analyzing';
     const requestedTtsEngine = normalizeTtsEngine(req.body?.ttsEngine || req.query?.ttsEngine || 'auto');
@@ -2187,6 +2199,8 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
           "age": "child または young または adult または elder",
           "personality": "cool または cute または energetic または calm または serious",
           "bubblePosition": "left または center または right",
+          "textRole": "dialogue または narration または story_text または sfx または page_credit",
+          "pageRegion": "panel または page_footer または page_margin",
           "text": "セリフの内容",
           "emotion": "感情"
         }
@@ -2201,7 +2215,8 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
   - ただし、画像生成AIによる文字の滲み・歪みで発生する誤字（例: 『活躍』が『洋題』に見えるなど）は、前後の文脈や会話の流れ、一般的な日本語表現と照らし合わせ、意味が通る正しい漢字に自己検証・補正してください。
   - 日本語として意味が通らない不自然な造語のまま出力することを防ぎ、文脈に適合した単語に修正してください。
   - ただし、語順の入れ替え、言い換え、要約、意訳は一切禁止します。
-- 【超重要】'dialogues' 配列には、人間のフキダシ内のセリフだけでなく、紙・張り紙・手持ちのフリップ・旗・腕章・テレビ・モニター・額縁・看板・ポスター・背景などに書かれた文字も、それぞれ独立した1つの要素として「絶対に」含めてください。人間の発話ではないという理由で除外することは固く禁じます。
+- **textRole と pageRegion は全テキストに必須**。作品内の台詞は dialogue、物語の説明は narration、看板・物語に必要なURLは story_text、擬音は sfx。漫画の最終コマ枠の外や余白にあるアプリ名・生成元・制作クレジット・宣伝リンク・透かしだけを page_credit とし、下端余白なら page_footer、他の余白なら page_margin。位置はページ全体のコマ枠との関係で判定し、下のコマに属する台詞やナレーションを footer と扱わない。ページクレジットは音声対象から除外するので、読み上げ用の narration に混ぜない。物語の台詞・ナレーション・看板・URL・擬音は、下部にあってもその役割を維持して必ず含める。
+- 【超重要】'dialogues' 配列には、人間のフキダシ内のセリフだけでなく、紙・張り紙・手持ちのフリップ・旗・腕章・テレビ・モニター・額縁・看板・ポスター・背景などに書かれた文字も、それぞれ独立した1つの要素として「絶対に」含めてください。人間の発話ではないという理由で物語内の文字を除外することは固く禁じます。コマ枠外の制作クレジットは物語の文字とは別に分類してください。
 - **pronunciationフィールドは必須**: 字幕用の text をベースにしつつ、英語・アルファベット部分のみを自然な日本語のカタカナ（またはひらがな）読みに変換して設定すること。英単語を含まない場合は text と全く同じ値にすること
 - **bubblePositionは物理的な配置のみに基づいて客観的に判定すること**:
   - キャラクターの配置や会話の流れ、読む順番の想定に一切惑わされず、テキスト（吹き出しや文字自体の中心）が画像的に「右・中央・左」のどこにあるかだけで客観的に判定してください。
@@ -2224,10 +2239,12 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
         const openai = new OpenAI({ apiKey: apiKey });
         const dataUrl = `data:${mimeType};base64,${base64Image}`;
         
-        const modelsToAttempt = buildFallbackSequence(AI_MODELS.openai.vision, runtimeModel);
+        const modelsToAttempt = fallbackModels(selectedOpenAIModel);
 
         for (const modelName of modelsToAttempt) {
           try {
+            modelStatus.attempted.push(modelName);
+            sessionLog(sessionId, `[Model] Selected: ${selectedOpenAIModel} / Tried: ${modelStatus.attempted.join(' → ')}`);
             sessionLog(sessionId, `⏳ OpenAI API リクエスト送信中 (モデル: ${modelName})...`);
             const response = await openai.chat.completions.create({
               model: modelName,
@@ -2240,17 +2257,20 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
                 }
               ],
               response_format: { type: "json_object" },
-              temperature: 0.1
+              ...chatOptions(modelName, { temperature: 0.1 })
             }, {
               timeout: AI_TIMEOUTS.vision
             });
             
-            responseText = response.choices[0].message.content;
+            responseText = completedText(response);
+            modelStatus.adopted = modelName;
+            sessionLog(sessionId, `[Model] Adopted: ${modelName}`);
             sessionLog(sessionId, `📝 OpenAI レスポンス受信 (${responseText.length}文字)`);
             runtimeModel = modelName;
             success = true;
             break;
           } catch (err) {
+            if (terminalOpenAIError(err)) throw err;
             lastError = err;
             sessionLog(sessionId, `⚠️ [Fallback] OpenAIモデル ${modelName} でエラー発生: ${err.message}`);
           }
@@ -2339,6 +2359,10 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
       }
     }
 
+    const initialSpeech = filterSpeechMetadata(metadata);
+    metadata = initialSpeech.metadata;
+    if (initialSpeech.excluded) sessionLog(sessionId, `[Speech Boundary] Page credits excluded: ${initialSpeech.excluded}`);
+
     // すべての dialogues を収集して仮の言語判定を行う（2-Pass校正の前に判定）
     const tempDialoguesForLang = [];
     if (metadata && metadata.panels) {
@@ -2416,11 +2440,12 @@ ${JSON.stringify(correctionInput, null, 2)}`;
           const OpenAI = (await import('openai')).default;
           const openai = new OpenAI({ apiKey: apiKey });
 
-          const correctionModels = buildFallbackSequence(AI_MODELS.openai.correction, runtimeModel);
+          const correctionModels = fallbackModels(selectedOpenAIModel);
           let lastCorrectionError = null;
 
           for (const modelName of correctionModels) {
             try {
+              modelStatus.correctionAttempted.push(modelName);
               sessionLog(sessionId, `[OpenAI 2-Pass Correction] Requesting model: ${modelName}`);
               const response = await openai.chat.completions.create({
                 model: modelName,
@@ -2429,14 +2454,16 @@ ${JSON.stringify(correctionInput, null, 2)}`;
                   { role: "user", content: correctionPrompt }
                 ],
                 response_format: { type: "json_object" },
-                temperature: 0.1
+                ...chatOptions(modelName, { temperature: 0.1 })
               }, {
                 timeout: AI_TIMEOUTS.correction
               });
-              correctedText = response.choices[0].message.content;
+              correctedText = completedText(response);
+              modelStatus.correctionAdopted = modelName;
               correctionSuccess = true;
               break;
             } catch (err) {
+              if (terminalOpenAIError(err)) throw err;
               lastCorrectionError = err;
               sessionLog(sessionId, `[Fallback] OpenAI 2-Pass correction failed on ${modelName}: ${err.message}`);
             }
@@ -2570,6 +2597,9 @@ ${JSON.stringify(correctionInput, null, 2)}`;
     } else {
       sessionLog(sessionId, `🌐 [Language] 漫画言語判定: 日本語 (Japanese) → Auto TTS 用にキャスティングを行います`);
     }
+
+    const correctedSpeech = filterSpeechMetadata(metadata);
+    metadata = correctedSpeech.metadata;
 
     // 構造を正規化しつつ、キャラごとの声の重複を防ぐ（性格ベースキャスティング v2）
     const characterVoiceMap = new Map();
@@ -2756,6 +2786,8 @@ ${JSON.stringify(correctionInput, null, 2)}`;
             gender,
             age,
             personality,
+            textRole: d.textRole,
+            pageRegion: d.pageRegion,
             bubblePosition: d.bubblePosition || 'center',
             text: d.text || '',
             emotion: d.emotion || 'neutral',
@@ -2869,12 +2901,12 @@ ${JSON.stringify(correctionInput, null, 2)}`;
     sessionLog(sessionId, `コマ数: ${metadata.panels.length}, セリフ数: ${totalDialogues}`);
     sessionLog(sessionId, `話者: ${speakers.join(', ')}`);
 
-    res.json({ metadata });
+    res.json({ metadata, modelStatus: runtimeEngine === 'openai' ? modelStatus : null });
 
   } catch (err) {
     console.error('❌ Analyze error:', err);
     session.status = 'error';
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message, modelStatus: runtimeEngine === 'openai' ? modelStatus : null });
   } finally {
     releaseLock();
   }
@@ -2904,7 +2936,10 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     session.status = 'generating';
     const requestedTtsEngine = normalizeTtsEngine(req.body?.ttsEngine || session.requestedTtsEngine || 'auto');
 
-    const metadata = session.metadata;
+    const speech = filterSpeechMetadata(session.metadata);
+    const metadata = speech.metadata;
+    session.metadata = metadata;
+    if (speech.excluded) sessionLog(sessionId, `[Speech Boundary] Page credits excluded before synthesis: ${speech.excluded}`);
     const title = metadata.title;
     const bgmAudioPath = session.bgmAudio || `audio/bgm.wav`; // セッションからBGMパスを復元
     const dialogues = [];
