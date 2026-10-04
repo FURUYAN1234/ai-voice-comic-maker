@@ -20,8 +20,9 @@ import { filterSpeechMetadata } from './ocr-speech-boundary.js';
 
 import { OPENAI_TEXT_MODELS, DEFAULT_OPENAI_MODEL, fallbackModels, chatOptions, completedText, terminalOpenAIError } from './openai-chat-contract.js';
 import express from 'express';
-import cors from 'cors';
-import multer from 'multer';
+import { installLocalSecurity, LOCAL_HOST, API_PORT } from './local-security.js';
+import { createImageUpload } from './image-upload.js';
+import { RUNTIME_DIR } from './runtime-paths.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -29,7 +30,7 @@ import { execFileSync } from 'child_process';
 import dotenv from 'dotenv';
 import sharp from 'sharp';
 import { bundle } from '@remotion/bundler';
-import { renderMedia, selectComposition } from '@remotion/renderer';
+import { renderLocalVideo } from './local-render.js';
 import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
 
 dotenv.config();
@@ -1667,11 +1668,11 @@ async function synthesizeWithSupertonic(text, voiceName, lang, emotion, outputPa
 }
 
 const app = express();
-const PORT = 3001;
+const PORT = API_PORT;
 
 // ミドルウェア
-app.use(cors());
-app.use(express.json());
+installLocalSecurity(app);
+app.use(express.json({ limit: '64kb' }));
 
 // セッション管理用（インメモリ）
 const sessions = new Map();
@@ -1701,8 +1702,8 @@ function releaseLock() {
 const CLEANUP_DIRS = [
   path.join(__dirname, 'temp'),
   path.join(__dirname, 'out'),
-  path.join(__dirname, 'public', 'panels'),
-  path.join(__dirname, 'public', 'audio')
+  path.join(RUNTIME_DIR, 'panels'),
+  path.join(RUNTIME_DIR, 'audio')
 ];
 const MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24時間
 
@@ -1828,31 +1829,7 @@ function buildFallbackSequence(models, preferredModel) {
 }
 
 // ファイルアップロード設定（画像のみ）
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const sessionId = `session_${Date.now()}`;
-    const dir = path.join(__dirname, 'temp', sessionId);
-    fs.mkdirSync(dir, { recursive: true });
-    req.sessionId = sessionId;
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `source${ext}`);
-  },
-});
-
-const upload = multer({
-  storage,
-  fileFilter: (req, file, cb) => {
-    // 画像ファイルのみ許可
-    if (/\.(png|jpg|jpeg|webp)$/i.test(file.originalname)) {
-      cb(null, true);
-    } else {
-      cb(new Error('画像ファイル (.png/.jpg/.webp) のみアップロード可能です'));
-    }
-  },
-});
+const uploadImage = createImageUpload(path.join(__dirname, 'temp'));
 
 // ──────────────────────────────────────
 // API: AI APIキー設定状態
@@ -2063,7 +2040,7 @@ app.delete('/api/cancel/:sessionId', (req, res) => {
       }
       
       // 音声ディレクトリの削除
-      const voiceDir = path.join(__dirname, 'public', 'voiceover', sessionId);
+      const voiceDir = path.join(RUNTIME_DIR, 'voiceover', sessionId);
       if (fs.existsSync(voiceDir)) {
         fs.rmSync(voiceDir, { recursive: true, force: true });
       }
@@ -2083,7 +2060,7 @@ app.delete('/api/cancel/:sessionId', (req, res) => {
 // ──────────────────────────────────────
 // API: 画像のみアップロード（JSONは不要！）
 // ──────────────────────────────────────
-app.post('/api/upload', upload.single('image'), (req, res) => {
+app.post('/api/upload', uploadImage, (req, res) => {
   try {
     const sessionId = req.sessionId || `session_${Date.now()}`;
     const imageFile = req.file;
@@ -2884,7 +2861,7 @@ ${JSON.stringify(correctionInput, null, 2)}`;
       bgmLogs.forEach(log => sessionLog(sessionId, log));
 
       // 生成が成功したか確認
-      if (fs.existsSync(path.join(__dirname, 'public', 'audio', bgmFilename))) {
+      if (fs.existsSync(path.join(RUNTIME_DIR, 'audio', bgmFilename))) {
         bgmAudioPath = `audio/${bgmFilename}`;
       }
     } catch (e) {
@@ -2968,7 +2945,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
 
     // ── 画像分割 (sharp) ──
     sessionLog(sessionId, '✂️ [Sharp] 画像をコマごとに分割中...');
-    const publicPanelsDir = path.join(__dirname, 'public', 'panels');
+    const publicPanelsDir = path.join(RUNTIME_DIR, 'panels');
     if (!fs.existsSync(publicPanelsDir)) fs.mkdirSync(publicPanelsDir, { recursive: true });
 
     const metadataImg = await sharp(session.imagePath).metadata();
@@ -3080,7 +3057,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
       sessionLog(sessionId, '🎙️ [VOICEVOX] 音声合成パイプラインを起動...');
       sessionLog(sessionId, `   ↳ 合成対象: ${dialogues.length}セリフ + タイトルコール`);
     }
-    const publicVoiceDir = path.join(__dirname, 'public', 'voiceover', sessionId);
+    const publicVoiceDir = path.join(RUNTIME_DIR, 'voiceover', sessionId);
     if (!fs.existsSync(publicVoiceDir)) fs.mkdirSync(publicVoiceDir, { recursive: true });
 
     const runtimeSupertonicVoiceMap = new Map();
@@ -3415,34 +3392,30 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     const bundleStart = Date.now();
     const bundledPath = await bundle({
       entryPoint: path.join(__dirname, 'src', 'index.ts'),
+      publicDir: RUNTIME_DIR,
       webpackOverride: (config) => config,
     });
     const bundleMs = Date.now() - bundleStart;
     sessionLog(sessionId, `   ↳ バンドル完了 (${(bundleMs / 1000).toFixed(1)}秒)`);
 
     sessionLog(sessionId, '🎥 [Remotion] コンポジション "VoiceComic" を抽出中...');
-    const composition = await selectComposition({
-      serveUrl: bundledPath,
-      id: compositionId,
-      inputProps: { scriptData },
-    });
-
-    // 動的に計算されたフレーム数をコンポジションに上書き設定
-    composition.durationInFrames = scriptData.totalDurationInFrames;
-
-    sessionLog(sessionId, `⏳ [Remotion] H.264エンコード開始: ${composition.durationInFrames}F / ${composition.width}×${composition.height} / 30fps`);
+    let totalRenderFrames = scriptData.totalDurationInFrames;
     let lastReportedPct = -1;
-    await renderMedia({
-      composition,
-      serveUrl: bundledPath,
-      codec: 'h264',
-      outputLocation: outputPath,
-      inputProps: { scriptData },
+    await renderLocalVideo({
+      bundledPath,
+      compositionId,
+      scriptData,
+      outputPath,
+      onComposition: (composition) => {
+        if (session.cancelled) throw new Error('CanceledByUser');
+        totalRenderFrames = composition.durationInFrames;
+        sessionLog(sessionId, `⏳ [Remotion] H.264エンコード開始: ${composition.durationInFrames}F / ${composition.width}×${composition.height} / 30fps`);
+      },
       onProgress: ({ renderedFrames }) => {
         if (session.cancelled) {
           throw new Error('CanceledByUser');
         }
-        const pct = Math.floor((renderedFrames / composition.durationInFrames) * 100);
+        const pct = Math.floor((renderedFrames / totalRenderFrames) * 100);
         if (pct >= lastReportedPct + 5) {
           lastReportedPct = pct;
           sessionLog(sessionId, `🎞️ レンダリング進捗: ${pct}%`);
@@ -3542,7 +3515,7 @@ function getWavDuration(wavBuffer) {
 // ──────────────────────────────────────
 // サーバー起動
 // ──────────────────────────────────────
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, LOCAL_HOST, () => {
   console.log('');
   console.log('================================================');
   console.log(`  🚀 AI Voice Comic Maker Backend`);

@@ -38,3 +38,6 @@ dist/voiceover/
 
 # AI Agent rules
 AGENTS.md
+
+# Local generated assets, never included in the web build
+.runtime/

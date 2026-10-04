@@ -1,9 +1,9 @@
 {
   "name": "ai-voice-comic-maker",
-  "version": "1.8.7",
+  "version": "1.8.8",
   "description": "Drop a 4-koma manga image, get a fully voiced short video automatically. / 4コマ漫画画像をドロップするだけ。AIが全自動でフルボイスショート動画を生成します。",
   "type": "module",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "private": false,
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -30,8 +30,8 @@
     "vite": "^6.3.5"
   },
   "scripts": {
-    "dev": "concurrently -n FE,BE -c cyan,yellow \"vite --host --open\" \"node server.js\"",
-    "dev:frontend": "vite --host --open",
+    "dev": "concurrently -n FE,BE -c cyan,yellow \"vite --host 127.0.0.1 --open\" \"node server.js\"",
+    "dev:frontend": "vite --host 127.0.0.1 --open",
     "dev:server": "node server.js",
     "build": "vite build",
     "version:up": "node scripts/update_version.cjs",

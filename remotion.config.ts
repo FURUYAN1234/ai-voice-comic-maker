@@ -6,6 +6,9 @@
  */
 
 import { Config } from "@remotion/cli/config";
+import { RUNTIME_DIR } from "./runtime-paths.js";
+
+Config.setPublicDir(RUNTIME_DIR);
 
 // 出力フォーマット設定
 Config.setVideoImageFormat("jpeg");

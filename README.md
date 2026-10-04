@@ -1,13 +1,13 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.8.7-blue.svg" alt="Version">
-  <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
+  <img src="https://img.shields.io/badge/version-1.8.8-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/license-FURU%20Terms-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
   <img src="https://img.shields.io/badge/Audio-VOICEVOX%20%2F%20Supertonic%203-brightgreen.svg" alt="VOICEVOX / Supertonic 3">
 </p>
 
 # AI Voice Comic Maker
-v1.8.7 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.8.8 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['ChatGPT Image 2026年6月25日 22_19_30'](https://github.com/user-attachments/assets/d850ac7f-aa1c-40cc-a378-b8c6673c726c)](https://youtu.be/pqYVxUUg0Cs?si=27g1I3tO2EuZkOuxJ)
 
@@ -38,8 +38,14 @@ Super FURU AI 4-koma System などの漫画制作システムによって生成�
 
 ## Current Runtime Boundary / 現行ランタイム境界
 
-The current release is **v1.8.7**. It is a local production tool composed of a Vite UI, a Node/Express API server, local TTS services, and Remotion rendering; it is not a static demo.
-現行リリースは **v1.8.6** です。Vite UI、Node/Express APIサーバー、ローカルTTSサービス、Remotionレンダリングを組み合わせるローカル制作ツールであり、静的デモではありません。
+- Start locally and use `http://127.0.0.1:5174` (or `http://localhost:5174`). Both UI and API bind to loopback; LAN and cross-origin API access are disabled. The UI creates an in-memory local session automatically. After restarting the backend, reload the page if a session error appears. No persistent authentication credential is created.
+- ローカル起動後、`http://127.0.0.1:5174`（または `http://localhost:5174`）を開いてください。UI/APIはこのPC内からのみ接続でき、外部サイトからのAPI操作を拒否します。接続時に一時セッションを自動作成します。サーバー再起動後にセッションエラーが出た場合はページを再読込してください。
+- Upload one PNG/JPEG/WebP image, at most **20 MiB**. / アップロードはPNG/JPEG/WebP画像1枚、**20 MiB以下**です。
+- New generated panels, voices and BGM are stored in `.runtime/`; uploads and final videos remain in `temp/` and `out/`. Vite does not copy `public/` into the website; Remotion explicitly uses `.runtime/`. Existing material in `public/` is preserved on disk but excluded from serving/builds. Previously bundled production materials have been preserved locally and are excluded from the current published site. Historical Git commits remain unchanged.
+- 新しい生成画像・音声・BGMは `.runtime/` に保存し、アップロード画像と完成動画は `temp/` と `out/` に保存します。既存の `public/` 内素材は削除せず、Web配信・ビルドから除外します。以前公開サイトへ混入した制作素材は手元に保全し、現在の公開サイトから除外します。過去のGit履歴は変更しません。
+
+The current release is **v1.8.8**. It is a local production tool composed of a Vite UI, a Node/Express API server, local TTS services, and Remotion rendering; it is not a static demo.
+現行リリースは **v1.8.8** です。Vite UI、Node/Express APIサーバー、ローカルTTSサービス、Remotionレンダリングを組み合わせるローカル制作ツールであり、静的デモではありません。
 
 * **Ports / ポート**: The UI uses `http://127.0.0.1:5174/`; the backend API uses `http://127.0.0.1:3001/`.
   UI は `http://127.0.0.1:5174/`、バックエンドAPIは `http://127.0.0.1:3001/` を使用します。
@@ -216,24 +222,20 @@ This project is developed in full compliance with Article 30-4 of the Japanese C
 All generations are performed through the official Google Gemini API or OpenAI API. This system adheres strictly to the "Generative AI Forbidden Use Policy" and Terms of Service of each provider.  
 本システムはGoogle公式のGemini API、およびOpenAI公式のAPIを介して動作しており、各社が定める「生成AI禁止事項」および利用規約を厳格に遵守しています。
 
-### No-Profit & Research Focus
-The core logic (Prompts/Protocols) is released under CC BY-NC-SA 4.0. Any commercial misuse by third parties is strictly prohibited. This project exists solely for the advancement of AI agent technology and the democratization of creative tools.  
-核心的なロジックはCC BY-NC-SA 4.0（非営利）の下で公開されています。第三者による悪質な商用利用はライセンス違反となります。本プロジェクトは、AIエージェント技術の発展と、創作ツールの民主化を目的とした研究成果です。
 
 ## ⚖️ License & Rights / ライセンス・権利関係
-This project uses a hybrid license to balance technology sharing and intellectual property protection.  
-技術の共有と創作の保護を両立するため、以下のハイブリッドライセンスを採用しています。
 
-- **Source Code**: **MIT License** Applies to software logic and implementation code. / ソフトウェアの動作ロジックや実装コードに適用。
-- **Logic & Prompts**: **CC BY-NC-SA 4.0** Applies to original design philosophy and prompt structure. / 設計思想およびプロンプト構造に適用。
+この条件を添付して今後公開する版から、[FURU アプリ利用条件](LICENSE)を適用します（準備日: 2026-10-04）。個人利用・業務利用・受託制作は無料で、利用者自身の投稿・作品の収益化もできます。外部APIなどの料金は別です。
+
+アプリ本体や改変版の転売・有料再配布・有料サービス化・有料商材への同梱は、FURU の事前の書面による許可が必要です。第三者のライセンス、適法な引用、アプリを同梱しない独立した解説・教育は制限しません。生成物について、第三者の権利がすべて処理済みになることを保証するものではありません。
+
+有効に付与済みの過去版の許諾は取り消しません。引き継いだ部分の従前の権利も保持します。[以前の表示と適用範囲](docs/licenses/previous-notices.md)をご確認ください。本条件は商用再配布等を制限する独自条件で、OSIの意味でのオープンソースライセンスではありません。
+
+Future versions distributed with these [FURU Application Terms](LICENSE) allow free personal, business and commissioned use, including monetization of users' own outputs. Prior written permission is required to sell or redistribute the app for a fee, offer its functionality as a paid service, or bundle it with paid information products. Third-party terms, lawful quotation and independent explanation remain unaffected. Valid prior grants remain available for earlier versions and inherited portions. Third-party rights in outputs are not guaranteed. These are custom source-available terms, not an OSI open-source license.
 
 ### Third-Party Licenses / サードパーティ・ライセンス
 - **Remotion**: Free for non-commercial or individual use. For corporate commercial use, a separate Company License is required. Please check [Remotion License](https://www.remotion.dev/license). / 個人利用および非営利目的では無料で利用可能ですが、法人による商用利用には別途ライセンスが必要です。
 - **VOICEVOX**: Free for commercial and non-commercial use, provided credit is given. This tool automatically embeds the required credit in the video outtro. / 商用・非商用問わず無料で利用可能ですが、クレジット表記（例：「VOICEVOX」等）が必須です。本ツールでは動画のアウトロ画面にクレジットを自動表示する仕様になっています。
-
-### Commercial Use and Paid Seminars / 商用利用・有料セミナーについて
-Usage of this system (including prompts and logic) in high-priced information products, paid seminars, or any "get-rich-quick" schemes is strictly prohibited under the CC BY-NC-SA 4.0 license.  
-本システム（プロンプトおよびロジックを含む）を、高額な情報商材、有料セミナー、または「副業・稼げる」等の謳い文句を伴うビジネスに無断で使用することは、CC BY-NC-SA 4.0ライセンスに基づき、固く禁じます。
 
 ## 📖 Terms of Use / 利用規約
 
@@ -291,6 +293,11 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 *Developed by FURU*
 
 ## 🔄 ChangeLog / 更新履歴
+
+### v1.8.8 (2026-10-04)
+- Restrict local API/render servers to loopback with Host/Origin checks, temporary session authentication and CSRF protection. Cap image uploads at 20 MiB. / ローカルAPIと描画サーバーの接続範囲を制限し、Host/Origin検査・一時認証・CSRF対策・画像20 MiB上限を追加。
+- Separate runtime assets from public builds and preserve previously published production materials locally before excluding them from the current site. / 制作素材を公開buildから分離し、以前の公開素材を手元に保全して現在の公開対象から除外。
+- Publish the FURU application terms and retain the third-party notices. / FURUアプリ利用条件を明示し、第三者の表示を保持。
 
 **v1.8.5 (2026-06-21)**
 - [Feature / TTS] Supertonic 3をローカルTTSフォールバック兼ユーザー選択式エンジンとして追加しました。UIのTTS選択は解析・生成の両方に引き継がれ、Supertonic選択時はVOICEVOXキャスティングではなくSupertonic Voice IDでセリフとタイトルコールを合成します。 / Added Supertonic 3 as a local TTS fallback and user-selectable voice engine. The selected TTS engine is preserved through both analysis and generation, and Supertonic mode synthesizes dialogue and title calls with Supertonic voice IDs instead of VOICEVOX casting.

@@ -1,3 +1,4 @@
+import { localApiFetch } from './local-api.js';
 /**
  * AI Voice Comic Maker - メインアプリケーション
  * 
@@ -16,7 +17,7 @@
 import { OPENAI_MODEL_OPTIONS, DEFAULT_OPENAI_MODEL, fallbackModels } from '../openai-chat-contract.js';
 import React, { useState, useCallback, useEffect } from 'react';
 
-const SYSTEM_VERSION = '1.8.7';
+const SYSTEM_VERSION = '1.8.8';
 const DEBUG_MODE = false;
 
 // タイトルを「」で囲むヘルパー（すでに囲まれていたら二重にしない）
@@ -100,7 +101,7 @@ export default function App() {
     const fetchLogs = async () => {
       if (!isActive) return;
       try {
-        const res = await fetch(`/api/logs/${currentSessionId}?sinceIndex=${lastIndex}`);
+        const res = await localApiFetch(`/api/logs/${currentSessionId}?sinceIndex=${lastIndex}`);
         if (res.ok) {
           const data = await res.json();
           if (data.logs && data.logs.length > 0) {
@@ -137,7 +138,7 @@ export default function App() {
 
   const checkSavedApiKey = async () => {
     try {
-      const res = await fetch('/api/apistatus');
+      const res = await localApiFetch('/api/apistatus');
       const data = await res.json();
       if (data.configured) {
         setGeminiKeyValid(true);
@@ -152,7 +153,7 @@ export default function App() {
   const checkVoicevox = async () => {
     setVoicevoxStatus('checking');
     try {
-      const res = await fetch('/api/voicevox/status');
+      const res = await localApiFetch('/api/voicevox/status');
       const data = await res.json();
       if (data.connected) {
         setVoicevoxStatus('connected');
@@ -168,7 +169,7 @@ export default function App() {
   const checkEdgeTts = async () => {
     setEdgettsStatus('checking');
     try {
-      const res = await fetch('/api/edgetts/status');
+      const res = await localApiFetch('/api/edgetts/status');
       const data = await res.json();
       if (data.connected) {
         setEdgettsStatus('connected');
@@ -184,7 +185,7 @@ export default function App() {
   const checkSupertonic = async () => {
     setSupertonicStatus('checking');
     try {
-      const res = await fetch('/api/supertonic/status');
+      const res = await localApiFetch('/api/supertonic/status');
       const data = await res.json();
       setSupertonicStatus(data.connected ? 'connected' : 'error');
     } catch {
@@ -202,7 +203,7 @@ export default function App() {
   const handleSetApiKey = async () => {
     if (!geminiKey.trim()) return;
     try {
-      const res = await fetch('/api/apikey', {
+      const res = await localApiFetch('/api/apikey', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ apiKey: geminiKey.trim(), openaiModel }),
@@ -253,6 +254,10 @@ export default function App() {
 
   // ── 動画生成開始 ──
   const startGeneration = async (imageFile) => {
+    if (imageFile.size > 20 * 1024 * 1024) {
+      setError('画像は20 MiB以下にしてください');
+      return;
+    }
     setPhase(PHASE.GENERATING);
     setError(null);
     setOcrPreview(null);
@@ -270,18 +275,20 @@ export default function App() {
 
       // Step 1: 画像アップロード
       setProgress({ step: 1, total: 5, message: '画像をアップロード中...' });
-      const uploadRes = await fetch('/api/upload', {
+      const uploadRes = await localApiFetch('/api/upload', {
         method: 'POST',
         body: formData,
         signal
       });
-      if (!uploadRes.ok) throw new Error('アップロードに失敗しました');
+      if (!uploadRes.ok) throw new Error(uploadRes.status === 413
+        ? '画像は20 MiB以下・1ファイルのみアップロードできます'
+        : 'アップロードに失敗しました');
       const { sessionId } = await uploadRes.json();
       setCurrentSessionId(sessionId);
 
       // Step 2: Gemini OCR で AI解析
       setProgress({ step: 2, total: 5, message: 'AI が漫画を解析中... 🔍' });
-      const ocrRes = await fetch(`/api/analyze/${sessionId}`, {
+      const ocrRes = await localApiFetch(`/api/analyze/${sessionId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ttsEngine: selectedTtsEngine, openaiModel }),
@@ -304,7 +311,7 @@ export default function App() {
       setProgress({ step: 4, total: 5, message: 'Remotion で動画レンダリング中... 🎬' });
 
       // Step 3-4 を一括実行
-      const genRes = await fetch(`/api/generate/${sessionId}`, {
+      const genRes = await localApiFetch(`/api/generate/${sessionId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ttsEngine: selectedTtsEngine }),
@@ -344,7 +351,7 @@ export default function App() {
     }
     if (currentSessionId) {
       try {
-        await fetch(`/api/cancel/${currentSessionId}`, { method: 'DELETE' });
+        await localApiFetch(`/api/cancel/${currentSessionId}`, { method: 'DELETE' });
       } catch (e) {
         console.error('Failed to cancel session on server', e);
       }

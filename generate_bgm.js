@@ -1,9 +1,6 @@
+import { RUNTIME_DIR } from './runtime-paths.js';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 // ========================================
 // プロシージャル作曲エンジン v2.0
 // 感情に基づき毎回異なる8bitチップチューンBGMを自動生成
@@ -292,8 +289,8 @@ for (let i = 0; i < numSamples; i++) {
 }
 
 // ── 出力 ──
-const dir = path.join(__dirname, 'public', 'audio');
+const dir = path.join(RUNTIME_DIR, 'audio');
 if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 const outputFilename = process.argv[4] || 'bgm.wav';
 fs.writeFileSync(path.join(dir, outputFilename), buffer);
-console.log(`✅ ${emotion}風のプロシージャルBGMが生成されました: public/audio/${outputFilename}`);
+console.log(`✅ ${emotion}風のプロシージャルBGMが生成されました: .runtime/audio/${outputFilename}`);
