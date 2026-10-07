@@ -1,5 +1,9 @@
 # HANDOFF
 
+## v1.9.0 release continuation — 2026-10-07
+
+Root `../PLAN.md` remains the live record. v1.8.9 source/tag/Release succeeded, but Pages stopped because the legacy version check treated the just-pushed identical candidate as a new release. The corrected check permits an identical commit, rejects changed source reusing a version, and enforces decimal rollover; three focused tests pass and run in predeploy. v1.9.0 preserves the security strengthening and the earlier published history. Official retry is pending explicit user authorization.
+
 ## v1.8.9 security strengthening — 2026-10-07
 
 Root `../PLAN.md` owns the seven-app release, note/Facebook, inline X text and final backup state. Shared CSP, upload format checks and dependency updates are verified locally. The first official release stopped before publication because the build test fixture omitted an explicit HTML head. The fixture now uses a complete document and verifies the built CSP; all 11 local security/runtime tests pass. Retry requires the user's explicit authorization; preserve the failed receipt.
