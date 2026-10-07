@@ -26,7 +26,7 @@ try {
     checkVersionProgression(pkgVersion, remotePkg.version,
         execSync('git rev-parse HEAD').toString().trim(),
         execSync('git rev-parse origin/master').toString().trim());
-    execSync('node --test scripts/version-progression.test.mjs', { stdio: 'inherit' });
+    execSync('node --test scripts/version-progression.test.mjs scripts/gemini-parameters.test.mjs', { stdio: 'inherit' });
 
     const appVersionMatch = fs.readFileSync('src/App.jsx', 'utf-8').match(/const SYSTEM_VERSION = ['"]([^'"]+)['"]/);
     const appVersion = appVersionMatch ? appVersionMatch[1] : null;

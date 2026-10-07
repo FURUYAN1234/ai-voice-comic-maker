@@ -2265,7 +2265,6 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
             const model = genAI.getGenerativeModel({
               model: modelName,
               generationConfig: {
-                temperature: 0.1,
                 responseMimeType: "application/json"
               },
             });
@@ -2462,7 +2461,6 @@ ${JSON.stringify(correctionInput, null, 2)}`;
               const model = genAI.getGenerativeModel({
                 model: modelName,
                 generationConfig: {
-                  temperature: 0.1,
                   responseMimeType: "application/json"
                 },
               });

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.9.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.9.1-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-FURU%20Terms-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.9.0 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.9.1 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['ChatGPT Image 2026年6月25日 22_19_30'](https://github.com/user-attachments/assets/d850ac7f-aa1c-40cc-a378-b8c6673c726c)](https://youtu.be/pqYVxUUg0Cs?si=27g1I3tO2EuZkOuxJ)
 
@@ -44,8 +44,8 @@ Super FURU AI 4-koma System などの漫画制作システムによって生成�
 - New generated panels, voices and BGM are stored in `.runtime/`; uploads and final videos remain in `temp/` and `out/`. Vite does not copy `public/` into the website; Remotion explicitly uses `.runtime/`. Existing material in `public/` is preserved on disk but excluded from serving/builds. Previously bundled production materials have been preserved locally and are excluded from the current published site. Historical Git commits remain unchanged.
 - 新しい生成画像・音声・BGMは `.runtime/` に保存し、アップロード画像と完成動画は `temp/` と `out/` に保存します。既存の `public/` 内素材は削除せず、Web配信・ビルドから除外します。以前公開サイトへ混入した制作素材は手元に保全し、現在の公開サイトから除外します。過去のGit履歴は変更しません。
 
-The current release is **v1.9.0**. It is a local production tool composed of a Vite UI, a Node/Express API server, local TTS services, and Remotion rendering; it is not a static demo.
-現行リリースは **v1.9.0** です。Vite UI、Node/Express APIサーバー、ローカルTTSサービス、Remotionレンダリングを組み合わせるローカル制作ツールであり、静的デモではありません。
+The current release is **v1.9.1**. It is a local production tool composed of a Vite UI, a Node/Express API server, local TTS services, and Remotion rendering; it is not a static demo.
+現行リリースは **v1.9.1** です。Vite UI、Node/Express APIサーバー、ローカルTTSサービス、Remotionレンダリングを組み合わせるローカル制作ツールであり、静的デモではありません。
 
 * **Ports / ポート**: The UI uses `http://127.0.0.1:5174/`; the backend API uses `http://127.0.0.1:3001/`.
   UI は `http://127.0.0.1:5174/`、バックエンドAPIは `http://127.0.0.1:3001/` を使用します。
@@ -302,6 +302,11 @@ The app limits script execution and API connections with Content Security Policy
 CSPでスクリプト実行・API接続先を制限し、埋め込み表示とフォーム送信を禁止、参照元情報を送信しません。アプリは直接タブで開いてください。メモリー内のAPIキーも機密情報であり、すべての脆弱性がないことを保証するものではありません。毎回のデプロイで依存ライブラリ・ソースの防御・ビルド後の設定を検査します。
 
 ## 🔄 ChangeLog / 更新履歴
+
+### v1.9.1 (2026-10-07)
+
+- Gemini OCR and correction now omits custom sampling settings and uses model defaults. / Geminiの文字認識・認識結果の修正で、独自のサンプリング設定を送らず、モデル標準設定を使用します。
+- Image inputs, JSON output settings, and output limits are preserved. / 画像入力・JSON出力設定・出力上限を維持しています。
 
 ### v1.8.9 (2026-10-07)
 
