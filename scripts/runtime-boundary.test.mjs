@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import net from 'node:net';
 import express from 'express';
+import sharp from 'sharp';
 import { createServer, build } from 'vite';
 import { bundle } from '@remotion/bundler';
 import configFactory from '../vite.config.js';
@@ -44,13 +46,18 @@ test('local Vite blocks direct private file URLs while proxy handshake/upload/me
   await new Promise(resolve => backend.once('listening', resolve));
   t.after(() => new Promise(resolve => backend.close(resolve)));
   const config = configFactory({ command: 'serve' });
+  // Vite treats port 0 as its default; reserve a real free port for this fixture.
+  const reservation = net.createServer();
+  await new Promise(resolve => reservation.listen(0, LOCAL_HOST, resolve));
+  const fixturePort = reservation.address().port;
+  await new Promise(resolve => reservation.close(resolve));
   const vite = await createServer({ ...config, root: dir, configFile: false, logLevel: 'silent',
-    server: { ...config.server, port: 0, proxy: { '/api': {
+    server: { ...config.server, port: fixturePort, proxy: { '/api': {
       ...config.server.proxy['/api'], target: `http://127.0.0.1:${backend.address().port}`,
     } } },
   });
-  await vite.listen();
   t.after(() => vite.close());
+  await vite.listen();
   const port = vite.httpServer.address().port;
   assert.equal(vite.httpServer.address().address, LOCAL_HOST);
   assert.equal(backend.address().address, LOCAL_HOST);
@@ -72,12 +79,13 @@ test('local Vite blocks direct private file URLs while proxy handshake/upload/me
   const cookie = handshake.headers.get('set-cookie').split(';')[0];
   const csrfToken = (await handshake.json()).csrfToken;
   const form = new FormData();
-  form.append('image', new Blob(['fixture'], { type: 'image/png' }), 'fixture.png');
+  const image = await sharp({ create: { width: 1, height: 1, channels: 3, background: '#369' } }).png().toBuffer();
+  form.append('image', new Blob([image], { type: 'image/png' }), 'fixture.png');
   const upload = await fetch(`${url}/api/upload`, { method: 'POST', body: form,
     headers: { Cookie: cookie, 'X-Voice-Comic-CSRF': csrfToken, Origin: url },
   });
   assert.equal(upload.status, 200);
-  assert.equal((await upload.json()).size, 7);
+  assert.equal((await upload.json()).size, image.length);
   // HTML <video> and download links send cookies without custom CSRF headers.
   const video = await fetch(`${url}/api/video/fixture`, { headers: { Cookie: cookie } });
   assert.equal(video.status, 200);

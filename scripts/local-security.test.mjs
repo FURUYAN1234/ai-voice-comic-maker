@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
 import express from 'express';
+import sharp from 'sharp';
 import { installLocalSecurity, LOCAL_HOST, MAX_UPLOAD_BYTES } from '../local-security.js';
 import { createImageUpload } from '../image-upload.js';
 
@@ -101,11 +102,38 @@ test('credentials cannot be replayed into another backend lifetime', async t => 
 });
 
 function multipart(bytes, extra = '') {
+  const content = Buffer.alloc(bytes, 1);
+  Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).copy(content);
   return Buffer.concat([
     Buffer.from('--fixture\r\nContent-Disposition: form-data; name="image"; filename="fixture.png"\r\nContent-Type: image/png\r\n\r\n'),
-    Buffer.alloc(bytes, 1), Buffer.from(`\r\n${extra}--fixture--\r\n`),
+    content, Buffer.from(`\r\n${extra}--fixture--\r\n`),
   ]);
 }
+
+test('upload accepts actual PNG/JPEG/WebP and rejects disguised formats before processing', async t => {
+  const f = await fixture(t);
+  const auth = await f.session();
+  async function send(bytes, name, type) {
+    const body = new FormData();
+    body.append('image', new Blob([bytes], { type }), name);
+    return fetch(`${f.url}/api/upload`, { method: 'POST', headers: auth, body });
+  }
+  for (const format of ['png', 'jpeg', 'webp']) {
+    const bytes = await sharp({ create: { width: 4, height: 4, channels: 3, background: '#369' } }).toFormat(format).toBuffer();
+    const response = await send(bytes, `image.${format}`, `image/${format}`);
+    assert.equal(response.status, 200, format);
+  }
+  const retained = fs.readdirSync(f.dir).sort();
+  for (const bytes of [Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'), Buffer.from('GIF89a'), Buffer.from('II*\0'), Buffer.from('RIFFxxxxAVI '), Buffer.from([137, 80, 78, 71])]) {
+    const response = await send(bytes, 'renamed.png', 'image/png');
+    assert.equal(response.status, 415);
+    assert.equal((await response.json()).error, 'UNSUPPORTED_IMAGE_CONTENT');
+    assert.deepEqual(fs.readdirSync(f.dir).sort(), retained);
+  }
+  const png = await sharp({ create: { width: 1, height: 1, channels: 3, background: '#fff' } }).png().toBuffer();
+  assert.equal((await send(png, 'wrong.jpg', 'image/jpeg')).status, 415);
+  assert.deepEqual(fs.readdirSync(f.dir).sort(), retained);
+});
 
 test('upload accepts the exact limit and rejects limit+1 without Content-Length, preserving prior files', async t => {
   const f = await fixture(t);

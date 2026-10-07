@@ -17,7 +17,7 @@ import { localApiFetch } from './local-api.js';
 import { OPENAI_MODEL_OPTIONS, DEFAULT_OPENAI_MODEL, fallbackModels } from '../openai-chat-contract.js';
 import React, { useState, useCallback, useEffect } from 'react';
 
-const SYSTEM_VERSION = '1.8.8';
+const SYSTEM_VERSION = '1.8.9';
 const DEBUG_MODE = false;
 
 // タイトルを「」で囲むヘルパー（すでに囲まれていたら二重にしない）

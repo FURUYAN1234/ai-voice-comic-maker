@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.8.8-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.8.9-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-FURU%20Terms-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -7,7 +7,7 @@
 </p>
 
 # AI Voice Comic Maker
-v1.8.8 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.8.9 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['ChatGPT Image 2026年6月25日 22_19_30'](https://github.com/user-attachments/assets/d850ac7f-aa1c-40cc-a378-b8c6673c726c)](https://youtu.be/pqYVxUUg0Cs?si=27g1I3tO2EuZkOuxJ)
 
@@ -44,8 +44,8 @@ Super FURU AI 4-koma System などの漫画制作システムによって生成�
 - New generated panels, voices and BGM are stored in `.runtime/`; uploads and final videos remain in `temp/` and `out/`. Vite does not copy `public/` into the website; Remotion explicitly uses `.runtime/`. Existing material in `public/` is preserved on disk but excluded from serving/builds. Previously bundled production materials have been preserved locally and are excluded from the current published site. Historical Git commits remain unchanged.
 - 新しい生成画像・音声・BGMは `.runtime/` に保存し、アップロード画像と完成動画は `temp/` と `out/` に保存します。既存の `public/` 内素材は削除せず、Web配信・ビルドから除外します。以前公開サイトへ混入した制作素材は手元に保全し、現在の公開サイトから除外します。過去のGit履歴は変更しません。
 
-The current release is **v1.8.8**. It is a local production tool composed of a Vite UI, a Node/Express API server, local TTS services, and Remotion rendering; it is not a static demo.
-現行リリースは **v1.8.8** です。Vite UI、Node/Express APIサーバー、ローカルTTSサービス、Remotionレンダリングを組み合わせるローカル制作ツールであり、静的デモではありません。
+The current release is **v1.8.9**. It is a local production tool composed of a Vite UI, a Node/Express API server, local TTS services, and Remotion rendering; it is not a static demo.
+現行リリースは **v1.8.9** です。Vite UI、Node/Express APIサーバー、ローカルTTSサービス、Remotionレンダリングを組み合わせるローカル制作ツールであり、静的デモではありません。
 
 * **Ports / ポート**: The UI uses `http://127.0.0.1:5174/`; the backend API uses `http://127.0.0.1:3001/`.
   UI は `http://127.0.0.1:5174/`、バックエンドAPIは `http://127.0.0.1:3001/` を使用します。
@@ -292,7 +292,19 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 ---
 *Developed by FURU*
 
+
+## Browser security / ブラウザーの安全対策
+
+The app limits script execution and API connections with Content Security Policy, disables embedded frames and form submissions, and sends no referrer. Open the app directly in its own tab. API keys remain sensitive while in memory; these protections do not guarantee the absence of every vulnerability. Every deployment checks dependencies, source safeguards and the built policy.
+
+CSPでスクリプト実行・API接続先を制限し、埋め込み表示とフォーム送信を禁止、参照元情報を送信しません。アプリは直接タブで開いてください。メモリー内のAPIキーも機密情報であり、すべての脆弱性がないことを保証するものではありません。毎回のデプロイで依存ライブラリ・ソースの防御・ビルド後の設定を検査します。
+
 ## 🔄 ChangeLog / 更新履歴
+
+### v1.8.9 (2026-10-07)
+
+- Check PNG/JPEG/WebP file signatures before image processing, reject disguised formats, and preserve previous uploads. Updated dependencies and added CSP/frame protection and mandatory release checks.
+- 画像処理前にPNG/JPEG/WebPのファイル署名を確認し、偽装形式を拒否して以前の素材を保持します。依存更新、CSP・埋め込み防御、デプロイごとの検査を追加しました。
 
 ### v1.8.8 (2026-10-04)
 - Restrict local API/render servers to loopback with Host/Origin checks, temporary session authentication and CSRF protection. Cap image uploads at 20 MiB. / ローカルAPIと描画サーバーの接続範囲を制限し、Host/Origin検査・一時認証・CSRF対策・画像20 MiB上限を追加。

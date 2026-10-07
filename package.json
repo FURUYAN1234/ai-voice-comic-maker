@@ -1,15 +1,15 @@
 {
   "name": "ai-voice-comic-maker",
-  "version": "1.8.8",
+  "version": "1.8.9",
   "description": "Drop a 4-koma manga image, get a fully voiced short video automatically. / 4コマ漫画画像をドロップするだけ。AIが全自動でフルボイスショート動画を生成します。",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE",
   "private": false,
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
-    "@remotion/bundler": "^4.0.428",
-    "@remotion/cli": "4.0.428",
-    "@remotion/renderer": "4.0.428",
+    "@remotion/bundler": "4.0.533",
+    "@remotion/cli": "4.0.533",
+    "@remotion/renderer": "4.0.533",
     "cors": "^2.8.5",
     "dotenv": "^17.3.1",
     "express": "^5.1.0",
@@ -18,16 +18,21 @@
     "openai": "^6.38.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "remotion": "4.0.428",
-    "sharp": "^0.33.5"
+    "remotion": "4.0.533",
+    "sharp": "0.35.5"
   },
   "devDependencies": {
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.5.2",
     "concurrently": "^9.1.2",
-    "gh-pages": "^6.3.0",
+    "gh-pages": "6.1.1",
     "vite": "^6.3.5"
+  },
+  "overrides": {
+    "concurrently": {
+      "shell-quote": "1.12.0"
+    }
   },
   "scripts": {
     "dev": "concurrently -n FE,BE -c cyan,yellow \"vite --host 127.0.0.1 --open\" \"node server.js\"",
@@ -38,6 +43,7 @@
     "release:preflight": "powershell -ExecutionPolicy Bypass -File ..\\scripts\\release_app_preflight.ps1 -App short_movie",
     "predeploy": "npm run release:preflight && node scripts/pre_deploy_check.js && npm run build",
     "deploy": "gh-pages -d dist",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postbuild": "node scripts/web-security.mjs --verify-dist"
   }
 }

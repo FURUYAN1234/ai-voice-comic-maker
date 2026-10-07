@@ -1,3 +1,4 @@
+import { webSecurity } from './scripts/web-security.mjs';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import fs from 'node:fs';
@@ -19,7 +20,7 @@ function publicBuildAllowlist() {
 }
 
 export default defineConfig(({ command }) => ({
-  plugins: [react(), publicBuildAllowlist()],
+  plugins: [webSecurity({ connectSources: [] }), react(), publicBuildAllowlist()],
   // Legacy public runtime files stay on disk, but are never served or copied.
   publicDir: false,
   base: command === 'build' ? '/ai-voice-comic-maker/' : '/',
