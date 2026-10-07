@@ -1,5 +1,9 @@
 # HANDOFF
 
+## v1.8.9 security strengthening — 2026-10-07
+
+Root `../PLAN.md` owns the seven-app release, note/Facebook, inline X text and final backup state. Shared CSP, upload format checks and dependency updates are verified locally. The first official release stopped before publication because the build test fixture omitted an explicit HTML head. The fixture now uses a complete document and verifies the built CSP; all 11 local security/runtime tests pass. Retry requires the user's explicit authorization; preserve the failed receipt.
+
 ## Authorized v1.8.8 security/terms publication — 2026-10-04
 
 - Owner: delegated voice audit worker. User authorized GitHub/Pages/distribution publication and preservation/removal of the 37 current public production assets; backup, history rewriting and social/note actions remain outside this task.

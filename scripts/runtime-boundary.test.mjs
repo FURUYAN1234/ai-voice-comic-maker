@@ -18,7 +18,7 @@ const marker = 'PRIVATE_RUNTIME_TEST_FIXTURE';
 function fixture(t) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'voice-assets-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  fs.writeFileSync(path.join(dir, 'index.html'), '<!doctype html><title>Local fixture</title>');
+  fs.writeFileSync(path.join(dir, 'index.html'), '<!doctype html><html><head><title>Local fixture</title></head><body>Local fixture</body></html>');
   for (const relative of ['public/panels/old.png', 'public/voiceover/old.wav', 'public/audio/old.wav',
     '.runtime/panels/new.png', '.runtime/voiceover/new.wav', '.runtime/audio/new.wav', 'temp/source.png', 'out/video.mp4']) {
     const filename = path.join(dir, relative);
@@ -35,6 +35,7 @@ test('production build excludes new and legacy private assets without deleting o
   await build({ ...config, root: dir, configFile: false, logLevel: 'silent' });
   assert.deepEqual(fs.readdirSync(path.join(dir, 'dist')).sort(), ['.nojekyll', 'LICENSE.txt', 'index.html']);
   assert.equal(fs.readFileSync(path.join(dir, 'dist/LICENSE.txt'), 'utf8'), 'Public license fixture');
+  assert.match(fs.readFileSync(path.join(dir, 'dist/index.html'), 'utf8'), /http-equiv="Content-Security-Policy"/);
   assert.equal(fs.readFileSync(path.join(dir, 'public/panels/old.png'), 'utf8'), marker);
   assert.equal(fs.readFileSync(path.join(dir, '.runtime/voiceover/new.wav'), 'utf8'), marker);
 });
