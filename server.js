@@ -18,7 +18,7 @@ import { filterSpeechMetadata } from './ocr-speech-boundary.js';
  * - POST /api/gemini/key       : Gemini APIキーを設定
  */
 
-import { OPENAI_TEXT_MODELS, DEFAULT_OPENAI_MODEL, fallbackModels, chatOptions, completedText, terminalOpenAIError } from './openai-chat-contract.js';
+import { OPENAI_TEXT_MODELS, OPENAI_PRONUNCIATION_MODEL, lookupOpenAIPronunciations, DEFAULT_OPENAI_MODEL, fallbackModels, chatOptions, completedText, terminalOpenAIError } from './openai-chat-contract.js';
 import express from 'express';
 import { installLocalSecurity, LOCAL_HOST, API_PORT } from './local-security.js';
 import { createImageUpload } from './image-upload.js';
@@ -1284,18 +1284,7 @@ async function resolveUnknownEnglishWords(text, sessionId = null) {
     if (runtimeEngine === 'openai') {
       const OpenAI = (await import('openai')).default;
       const openai = new OpenAI({ apiKey });
-      // コスト最小の軽量モデルを使用
-      const response = await openai.chat.completions.create({
-        model: AI_MODELS.openai.lite,
-        messages: [
-          { role: "system", content: "あなたは英語の固有名詞の日本語読みに精通した言語学の専門家です。必ず指定されたJSON形式で出力してください。" },
-          { role: "user", content: aiPrompt }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.0,
-        max_tokens: 500
-      }, { timeout: 10000 });
-      responseText = response.choices[0].message.content;
+      responseText = await lookupOpenAIPronunciations(openai, aiPrompt);
     } else {
       // Gemini (Flashモデルでコスト最小化)
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
@@ -1816,7 +1805,7 @@ const AI_MODELS = {
     // 画像解析（Vision）: Vision対応優先
     vision: OPENAI_TEXT_MODELS,
     // 発音推定用（軽量タスク・単一モデル）
-    lite:   'gpt-4.1-nano',
+    lite:   OPENAI_PRONUNCIATION_MODEL,
     // 2-Pass校正用
     correction: OPENAI_TEXT_MODELS,
   },

@@ -14,10 +14,10 @@ import { localApiFetch } from './local-api.js';
  * → ③ AI解析 & 生成中
  * → ④ プレーヤー＆SNSシェア
  */
-import { OPENAI_MODEL_OPTIONS, DEFAULT_OPENAI_MODEL, fallbackModels } from '../openai-chat-contract.js';
+import { OPENAI_MODEL_OPTIONS, OPENAI_PRONUNCIATION_MODEL, DEFAULT_OPENAI_MODEL, fallbackModels } from '../openai-chat-contract.js';
 import React, { useState, useCallback, useEffect } from 'react';
 
-const SYSTEM_VERSION = '1.9.1';
+const SYSTEM_VERSION = '1.9.2';
 const DEBUG_MODE = false;
 
 // タイトルを「」で囲むヘルパー（すでに囲まれていたら二重にしない）
@@ -430,7 +430,7 @@ export default function App() {
         <small className="openai-model-help">{OPENAI_MODEL_OPTIONS.find(model => model.id === openaiModel)?.description}<br/>入力 ${OPENAI_MODEL_OPTIONS.find(model => model.id === openaiModel)?.inputPriceUsdPerM} / 出力 ${OPENAI_MODEL_OPTIONS.find(model => model.id === openaiModel)?.outputPriceUsdPerM} per 1M tokens</small>
         <p className="openai-model-help">選択: {openaiModel} / 試行: {modelStatus?.attempted.join(' → ') || 'なし'} / 採用: {modelStatus?.adopted || '未採用'}</p>
         {modelStatus && <p className="openai-model-help">校正の試行: {modelStatus.correctionAttempted.join(' → ') || 'なし'} / 採用: {modelStatus.correctionAdopted || '未採用'}</p>}
-        <details className="openai-model-help"><summary>下位フォールバック / 料金</summary><p>{fallbackModels(openaiModel).join(' → ')}</p><p>入力/出力 USD per 1M tokens。推論トークン・校正回数で総額は変わります。価格確認日: 2026-09-30。</p></details>
+        <details className="openai-model-help"><summary>Model Chain / 料金</summary><p>画像解析・校正: {fallbackModels(openaiModel).join(' → ')}</p><p>未知の英単語の発音補助: {OPENAI_PRONUNCIATION_MODEL}（単一モデル）。失敗時は辞書のみで続行し、処理ログに表示します。</p><p>入力/出力 USD per 1M tokens。推論トークン・校正回数で総額は変わります。価格確認日: 2026-10-15。</p></details>
       </div>}
 
 

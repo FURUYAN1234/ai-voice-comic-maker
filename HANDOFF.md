@@ -1,5 +1,9 @@
 # HANDOFF
 
+## 2026-10-15 model retirement migration
+
+Workspace PLAN.md owns the four-app migration, official delivery and final backup. Candidate v1.9.2 removes retiring GPT-4 routes and preserves the app's existing content contracts. Local regression and real API evidence must be checked before the unchanged official release transaction; public release/copy and final backup remain pending until their receipts complete. No X publication is authorized.
+
 ## v1.9.0 release continuation — 2026-10-07
 
 Root `../PLAN.md` remains the live record. v1.8.9 source/tag/Release succeeded, but Pages stopped because the legacy version check treated the just-pushed identical candidate as a new release. The corrected check permits an identical commit, rejects changed source reusing a version, and enforces decimal rollover; three focused tests pass and run in predeploy. v1.9.0 preserves the security strengthening and the earlier published history. Official retry is pending explicit user authorization.

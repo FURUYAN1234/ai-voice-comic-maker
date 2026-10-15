@@ -1,4 +1,4 @@
-// Snapshot of Nano canonical model catalog; preserved for standalone releases.
+// Snapshot of maintained model options for standalone releases.
 export default {
   "priceSnapshotDate": "2026-09-28",
   "priceSnapshotSource": "OpenAI official model pricing",
@@ -66,39 +66,6 @@ export default {
       "inputPriceUsdPerM": 0.2,
       "outputPriceUsdPerM": 1.2,
       "comparisonNote": "大きく節約したい場合の第一候補。複雑な制約は上位モデルより弱くなります。"
-    },
-    {
-      "id": "gpt-4.1",
-      "label": "GPT-4.1",
-      "group": "GPT-4.1",
-      "description": "高速な非推論モデルで安定した構成",
-      "inputPriceUsdPerM": 2,
-      "outputPriceUsdPerM": 8,
-      "comparisonNote": "Terraより出力単価が低め。定型に近い4コマを速く安定して構成したい場合に向きます。"
-    },
-    {
-      "id": "gpt-4.1-mini",
-      "label": "GPT-4.1 mini",
-      "group": "GPT-4.1",
-      "description": "軽量・高速な非推論モデル",
-      "inputPriceUsdPerM": 0.4,
-      "outputPriceUsdPerM": 1.6
-    },
-    {
-      "id": "gpt-4.1-nano",
-      "label": "GPT-4.1 nano",
-      "group": "GPT-4.1",
-      "description": "最小コストを優先した短いシナリオ向け",
-      "inputPriceUsdPerM": 0.1,
-      "outputPriceUsdPerM": 0.4
-    },
-    {
-      "id": "gpt-4o",
-      "label": "GPT-4o",
-      "group": "互換",
-      "description": "最後の互換フォールバック",
-      "inputPriceUsdPerM": 2.5,
-      "outputPriceUsdPerM": 10
     }
   ]
 };

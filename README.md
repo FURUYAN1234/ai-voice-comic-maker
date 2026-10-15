@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.9.1-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.9.2-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-FURU%20Terms-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -10,7 +10,7 @@
 
 > **Source code available; free to use.** Ordinary use, free integration and free provision require no application, prior contact or permission from FURU. You may sell and monetize your own works. External API costs and third-party terms are separate. See Terms & Output Rights below. / **ソースコード公開・利用無料。** 通常利用と無料の組み込み・無料提供に、申請・事前連絡・FURUの許可は不要です。自分の作品は販売・収益化できます。外部API料金と第三者の条件は別です。詳しくは「利用条件・作品の権利」をご確認ください。
 
-v1.9.1 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.9.2 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['ChatGPT Image 2026年6月25日 22_19_30'](https://github.com/user-attachments/assets/d850ac7f-aa1c-40cc-a378-b8c6673c726c)](https://youtu.be/pqYVxUUg0Cs?si=27g1I3tO2EuZkOuxJ)
 
@@ -22,10 +22,13 @@ The generated voice comic videos provide overwhelming immersion for TikTok, Shor
 Exclude page-footer and margin production credits from narration; preserve story dialogue, narration, signs, URLs and SFX. Validate text role and page region before/after correction and before speech. Missing classification stops synthesis without automatic paid retries. / ページ下部・余白のアプリ名、生成元、制作クレジットを読み上げ対象から除外します。OCRの文字役割とページ領域を検証し、校正前後・音声直前にも同じチェックを適用します。物語内の台詞、ナレーション、看板、必要なURL、擬音は下部にあっても保持します。分類が欠落した解析結果は、勝手に再課金せず音声生成を停止します。
 
 
-Select from all 11 models, with Astra highest and 6.1 Sol default. Fallback starts at the selected model and only moves downward; selection, attempts and adoption are shown. Unknown IDs are rejected before API calls. / 全11モデルを選択できます。GPT-6 Astraを最上位、GPT-6.1 Solを既定とし、選択モデルから下位のみ試行します。選択・試行・採用を表示し、未知IDはAPI呼び出し前に拒否します。価格は入力/出力USD per 1M tokensで表示し、推論トークンや処理回数で実費が変わります。
+Select from all 7 models, with Astra highest and 6.1 Sol default. Fallback starts at the selected model and only moves downward; selection, attempts and adoption are shown. Unknown IDs are rejected before API calls. / 全7モデルを選択できます。GPT-6 Astraを最上位、GPT-6.1 Solを既定とし、選択モデルから下位のみ試行します。選択・試行・採用を表示し、未知IDはAPI呼び出し前に拒否します。価格は入力/出力USD per 1M tokensで表示し、推論トークンや処理回数で実費が変わります。
 
 
-OpenAI fallback: `gpt-6-astra` → `gpt-6.1-sol` → `gpt-6-sol` → `gpt-5.6-sol` → `gpt-5.6-terra` → `gpt-6-luna` → `gpt-5.6-luna` → `gpt-4.1` → `gpt-4.1-mini` → `gpt-4.1-nano` → `gpt-4o`. GPT-6.1 Sol uses a 32,768-token completion budget. Incomplete, refused and empty responses are rejected; output-budget exhaustion, authentication, billing/quota and policy failures stop retries. / 途中終了・拒否・空応答を成功扱いせず、出力上限到達・認証・残高不足・ポリシー拒否は連続試行を停止します。画像モデルと軽量発音推定は維持します。
+OpenAI fallback: `gpt-6-astra` → `gpt-6.1-sol` → `gpt-6-sol` → `gpt-5.6-sol` → `gpt-5.6-terra` → `gpt-6-luna` → `gpt-5.6-luna`. GPT-6.1 Sol uses a 32,768-token completion budget. Incomplete, refused and empty responses are rejected; output-budget exhaustion, authentication, billing/quota and policy failures stop retries. / 途中終了・拒否・空応答を成功扱いせず、出力上限到達・認証・残高不足・ポリシー拒否は連続試行を停止します。画像生成モデルは維持し、軽量発音推定には下記の現行モデルを使用します。
+
+
+Pronunciation assistance for unknown English words uses `gpt-6-luna` with compatible completion parameters and no automatic retry. A failure is reported in the processing log and retains the dictionary fallback. Model Chain shows this helper separately from OCR/correction. / 辞書にない英単語の発音補助は`gpt-6-luna`を使用します。互換のある出力上限を設定し、自動再試行はしません。失敗時はログに示して辞書のみで続行します。Model Chainでは画像解析・校正と発音補助を分けて表示します。
 
 ## 🚀 Overview / 概要
 AI Voice Comic Maker is a fully automated tool that generates "dynamic, fully-voiced vertical short videos" from text or a single 4-koma manga image, allowing immediate compilation and export. It automatically detects the language (Japanese/English) and routes voice generation through VOICEVOX, Supertonic 3, or Edge-TTS depending on the selected local engine and script language. / AI Voice Comic Makerは、テキストや1枚の4コマ漫画画像から「ダイナミックなフルボイス縦型ショート動画」を生成し、一瞬でコンパイル・エクスポートできる完全自動化ツールです。漫画の言語（日本語・英語）とユーザーのTTS選択に応じて、VOICEVOX、Supertonic 3、Edge-TTSを使い分けて音声化します。
@@ -41,12 +44,12 @@ It provides seamless video assets for platforms like TikTok and YouTube Shorts, 
 - Upload one PNG/JPEG/WebP image, at most **20 MiB**. / アップロードはPNG/JPEG/WebP画像1枚、**20 MiB以下**です。
 - New generated panels, voices and BGM are stored in `.runtime/`; uploads and final videos remain in `temp/` and `out/`. Vite does not copy `public/` into the website; Remotion explicitly uses `.runtime/`. Existing material in `public/` is preserved on disk but excluded from serving/builds. Previously bundled production materials have been preserved locally and are excluded from the current published site. Historical Git commits remain unchanged. / 新しい生成画像・音声・BGMは `.runtime/` に保存し、アップロード画像と完成動画は `temp/` と `out/` に保存します。既存の `public/` 内素材は削除せず、Web配信・ビルドから除外します。以前公開サイトへ混入した制作素材は手元に保全し、現在の公開サイトから除外します。過去のGit履歴は変更しません。
 
-The current release is **v1.9.1**. It is a local production tool composed of a Vite UI, a Node/Express API server, local TTS services, and Remotion rendering; it is not a static demo. / 現行リリースは **v1.9.1** です。Vite UI、Node/Express APIサーバー、ローカルTTSサービス、Remotionレンダリングを組み合わせるローカル制作ツールであり、静的デモではありません。
+The current release is **v1.9.2**. It is a local production tool composed of a Vite UI, a Node/Express API server, local TTS services, and Remotion rendering; it is not a static demo. / 現行リリースは **v1.9.2** です。Vite UI、Node/Express APIサーバー、ローカルTTSサービス、Remotionレンダリングを組み合わせるローカル制作ツールであり、静的デモではありません。
 
 * **Ports / ポート**: The UI uses `http://127.0.0.1:5174/`; the backend API uses `http://127.0.0.1:3001/`. / UI は `http://127.0.0.1:5174/`、バックエンドAPIは `http://127.0.0.1:3001/` を使用します。
 * **Japanese TTS routing / 日本語TTSルーティング**: Auto mode prefers VOICEVOX on `localhost:50021` and falls back to Supertonic 3 on `localhost:7789` when VOICEVOX is unavailable. Manual VOICEVOX / Supertonic 3 selection is also preserved through analysis and rendering. / Autoモードでは `localhost:50021` のVOICEVOXを優先し、使えない場合は `localhost:7789` のSupertonic 3へフォールバックします。手動選択したVOICEVOX / Supertonic 3も解析からレンダリングまで保持します。
 * **Status checks / 状態確認**: The backend exposes health checks for local engines such as `/api/voicevox/status` and `/api/supertonic/status`, then writes the selected engine into the Remotion render payload. / バックエンドは `/api/voicevox/status` や `/api/supertonic/status` でローカル音声エンジンを確認し、選択されたエンジンをRemotionレンダリング用データへ渡します。
-* **AI fallback / AIフォールバック**: Gemini text/vision uses the `gemini-3.5-flash` family fallback chain, while OpenAI uses `gpt-6-astra` → `gpt-6.1-sol` → `gpt-6-sol` → `gpt-5.6-sol` → `gpt-5.6-terra` → `gpt-6-luna` → `gpt-5.6-luna` → `gpt-4.1` → `gpt-4.1-mini` → `gpt-4.1-nano` → `gpt-4o`. / Geminiのテキスト/画像解析は `gemini-3.5-flash` 系のフォールバックチェーンを使い、OpenAIは `gpt-6-astra` → `gpt-6.1-sol` → `gpt-6-sol` → `gpt-5.6-sol` → `gpt-5.6-terra` → `gpt-6-luna` → `gpt-5.6-luna` → `gpt-4.1` → `gpt-4.1-mini` → `gpt-4.1-nano` → `gpt-4o` の順に切り替えます。
+* **AI fallback / AIフォールバック**: Gemini text/vision uses the `gemini-3.5-flash` family fallback chain, while OpenAI uses `gpt-6-astra` → `gpt-6.1-sol` → `gpt-6-sol` → `gpt-5.6-sol` → `gpt-5.6-terra` → `gpt-6-luna` → `gpt-5.6-luna`. / Geminiのテキスト/画像解析は `gemini-3.5-flash` 系のフォールバックチェーンを使い、OpenAIは `gpt-6-astra` → `gpt-6.1-sol` → `gpt-6-sol` → `gpt-5.6-sol` → `gpt-5.6-terra` → `gpt-6-luna` → `gpt-5.6-luna` の順に切り替えます。
 
 ## ✨ Features / 機能
 
@@ -118,10 +121,6 @@ All model lists are centralized in `AI_MODELS` in `server.js` and `openai-chat-c
 | 5 | `gpt-5.6-terra` | $2/$12 |
 | 6 | `gpt-6-luna` | $0.1/$0.5 |
 | 7 | `gpt-5.6-luna` | $0.2/$1.2 |
-| 8 | `gpt-4.1` | $2/$8 |
-| 9 | `gpt-4.1-mini` | $0.4/$1.6 |
-| 10 | `gpt-4.1-nano` | $0.1/$0.4 |
-| 11 | `gpt-4o` | $2.5/$10 |
 
 ### Gemini API Fallback Pipeline (テキスト生成 / Text Generation):
 | Priority / 優先度 | Model / モデル | Use / 用途 |
@@ -142,10 +141,6 @@ All model lists are centralized in `AI_MODELS` in `server.js` and `openai-chat-c
 | 5 | `gpt-5.6-terra` | $2/$12 |
 | 6 | `gpt-6-luna` | $0.1/$0.5 |
 | 7 | `gpt-5.6-luna` | $0.2/$1.2 |
-| 8 | `gpt-4.1` | $2/$8 |
-| 9 | `gpt-4.1-mini` | $0.4/$1.6 |
-| 10 | `gpt-4.1-nano` | $0.1/$0.4 |
-| 11 | `gpt-4o` | $2.5/$10 |
 
 ## 📝 Setup & Launch / セットアップと起動
 
@@ -198,7 +193,7 @@ The browser will open `http://localhost:5174` automatically. / ブラウザが `
 - **Frontend**: React / Remotion / **フロントエンド**：React／Remotion
 - **Bundler**: Vite / **ビルドツール**：Vite
 - **Backend**: Node.js / Express / バックエンド：Node.js／Express。
-- **AI**: Google GenAI SDK (Gemini 3.5 Flash / 2.5 Flash / 2.5 Pro) / OpenAI SDK (gpt-6.1-sol / gpt-4.1 / gpt-4o) / AI：Google GenAI SDK（Gemini 3.5 Flash／2.5 Flash／2.5 Pro）とOpenAI SDK（gpt-6.1-sol／gpt-4.1／gpt-4o）。
+- **AI**: Google GenAI SDK (Gemini 3.5 Flash / 2.5 Flash / 2.5 Pro) / OpenAI SDK (gpt-6.1-sol / gpt-6-luna) / AI：Google GenAI SDK（Gemini 3.5 Flash／2.5 Flash／2.5 Pro）とOpenAI SDK（gpt-6.1-sol／gpt-6-luna）。
 - **Audio**: VOICEVOX API / Supertonic 3 local server / Microsoft Edge-TTS (English) / 音声：VOICEVOX API、Supertonic 3のローカルサーバー、英語用Microsoft Edge-TTS。
 
 ## ⚖️ Compliance & Legal Stance / 法的遵守について
@@ -354,6 +349,11 @@ A tool that generates seamless 360-degree spatial backgrounds to provide backgro
 | Narration Video Maker / ナレーション動画メーカー | Video generation with narration, subtitles, and BGM / ナレーション・字幕・BGM付き動画生成 | [gemini-narration-studio](https://github.com/FURUYAN1234/gemini-narration-studio) |
 
 ## 🔄 ChangeLog / 更新履歴
+
+### v1.9.2 (2026-10-15)
+
+- [pronunciation] Moved unknown-English pronunciation assistance to GPT-6 Luna, with compatible completion parameters and no automatic retry. Dictionary fallback and processing-log warnings are retained. / 辞書にない英単語の発音補助をGPT-6 Lunaへ移行し、互換のある出力上限を設定しました。自動再試行はせず、失敗時の辞書フォールバックと処理ログを維持します。
+- [model-chain] Removed retiring GPT-4 models from active choices and fallback routes. Model Chain shows OCR/correction and pronunciation from the same definitions used at runtime. / 終了予定のGPT-4系を選択肢とフォールバックから除外しました。Model Chainは画像解析・校正と発音補助を分け、実行と同じ定義から表示します。
 
 ### v1.9.1 (2026-10-07)
 

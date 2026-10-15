@@ -1,6 +1,7 @@
 import catalog from './src/config/openai-text-models.js';
 export const OPENAI_MODEL_OPTIONS = catalog.models;
 export const DEFAULT_OPENAI_MODEL = 'gpt-6.1-sol';
+export const OPENAI_PRONUNCIATION_MODEL = 'gpt-6-luna';
 export const OPENAI_TEXT_MODELS = catalog.models.map(model => model.id);
 export function fallbackModels(selected = DEFAULT_OPENAI_MODEL) {
  const index = OPENAI_TEXT_MODELS.indexOf(selected);
@@ -10,6 +11,18 @@ export function fallbackModels(selected = DEFAULT_OPENAI_MODEL) {
 
 export function chatOptions(model, legacy = { temperature: 0.3, max_tokens: 8192 }) {
  return /^gpt-(?:6|5\.6)(?:[.-]|$)/.test(model) ? { max_completion_tokens: 32768 } : legacy;
+}
+export async function lookupOpenAIPronunciations(client, prompt) {
+ const response = await client.chat.completions.create({
+  model: OPENAI_PRONUNCIATION_MODEL,
+  messages: [
+   {role:'system',content:'あなたは英語の固有名詞の日本語読みに精通した言語学の専門家です。必ず指定されたJSON形式で出力してください。'},
+   {role:'user',content:prompt},
+  ],
+  response_format: {type:'json_object'},
+  ...chatOptions(OPENAI_PRONUNCIATION_MODEL),
+ }, {timeout:120000,maxRetries:0});
+ return completedText(response);
 }
 export function completedText(data) {
  const choice = data?.choices?.[0];
