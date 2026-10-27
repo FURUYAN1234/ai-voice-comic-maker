@@ -30,6 +30,7 @@
     "vite": "^6.3.5"
   },
   "overrides": {
+    "zod": "4.6.6",
     "concurrently": {
       "shell-quote": "1.12.0"
     }
