@@ -1,6 +1,6 @@
 // Snapshot of maintained model options for standalone releases.
 export default {
-  "priceSnapshotDate": "2026-09-28",
+  "priceSnapshotDate": "2026-10-27",
   "priceSnapshotSource": "OpenAI official model pricing",
   "models": [
     {
@@ -21,6 +21,16 @@ export default {
       "inputPriceUsdPerM": 2,
       "outputPriceUsdPerM": 10,
       "comparisonNote": "公開版の初期モデル。通常の入力・出力単価はAstraの5分の1。題材ごとの生成結果を確認してください。"
+    },
+    {
+      "id": "gpt-6.1-terra",
+      "label": "GPT-6.1 Terra",
+      "group": "GPT-6.1",
+      "priceSnapshotDate": "2026-10-27",
+      "description": "画像の理解と文章作成を素早く低コストで処理",
+      "inputPriceUsdPerM": 1,
+      "outputPriceUsdPerM": 5,
+      "comparisonNote": "GPT-6.1 Solの半額の通常単価。画像解析や文章作成の結果は題材ごとに確認してください。"
     },
     {
       "id": "gpt-6-sol",

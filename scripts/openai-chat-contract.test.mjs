@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { OPENAI_TEXT_MODELS, OPENAI_MODEL_OPTIONS, DEFAULT_OPENAI_MODEL, fallbackModels, chatOptions, completedText, terminalOpenAIError } from '../openai-chat-contract.js';
+import { OPENAI_TEXT_MODELS, OPENAI_MODEL_OPTIONS, OPENAI_MODEL_PRICE_SNAPSHOT_DATE, DEFAULT_OPENAI_MODEL, fallbackModels, chatOptions, completedText, terminalOpenAIError } from '../openai-chat-contract.js';
 
 test('pronunciation uses the maintained lightweight route with complete JSON and no automatic retry', async () => {
  const contract = await import('../openai-chat-contract.js');
@@ -18,15 +18,26 @@ test('pronunciation uses the maintained lightweight route with complete JSON and
  await assert.rejects(()=>contract.lookupOpenAIPronunciations(client,'Orion'),/incomplete/);
 });
 test('Sol first and compatible request with unchanged legacy options',()=>{
- assert.equal(OPENAI_TEXT_MODELS.length,7);
+ assert.equal(OPENAI_TEXT_MODELS.length,8);
  assert.ok(OPENAI_TEXT_MODELS.every(id=>!/^gpt-4/.test(id)));
  assert.equal(OPENAI_TEXT_MODELS[0],'gpt-6-astra');
  assert.equal(DEFAULT_OPENAI_MODEL,'gpt-6.1-sol');
  assert.equal(fallbackModels()[0],DEFAULT_OPENAI_MODEL);
- assert.equal(OPENAI_MODEL_OPTIONS.length,7);
+ assert.equal(OPENAI_MODEL_OPTIONS.length,8);
  for(const model of OPENAI_TEXT_MODELS.filter(id=>/^gpt-(6|5\.6)/.test(id))) assert.deepEqual(chatOptions(model),{max_completion_tokens:32768});
  assert.deepEqual(chatOptions('gpt-6.1-sol'),{max_completion_tokens:32768});
  assert.deepEqual(chatOptions('gpt-4.1',{temperature:0.1}),{temperature:0.1});
+});
+test('Terra is selectable at official standard pricing and falls only to lower models',()=>{
+ const terra=OPENAI_MODEL_OPTIONS.find(model=>model.id==='gpt-6.1-terra');
+ assert.equal(terra?.label,'GPT-6.1 Terra');
+ assert.equal(terra?.inputPriceUsdPerM,1);
+ assert.equal(terra?.outputPriceUsdPerM,5);
+ assert.equal(OPENAI_MODEL_PRICE_SNAPSHOT_DATE,'2026-10-27');
+ assert.deepEqual(fallbackModels('gpt-6.1-sol').slice(0,3),['gpt-6.1-sol','gpt-6.1-terra','gpt-6-sol']);
+ assert.equal(fallbackModels('gpt-6.1-terra')[0],'gpt-6.1-terra');
+ assert.equal(fallbackModels('gpt-6.1-terra').includes('gpt-6.1-sol'),false);
+ assert.deepEqual(chatOptions('gpt-6.1-terra'),{max_completion_tokens:32768});
 });
 test('complete response accepted; length, empty and refusal fail closed',()=>{
  const data=(finish_reason,content,refusal)=>({choices:[{finish_reason,message:{content,refusal}}]});
@@ -75,5 +86,6 @@ test('analyze request boundary rejects unknown model before a provider call',asy
  run({body:{openaiModel:'unknown'}},res,'openai',fallbackModels,DEFAULT_OPENAI_MODEL);
  assert.equal(status,400);assert.equal(payload.code,'INVALID_OPENAI_MODEL');
  assert.equal(run({body:{openaiModel:'gpt-5.6-luna'}},res,'openai',fallbackModels,DEFAULT_OPENAI_MODEL),'gpt-5.6-luna');
+ assert.equal(run({body:{openaiModel:'gpt-6.1-terra'}},res,'openai',fallbackModels,DEFAULT_OPENAI_MODEL),'gpt-6.1-terra');
  assert.equal(run({body:{}},res,'openai',fallbackModels,DEFAULT_OPENAI_MODEL),'gpt-6.1-sol');
 });

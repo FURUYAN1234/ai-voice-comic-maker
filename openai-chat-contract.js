@@ -1,5 +1,6 @@
 import catalog from './src/config/openai-text-models.js';
 export const OPENAI_MODEL_OPTIONS = catalog.models;
+export const OPENAI_MODEL_PRICE_SNAPSHOT_DATE = catalog.priceSnapshotDate;
 export const DEFAULT_OPENAI_MODEL = 'gpt-6.1-sol';
 export const OPENAI_PRONUNCIATION_MODEL = 'gpt-6-luna';
 export const OPENAI_TEXT_MODELS = catalog.models.map(model => model.id);
