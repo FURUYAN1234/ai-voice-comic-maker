@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.9.3-blue.svg" alt="Version">
+
+**Gemini model route / Geminiモデル候補**: `gemini-3.8-flash` → `gemini-3.6-flash` → `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite`. Explicit stable IDs avoid the December 1, 2026 redirects; image-generation models keep their dedicated routes. / 2026年12月1日の旧モデル自動転送に依存しないよう、現行GAモデルを明示します。画像生成は専用のモデル経路を使います。
+
+Pronunciation assistance uses `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite`. / 発音補助は `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite` の順です。
+  <img src="https://img.shields.io/badge/version-1.9.4-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-FURU%20Terms-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -10,7 +14,7 @@
 
 > **Source code available; free to use.** Ordinary use, free integration and free provision require no application, prior contact or permission from FURU. You may sell and monetize your own works. External API costs and third-party terms are separate. See Terms & Output Rights below. / **ソースコード公開・利用無料。** 通常利用と無料の組み込み・無料提供に、申請・事前連絡・FURUの許可は不要です。自分の作品は販売・収益化できます。外部API料金と第三者の条件は別です。詳しくは「利用条件・作品の権利」をご確認ください。
 
-v1.9.3 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.9.4 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['ChatGPT Image 2026年6月25日 22_19_30'](https://github.com/user-attachments/assets/d850ac7f-aa1c-40cc-a378-b8c6673c726c)](https://youtu.be/pqYVxUUg0Cs?si=27g1I3tO2EuZkOuxJ)
 
@@ -44,12 +48,12 @@ It provides seamless video assets for platforms like TikTok and YouTube Shorts, 
 - Upload one PNG/JPEG/WebP image, at most **20 MiB**. / アップロードはPNG/JPEG/WebP画像1枚、**20 MiB以下**です。
 - New generated panels, voices and BGM are stored in `.runtime/`; uploads and final videos remain in `temp/` and `out/`. Vite does not copy `public/` into the website; Remotion explicitly uses `.runtime/`. Existing material in `public/` is preserved on disk but excluded from serving/builds. Previously bundled production materials have been preserved locally and are excluded from the current published site. Historical Git commits remain unchanged. / 新しい生成画像・音声・BGMは `.runtime/` に保存し、アップロード画像と完成動画は `temp/` と `out/` に保存します。既存の `public/` 内素材は削除せず、Web配信・ビルドから除外します。以前公開サイトへ混入した制作素材は手元に保全し、現在の公開サイトから除外します。過去のGit履歴は変更しません。
 
-The current release is **v1.9.3**. It is a local production tool composed of a Vite UI, a Node/Express API server, local TTS services, and Remotion rendering; it is not a static demo. / 現行リリースは **v1.9.3** です。Vite UI、Node/Express APIサーバー、ローカルTTSサービス、Remotionレンダリングを組み合わせるローカル制作ツールであり、静的デモではありません。
+The current release is **v1.9.4**. It is a local production tool composed of a Vite UI, a Node/Express API server, local TTS services, and Remotion rendering; it is not a static demo. / 現行リリースは **v1.9.4** です。Vite UI、Node/Express APIサーバー、ローカルTTSサービス、Remotionレンダリングを組み合わせるローカル制作ツールであり、静的デモではありません。
 
 * **Ports / ポート**: The UI uses `http://127.0.0.1:5174/`; the backend API uses `http://127.0.0.1:3001/`. / UI は `http://127.0.0.1:5174/`、バックエンドAPIは `http://127.0.0.1:3001/` を使用します。
 * **Japanese TTS routing / 日本語TTSルーティング**: Auto mode prefers VOICEVOX on `localhost:50021` and falls back to Supertonic 3 on `localhost:7789` when VOICEVOX is unavailable. Manual VOICEVOX / Supertonic 3 selection is also preserved through analysis and rendering. / Autoモードでは `localhost:50021` のVOICEVOXを優先し、使えない場合は `localhost:7789` のSupertonic 3へフォールバックします。手動選択したVOICEVOX / Supertonic 3も解析からレンダリングまで保持します。
 * **Status checks / 状態確認**: The backend exposes health checks for local engines such as `/api/voicevox/status` and `/api/supertonic/status`, then writes the selected engine into the Remotion render payload. / バックエンドは `/api/voicevox/status` や `/api/supertonic/status` でローカル音声エンジンを確認し、選択されたエンジンをRemotionレンダリング用データへ渡します。
-* **AI fallback / AIフォールバック**: Gemini text/vision uses the `gemini-3.5-flash` family fallback chain, while OpenAI uses `gpt-6-astra` → `gpt-6.1-sol` → `gpt-6.1-terra` → `gpt-6-sol` → `gpt-5.6-sol` → `gpt-5.6-terra` → `gpt-6-luna` → `gpt-5.6-luna`. / Geminiのテキスト/画像解析は `gemini-3.5-flash` 系のフォールバックチェーンを使い、OpenAIは `gpt-6-astra` → `gpt-6.1-sol` → `gpt-6.1-terra` → `gpt-6-sol` → `gpt-5.6-sol` → `gpt-5.6-terra` → `gpt-6-luna` → `gpt-5.6-luna` の順に切り替えます。
+* **AI fallback / AIフォールバック**: Gemini text/vision uses the `gemini-3.8-flash` family fallback chain, while OpenAI uses `gpt-6-astra` → `gpt-6.1-sol` → `gpt-6.1-terra` → `gpt-6-sol` → `gpt-5.6-sol` → `gpt-5.6-terra` → `gpt-6-luna` → `gpt-5.6-luna`. / Geminiのテキスト/画像解析は `gemini-3.8-flash` 系のフォールバックチェーンを使い、OpenAIは `gpt-6-astra` → `gpt-6.1-sol` → `gpt-6.1-terra` → `gpt-6-sol` → `gpt-5.6-sol` → `gpt-5.6-terra` → `gpt-6-luna` → `gpt-5.6-luna` の順に切り替えます。
 
 ## ✨ Features / 機能
 
@@ -105,11 +109,10 @@ All model lists are centralized in `AI_MODELS` in `server.js` and `openai-chat-c
 ### Gemini API Fallback Pipeline (画像解析 / Vision Analysis):
 | Priority / 優先度 | Model / モデル | Use / 用途 |
 |--------|---------|------|
-| Primary | `gemini-3.5-flash` | Next-generation priority / Next-Gen 優先 |
-| Backup 1 | `gemini-2.5-flash` | Fast and stable / 高速安定 |
-| Backup 2 | `gemini-2.5-pro` | Professional, high quality / プロ仕様高品質 |
-| Backup 3 | `gemini-flash-latest` | Latest and stable / 最新・安定 |
-| Fallback | `gemini-pro-latest` | Stable fallback / 安定フォールバック |
+| Primary | `gemini-3.8-flash` | Text and vision / 文章・画像解析 |
+| Backup 1 | `gemini-3.6-flash` | Alternative / 代替候補 |
+| Backup 2 | `gemini-3.5-flash-lite` | Lower-cost fallback / 低コスト候補 |
+| Fallback | `gemini-3.1-flash-lite` | Final fallback / 最終候補 |
 
 ### OpenAI API Fallback Pipeline (画像解析 / Vision Analysis):
 | Rank / 順位 | Model / モデル | Input/output USD per MTok / 入力/出力 USD per MTok |
@@ -126,11 +129,10 @@ All model lists are centralized in `AI_MODELS` in `server.js` and `openai-chat-c
 ### Gemini API Fallback Pipeline (テキスト生成 / Text Generation):
 | Priority / 優先度 | Model / モデル | Use / 用途 |
 |--------|---------|------|
-| Primary | `gemini-3.5-flash` | Next-generation and free-quota priority / Next-Gen優先・無料枠優先 |
-| Backup 1 | `gemini-2.5-flash` | Fast and stable / 高速安定 |
-| Backup 2 | `gemini-2.5-pro` | Professional use / プロ仕様 |
-| Backup 3 | `gemini-flash-latest` | Latest / 最新 |
-| Fallback | `gemini-pro-latest` | Stable / 安定 |
+| Primary | `gemini-3.8-flash` | Text and vision / 文章・画像解析 |
+| Backup 1 | `gemini-3.6-flash` | Alternative / 代替候補 |
+| Backup 2 | `gemini-3.5-flash-lite` | Lower-cost fallback / 低コスト候補 |
+| Fallback | `gemini-3.1-flash-lite` | Final fallback / 最終候補 |
 
 ### OpenAI API Fallback Pipeline (テキスト生成 / Text Generation):
 | Rank / 順位 | Model / モデル | Input/output USD per MTok / 入力/出力 USD per MTok |
@@ -195,7 +197,7 @@ The browser will open `http://localhost:5174` automatically. / ブラウザが `
 - **Frontend**: React / Remotion / **フロントエンド**：React／Remotion
 - **Bundler**: Vite / **ビルドツール**：Vite
 - **Backend**: Node.js / Express / バックエンド：Node.js／Express。
-- **AI**: Google GenAI SDK (Gemini 3.5 Flash / 2.5 Flash / 2.5 Pro) / OpenAI SDK (gpt-6.1-sol / gpt-6-luna) / AI：Google GenAI SDK（Gemini 3.5 Flash／2.5 Flash／2.5 Pro）とOpenAI SDK（gpt-6.1-sol／gpt-6-luna）。
+- **AI**: Google GenAI SDK (Gemini 3.8 Flash / 3.6 Flash / 3.5 Flash-Lite / 3.1 Flash-Lite) / OpenAI SDK (gpt-6.1-sol / gpt-6-luna) / AI：Google GenAI SDK（Gemini 3.8 Flash／3.6 Flash／3.5 Flash-Lite／3.1 Flash-Lite）とOpenAI SDK（gpt-6.1-sol／gpt-6-luna）。
 - **Audio**: VOICEVOX API / Supertonic 3 local server / Microsoft Edge-TTS (English) / 音声：VOICEVOX API、Supertonic 3のローカルサーバー、英語用Microsoft Edge-TTS。
 
 ## ⚖️ Compliance & Legal Stance / 法的遵守について

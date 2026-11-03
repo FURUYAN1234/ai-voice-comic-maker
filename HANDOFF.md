@@ -1,3 +1,9 @@
+## Gemini December migration candidate v1.9.4 — 2026-11-03
+
+- Current task: update Gemini fallback candidates and displays, verify real API behavior, and deploy through the established release transaction. No new backup or social publication.
+- Root PLAN points to the private task ledger. Full 30-test suite and production build pass. The normal Gemini 3.8 OCR/correction, VOICEVOX synthesis and 1080x1920 video route completed with a new four-panel fixture; official delivery remains pending.
+- Preserve existing feature contracts and dedicated image-generation routes.
+
 # HANDOFF
 
 ## 2026-10-15 model retirement migration

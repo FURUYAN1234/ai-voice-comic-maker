@@ -1777,7 +1777,6 @@ const SYSTEM_VERSION = pkg.version;
 
 // ランタイムで設定されたAPIキー（.envより優先）
 let runtimeApiKey = '';
-let runtimeModel = 'gemini-3.5-flash';
 let runtimeEngine = 'gemini';
 
 const AI_TIMEOUTS = {
@@ -1789,15 +1788,15 @@ const AI_TIMEOUTS = {
 // ──────────────────────────────────────
 // AIモデル設定（一括管理）
 // モデル入替時はここだけ変更すれば全箇所に反映される
-// nano banana pro 4.4.5 最適化フォールバックリスト準拠
+// 旧モデルの自動転送に依存せず、現行GAモデルを明示する
 // ──────────────────────────────────────
 const AI_MODELS = {
   gemini: {
-    // テキスト生成・画像解析共通: Next-Gen優先・無料枠優先
-    text:  ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-flash-latest', 'gemini-pro-latest'],
-    vision: ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-flash-latest', 'gemini-pro-latest'],
+    // テキスト生成・画像解析共通: 現行GAモデル順
+    text:  ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'],
+    vision: ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'],
     // 発音推定用（軽量タスク）
-    lite:  ['gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-flash-latest'],
+    lite:  ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'],
   },
   openai: {
     // テキスト生成: 高品質→コスト効率→最軽量→安定実績
@@ -1810,6 +1809,8 @@ const AI_MODELS = {
     correction: OPENAI_TEXT_MODELS,
   },
 };
+
+let runtimeModel = AI_MODELS.gemini.vision[0];
 
 function buildFallbackSequence(models, preferredModel) {
   const list = (Array.isArray(models) ? models : [models]).filter(Boolean);
