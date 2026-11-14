@@ -871,7 +871,7 @@ body::before {
 .emergency-controls{display:grid;justify-items:center;gap:8px;margin-top:16px}
 .btn.btn-emergency-stop{background:#b91c1c;color:#fff;border:2px solid #fca5a5;font-weight:800}
 .btn.btn-emergency-stop:not(:disabled):hover{background:#dc2626;color:#fff}
-.btn.btn-emergency-stop:disabled{background:#743132;color:#fff;border-color:#bf7c7c;opacity:1;cursor:not-allowed;transform:none}
+.btn.btn-emergency-stop:disabled{background:#4b5563;color:#fff;border-color:#9ca3af;opacity:1;cursor:not-allowed;transform:none}
 .btn.btn-emergency-stop:focus-visible{outline:3px solid #fde047;outline-offset:3px}
 
 /* Screen-corner emergency dock reserves a separate band above the page header. */
