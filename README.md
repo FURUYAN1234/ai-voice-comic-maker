@@ -22,7 +22,7 @@ Pronunciation assistance uses `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite
 
 [![Download the Windows local app ZIP / Windows用ローカルアプリZIPをダウンロード](docs/assets/local-download-banner.png)](https://github.com/FURUYAN1234/ai-voice-comic-maker/archive/refs/heads/master.zip)
 
-**Local app ZIP / ローカルアプリZIP:** Download and extract the entire ZIP, then double-click `start_ai-voice-comic-maker.bat` on Windows. Install Node.js and use VOICEVOX or Supertonic 3 (Python required for Supertonic 3). Internet access and the selected provider's API key are required for AI API features; API charges are separate. / ZIP全体をダウンロードしてすべて展開し、Windowsで `start_ai-voice-comic-maker.bat` をダブルクリックします。Node.js ＋ VOICEVOX または Supertonic 3。AIのAPI機能にはインターネット接続と利用する事業者のAPIキーが必要で、API利用料金は別途かかります。
+**Local app ZIP / ローカルアプリZIP:** Download and extract the entire ZIP, then double-click `start_ai-voice-comic-maker.bat` on Windows. Install Node.js and use VOICEVOX or Supertonic 3 (Python required for Supertonic 3). Internet access and the selected provider's API key are required for AI API features; API charges are separate. / ZIP全体をダウンロードしてすべて展開し、Windowsで `start_ai-voice-comic-maker.bat` をダブルクリックします。Node.jsと、VOICEVOXまたはSupertonic 3が必要です（Supertonic 3にはPythonも必要です）。AIのAPI機能にはインターネット接続と利用する事業者のAPIキーが必要で、API利用料金は別途かかります。
 
 This app renders video on your PC; GitHub Pages is a guide, not the running application. / 動画はPC上で処理します。GitHub Pagesは案内ページで、アプリの実行画面ではありません。
 
