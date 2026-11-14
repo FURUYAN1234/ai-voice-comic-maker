@@ -1,5 +1,9 @@
 [![Manual / 操作マニュアル PDF](https://img.shields.io/badge/PDF-Manual%20%2F%20操作マニュアル-087c86)](https://furuyan1234.github.io/ai-voice-comic-maker/downloads/short-movie-manual.pdf) [![API setup / API設定 PDF](https://img.shields.io/badge/PDF-API%20setup%20%2F%20API設定-087c86)](https://furuyan1234.github.io/ai-voice-comic-maker/downloads/short-movie-api-guide.pdf)
 
+[![Read the application manual PDF / 操作マニュアルPDFを読む](docs/assets/manual-pdf-banner.png)](https://furuyan1234.github.io/ai-voice-comic-maker/downloads/short-movie-manual.pdf)
+
+Operation guide / 操作ガイド: Open the PDF to review the application workflow and controls. / PDFで制作の流れと操作方法を確認できます。
+
 Read the Japanese A4 guides from the app header; each opens in a separate tab and can be saved from the PDF viewer. / アプリ上部から日本語A4の操作・API設定ガイドを別タブで開き、PDFビューアーで保存できます。
 
 <p align="center">
@@ -15,6 +19,13 @@ Pronunciation assistance uses `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite
 </p>
 
 # AI Voice Comic Maker / AI音声コミックメーカー
+
+[![Download the Windows local app ZIP / Windows用ローカルアプリZIPをダウンロード](docs/assets/local-download-banner.png)](https://github.com/FURUYAN1234/ai-voice-comic-maker/archive/refs/heads/master.zip)
+
+**Local app ZIP / ローカルアプリZIP:** Download and extract the entire ZIP, then double-click `start_ai-voice-comic-maker.bat` on Windows. Install Node.js and use VOICEVOX or Supertonic 3 (Python required for Supertonic 3). Internet access and the selected provider's API key are required for AI API features; API charges are separate. / ZIP全体をダウンロードしてすべて展開し、Windowsで `start_ai-voice-comic-maker.bat` をダブルクリックします。Node.js ＋ VOICEVOX または Supertonic 3。AIのAPI機能にはインターネット接続と利用する事業者のAPIキーが必要で、API利用料金は別途かかります。
+
+This app renders video on your PC; GitHub Pages is a guide, not the running application. / 動画はPC上で処理します。GitHub Pagesは案内ページで、アプリの実行画面ではありません。
+
 
 > **MIT License; your outputs remain yours.** You may use, modify, redistribute and sell the app, including in paid products and services, without individual permission from FURU. Retain the copyright and MIT license notices in copies or substantial portions of the software. External API fees and third-party terms are separate. / **アプリはMITライセンス。成果物の権利は従来どおり利用者に帰属します。** アプリの利用・改変・再配布・販売、有料商品やサービスへの組み込みに、FURUへの個別許可は不要です。ソフトウェアの複製または重要な部分には著作権表示とMITの許諾表示を残してください。外部API料金と第三者の条件は別です。
 
