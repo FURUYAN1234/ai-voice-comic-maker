@@ -1,3 +1,8 @@
+## Local candidate checkpoint v1.9.5 — 2026-11-14
+
+- Existing-app update: operation/API PDFs, visible separate-tab manual links, bilingual README and release notes are prepared. Local candidate only; no push, tag, release, deployment or backup.
+- The private task ledger /home/furu/Codex/work/story-manga-contract-20261114 owns acceptance and saved test/build evidence. Shared preflight will be recorded after this local commit; a clean candidate is not deployment authorization. Historical sections below retain their original timestamps.
+
 ## Gemini December migration candidate v1.9.4 — 2026-11-03
 
 - Current task: update Gemini fallback candidates and displays, verify real API behavior, and deploy through the established release transaction. No new backup or social publication.

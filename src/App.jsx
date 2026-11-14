@@ -17,7 +17,7 @@ import { localApiFetch } from './local-api.js';
 import { OPENAI_MODEL_OPTIONS, OPENAI_MODEL_PRICE_SNAPSHOT_DATE, OPENAI_PRONUNCIATION_MODEL, DEFAULT_OPENAI_MODEL, fallbackModels } from '../openai-chat-contract.js';
 import React, { useState, useCallback, useEffect } from 'react';
 
-const SYSTEM_VERSION = '1.9.4';
+const SYSTEM_VERSION = '1.9.5';
 const DEBUG_MODE = false;
 
 // タイトルを「」で囲むヘルパー（すでに囲まれていたら二重にしない）
@@ -421,6 +421,7 @@ export default function App() {
           AI Voice Comic Maker <span style={{ fontSize: '16px', color: '#9090b8', WebkitTextFillColor: 'initial', fontWeight: 'normal', marginLeft: '8px', verticalAlign: 'middle' }}>v{SYSTEM_VERSION}</span>
         </h1>
         <p className="header-subtitle">漫画画像をドロップするだけ。AIが全自動でボイスコミック動画を生成</p>
+        <nav className="manual-links" aria-label="PDFガイド"><a href={`${import.meta.env.BASE_URL}downloads/short-movie-manual.pdf`} target="_blank" rel="noopener noreferrer">操作マニュアル（PDF）</a><a href={`${import.meta.env.BASE_URL}downloads/short-movie-api-guide.pdf`} target="_blank" rel="noopener noreferrer">API設定ガイド（PDF）</a></nav><p className="manual-help">別タブで開き、PDFビューアーから保存できます。</p>
       </header>
       {(activeEngine === 'openai' || geminiKey.trim().startsWith('sk-')) && <div className="card openai-model-card">
         <label htmlFor="openai-model">解析・校正モデル <span>OPENAI</span></label>

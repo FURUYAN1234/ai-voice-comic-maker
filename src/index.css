@@ -859,3 +859,11 @@ body::before {
 .openai-model-card summary { cursor: pointer; }
 .openai-model-card details p { margin-top: 8px; }
 @media (max-width: 480px) { .openai-model-card { width: calc(100% - 24px); padding: 16px; } }
+
+.manual-links { display:flex; justify-content:center; flex-wrap:wrap; gap:8px; margin-top:16px; }
+.manual-links a { display:inline-flex; border:1px solid var(--text-muted); border-radius:8px; padding:8px 12px; color:var(--text-secondary); text-decoration:none; font-size:12px; line-height:1.5; }
+.manual-links a:hover { color:var(--text-primary); background:var(--bg-card-hover); }
+.manual-links a:focus-visible { outline:2px solid var(--accent-cyan); outline-offset:3px; }
+.manual-help { color:var(--text-muted); font-size:11px; margin-top:8px; }
+
+@media (max-width: 360px) { .manual-links { width:100%; flex-direction:column; align-items:stretch; } .manual-links a { width:100%; justify-content:center; } }

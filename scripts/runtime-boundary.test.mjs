@@ -26,6 +26,9 @@ function fixture(t) {
     fs.writeFileSync(filename, marker);
   }
   fs.writeFileSync(path.join(dir, 'public/LICENSE.txt'), 'Public license fixture');
+  fs.mkdirSync(path.join(dir, 'public/downloads'), { recursive: true });
+  for (const name of ['short-movie-manual.pdf', 'short-movie-api-guide.pdf']) fs.writeFileSync(path.join(dir, 'public/downloads', name), '%PDF-1.7 manual fixture');
+  fs.writeFileSync(path.join(dir, 'public/downloads/private.pdf'), marker);
   return dir;
 }
 
@@ -33,7 +36,9 @@ test('production build excludes new and legacy private assets without deleting o
   const dir = fixture(t);
   const config = configFactory({ command: 'build' });
   await build({ ...config, root: dir, configFile: false, logLevel: 'silent' });
-  assert.deepEqual(fs.readdirSync(path.join(dir, 'dist')).sort(), ['.nojekyll', 'LICENSE.txt', 'index.html']);
+  assert.deepEqual(fs.readdirSync(path.join(dir, 'dist')).sort(), ['.nojekyll', 'LICENSE.txt', 'downloads', 'index.html']);
+  assert.deepEqual(fs.readdirSync(path.join(dir, 'dist/downloads')).sort(), ['short-movie-api-guide.pdf', 'short-movie-manual.pdf']);
+  assert.equal(fs.readFileSync(path.join(dir, 'dist/downloads/short-movie-manual.pdf'), 'utf8'), '%PDF-1.7 manual fixture');
   assert.equal(fs.readFileSync(path.join(dir, 'dist/LICENSE.txt'), 'utf8'), 'Public license fixture');
   assert.match(fs.readFileSync(path.join(dir, 'dist/index.html'), 'utf8'), /http-equiv="Content-Security-Policy"/);
   assert.equal(fs.readFileSync(path.join(dir, 'public/panels/old.png'), 'utf8'), marker);
@@ -73,6 +78,14 @@ test('local Vite blocks direct private file URLs while proxy handshake/upload/me
     assert.equal(response.status, 403, relative);
     assert.ok(!(await response.text()).includes(marker));
   }
+  for (const name of ['short-movie-manual.pdf', 'short-movie-api-guide.pdf']) {
+    const pdf = await fetch(`${url}/downloads/${name}`);
+    assert.equal(pdf.status, 200);
+    assert.match(pdf.headers.get('content-type'), /application\/pdf/);
+    assert.match(await pdf.text(), /^%PDF-/);
+  }
+  const privatePdf = await fetch(`${url}/downloads/private.pdf`);
+  assert.ok(!(await privatePdf.text()).includes(marker));
   const handshake = await fetch(`${url}/api/local-session`, {
     headers: { 'X-Voice-Comic-Client': 'local-ui', Origin: url },
   });

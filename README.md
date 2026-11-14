@@ -1,9 +1,13 @@
+[![Manual / 操作マニュアル PDF](https://img.shields.io/badge/PDF-Manual%20%2F%20操作マニュアル-087c86)](https://furuyan1234.github.io/ai-voice-comic-maker/downloads/short-movie-manual.pdf) [![API setup / API設定 PDF](https://img.shields.io/badge/PDF-API%20setup%20%2F%20API設定-087c86)](https://furuyan1234.github.io/ai-voice-comic-maker/downloads/short-movie-api-guide.pdf)
+
+Read the Japanese A4 guides from the app header; each opens in a separate tab and can be saved from the PDF viewer. / アプリ上部から日本語A4の操作・API設定ガイドを別タブで開き、PDFビューアーで保存できます。
+
 <p align="center">
 
 **Gemini model route / Geminiモデル候補**: `gemini-3.8-flash` → `gemini-3.6-flash` → `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite`. Explicit stable IDs avoid the December 1, 2026 redirects; image-generation models keep their dedicated routes. / 2026年12月1日の旧モデル自動転送に依存しないよう、現行GAモデルを明示します。画像生成は専用のモデル経路を使います。
 
 Pronunciation assistance uses `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite`. / 発音補助は `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite` の順です。
-  <img src="https://img.shields.io/badge/version-1.9.4-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.9.5-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-FURU%20Terms-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -14,7 +18,7 @@ Pronunciation assistance uses `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite
 
 > **MIT License; your outputs remain yours.** You may use, modify, redistribute and sell the app, including in paid products and services, without individual permission from FURU. Retain the copyright and MIT license notices in copies or substantial portions of the software. External API fees and third-party terms are separate. / **アプリはMITライセンス。成果物の権利は従来どおり利用者に帰属します。** アプリの利用・改変・再配布・販売、有料商品やサービスへの組み込みに、FURUへの個別許可は不要です。ソフトウェアの複製または重要な部分には著作権表示とMITの許諾表示を残してください。外部API料金と第三者の条件は別です。
 
-v1.9.4 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.9.5 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['ChatGPT Image 2026年6月25日 22_19_30'](https://github.com/user-attachments/assets/d850ac7f-aa1c-40cc-a378-b8c6673c726c)](https://youtu.be/pqYVxUUg0Cs?si=27g1I3tO2EuZkOuxJ)
 
@@ -48,7 +52,7 @@ It provides seamless video assets for platforms like TikTok and YouTube Shorts, 
 - Upload one PNG/JPEG/WebP image, at most **20 MiB**. / アップロードはPNG/JPEG/WebP画像1枚、**20 MiB以下**です。
 - New generated panels, voices and BGM are stored in `.runtime/`; uploads and final videos remain in `temp/` and `out/`. Vite does not copy `public/` into the website; Remotion explicitly uses `.runtime/`. Existing material in `public/` is preserved on disk but excluded from serving/builds. Previously bundled production materials have been preserved locally and are excluded from the current published site. Historical Git commits remain unchanged. / 新しい生成画像・音声・BGMは `.runtime/` に保存し、アップロード画像と完成動画は `temp/` と `out/` に保存します。既存の `public/` 内素材は削除せず、Web配信・ビルドから除外します。以前公開サイトへ混入した制作素材は手元に保全し、現在の公開サイトから除外します。過去のGit履歴は変更しません。
 
-The current release is **v1.9.4**. It is a local production tool composed of a Vite UI, a Node/Express API server, local TTS services, and Remotion rendering; it is not a static demo. / 現行リリースは **v1.9.4** です。Vite UI、Node/Express APIサーバー、ローカルTTSサービス、Remotionレンダリングを組み合わせるローカル制作ツールであり、静的デモではありません。
+The current release is **v1.9.5**. It is a local production tool composed of a Vite UI, a Node/Express API server, local TTS services, and Remotion rendering; it is not a static demo. / 現行リリースは **v1.9.5** です。Vite UI、Node/Express APIサーバー、ローカルTTSサービス、Remotionレンダリングを組み合わせるローカル制作ツールであり、静的デモではありません。
 
 * **Ports / ポート**: The UI uses `http://127.0.0.1:5174/`; the backend API uses `http://127.0.0.1:3001/`. / UI は `http://127.0.0.1:5174/`、バックエンドAPIは `http://127.0.0.1:3001/` を使用します。
 * **Japanese TTS routing / 日本語TTSルーティング**: Auto mode prefers VOICEVOX on `localhost:50021` and falls back to Supertonic 3 on `localhost:7789` when VOICEVOX is unavailable. Manual VOICEVOX / Supertonic 3 selection is also preserved through analysis and rendering. / Autoモードでは `localhost:50021` のVOICEVOXを優先し、使えない場合は `localhost:7789` のSupertonic 3へフォールバックします。手動選択したVOICEVOX / Supertonic 3も解析からレンダリングまで保持します。

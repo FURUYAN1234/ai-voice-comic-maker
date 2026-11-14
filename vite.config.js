@@ -9,7 +9,21 @@ function publicBuildAllowlist() {
   return {
     name: 'public-build-allowlist',
     configResolved(config) { projectRoot = config.root; },
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const pathname = (req.url || '').split('?')[0];
+        if (!['/downloads/short-movie-manual.pdf', '/downloads/short-movie-api-guide.pdf'].includes(pathname)) return next();
+        const file = path.join(projectRoot, 'public', pathname.slice(1));
+        if (!fs.existsSync(file)) { res.statusCode = 404; res.end('Manual not found'); return; }
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        fs.createReadStream(file).pipe(res);
+      });
+    },
     generateBundle() {
+      for (const name of ['short-movie-manual.pdf', 'short-movie-api-guide.pdf']) {
+        this.emitFile({ type: 'asset', fileName: 'downloads/' + name, source: fs.readFileSync(path.join(projectRoot, 'public', 'downloads', name)) });
+      }
       this.emitFile({ type: 'asset', fileName: '.nojekyll', source: '' });
       const licensePath = path.join(projectRoot, 'public', 'LICENSE.txt');
       if (fs.existsSync(licensePath)) {
