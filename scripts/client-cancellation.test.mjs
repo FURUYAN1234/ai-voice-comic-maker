@@ -10,11 +10,12 @@ const turn=()=>new Promise(resolve=>setImmediate(resolve));
 for(const stage of ['upload','ocr-error','result'])test(`ordinary UI ignores late ${stage} after stop and accepts an explicit new run`,async()=>{
  const values={},calls=[];let release;
  const env={abortControllerRef:{current:null},sessionIdRef:{current:null},ttsEngineRef:{current:'auto'},openaiModel:'gpt-6-luna',PHASE:{GENERATING:'generating',DROP:'drop',COMPLETE:'complete'},getTtsEngineLabel:()=> 'auto'};
- for(const field of ['Phase','Error','OcrPreview','TerminalLogs','CurrentSessionId','VideoTitle','Progress','ModelStatus','VideoUrl','VideoFilename'])env['set'+field]=value=>{values[field]=value;};
+ for(const field of ['SelectedImage','Phase','Error','OcrPreview','TerminalLogs','CurrentSessionId','VideoTitle','Progress','ModelStatus','VideoUrl','VideoFilename'])env['set'+field]=value=>{values[field]=value;};
  let suspended=true;
- env.localApiFetch=async url=>{
+ env.localApiFetch=async (url,options)=>{
    calls.push(url);
    if(url==='/api/upload')return suspended&&stage==='upload'?new Promise(resolve=>release=()=>resolve({ok:true,json:async()=>({sessionId:'old'})})):{ok:true,json:async()=>({sessionId:'fresh'})};
+   if(url.includes('/api/analyze/')){assert.equal(JSON.parse(options.body).openaiModel,'gpt-6-luna');}
    if(url.includes('/api/analyze/'))return suspended&&stage==='ocr-error'?{ok:false,json:()=>new Promise(resolve=>release=()=>resolve({error:'old failure',modelStatus:{adopted:'old model'}}))}:{ok:true,json:async()=>({metadata:{title:'normal'},modelStatus:{adopted:'gpt-6-luna'}})};
    return {ok:true,json:()=>suspended&&stage==='result'?new Promise(resolve=>release=()=>resolve({videoFilename:'late.mp4'})):Promise.resolve({videoFilename:'normal.mp4'})};
  };
@@ -24,8 +25,9 @@ for(const stage of ['upload','ocr-error','result'])test(`ordinary UI ignores lat
  env.abortControllerRef.current.abort();release();await pending;
  assert.notEqual(values.Phase,'complete');assert.equal(values.VideoUrl,undefined);assert.equal(env.abortControllerRef.current,null);
  if(stage==='upload')assert.deepEqual(calls,['/api/upload']);
- if(stage==='ocr-error')assert.equal(values.ModelStatus,undefined,'a late old error body cannot replace model state');
+ if(stage==='ocr-error')assert.equal(values.ModelStatus,null,'a late old error body cannot replace explicitly cleared model state');
  suspended=false;await run(image);
+ assert.equal(values.SelectedImage,image,'selected File remains available after cancellation and rerun');
  assert.equal(values.Phase,'complete');assert.equal(values.VideoFilename,'normal.mp4');assert.equal(values.VideoUrl,'/api/video/fresh');
 });
 

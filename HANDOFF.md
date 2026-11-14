@@ -1,3 +1,9 @@
+## Runtime selection/stop follow-up v1.9.6 — 2026-11-14
+
+- Root UI exposed stale empty-dependency file/drop callbacks capturing initial Sol despite a later Luna selection. Handlers now use the current render, and each run snapshots the selected model. Existing fallback/network/backend code is unchanged; live model display consumes explicit existing server Selected/Tried/Adopted events without inferring adoption.
+- Preserve the selected File for explicit retry; retain a single upper-right emergency stop in all working phases. Setup keeps it hidden, idle/stopped disabled. Focused regression includes original pinned stale-callback reproduction, request-body model, late-error/stop/new-run guards, real App phase control count and actual log route parsing.
+- UNC browser File input produced Failed to fetch; the same image through live multipart proxy succeeded and root Windows-local-copy input succeeded. No server restart or key read; root session remains responsible for final live Luna/API/stop/normal output acceptance. Root then accepted actual Luna OCR/correction, thinking-stage stop, retained-file restart and a32.3s normal output. Model-based audio inspection found no material issue; actual frames and complete ending checked. Full46/46tests, finalbuild/builtsecurity/app-predeploy and PDF8page visual review passed. No publication/backup is claimed here.
+
 ## Emergency-stop candidate v1.9.6 — 2026-11-14
 
 - User scope: prominent red active-only emergency stop across apps; fix real upstream cancellation where missing, root-owned real API proof and conditional official publication/note/X/Facebook/full backup. This agent did not read keys, operate connected screens, restart app servers, generate via real API, commit or publish.

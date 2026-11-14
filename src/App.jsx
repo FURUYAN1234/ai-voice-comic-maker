@@ -1,4 +1,5 @@
 import { localApiFetch } from './local-api.js';
+import { modelStatusFromLogs } from './model-status.js';
 /**
  * AI Voice Comic Maker - メインアプリケーション
  * 
@@ -15,7 +16,7 @@ import { localApiFetch } from './local-api.js';
  * → ④ プレーヤー＆SNSシェア
  */
 import { OPENAI_MODEL_OPTIONS, OPENAI_MODEL_PRICE_SNAPSHOT_DATE, OPENAI_PRONUNCIATION_MODEL, DEFAULT_OPENAI_MODEL, fallbackModels } from '../openai-chat-contract.js';
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const SYSTEM_VERSION = '1.9.6';
 const DEBUG_MODE = false;
@@ -58,6 +59,7 @@ export default function App() {
   const [apiChecking,setApiChecking]=useState(false);
   const [openaiModel, setOpenaiModel] = useState(DEFAULT_OPENAI_MODEL);
   const [modelStatus, setModelStatus] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
   const [activeEngine, setActiveEngine] = useState('gemini');
   const [dragOver, setDragOver] = useState(false);
   const [progress, setProgress] = useState({ step: 0, total: 5, message: '' });
@@ -106,6 +108,8 @@ export default function App() {
         const res = await localApiFetch(`/api/logs/${currentSessionId}?sinceIndex=${lastIndex}`);
         if (res.ok) {
           const data = await res.json();
+          if (!isActive) return;
+          setModelStatus(previous => data.modelStatus || modelStatusFromLogs(previous, data.logs));
           if (data.logs && data.logs.length > 0) {
             lastIndex = data.nextIndex;
             setTerminalLogs(prev => {
@@ -235,7 +239,7 @@ export default function App() {
   }, [canProceed, phase]);
 
   // ── ファイルドロップ処理（画像のみ！JSONは不要！） ──
-  const handleDrop = useCallback((e) => {
+  const handleDrop = (e) => {
     e.preventDefault();
     setDragOver(false);
 
@@ -247,15 +251,15 @@ export default function App() {
     } else {
       setError('⚠️ 漫画画像 (.png/.jpg/.webp) をドロップしてください');
     }
-  }, []);
+  };
 
   // ── ファイル選択ダイアログ（クリックでも選択可能） ──
-  const handleFileSelect = useCallback((e) => {
+  const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
     if (file && /\.(png|jpg|jpeg|webp)$/i.test(file.name)) {
       startGeneration(file);
     }
-  }, []);
+  };
 
   // ── 動画生成開始 ──
   const startGeneration = async (imageFile) => {
@@ -264,6 +268,9 @@ export default function App() {
       setError('画像は20 MiB以下にしてください');
       return;
     }
+    setSelectedImage(imageFile);
+    const selectedOpenAIModel = openaiModel;
+    setModelStatus(null);
     setPhase(PHASE.GENERATING);
     setError(null);
     setOcrPreview(null);
@@ -300,7 +307,7 @@ export default function App() {
       const ocrRes = await localApiFetch(`/api/analyze/${sessionId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ttsEngine: selectedTtsEngine, openaiModel }),
+        body: JSON.stringify({ ttsEngine: selectedTtsEngine, openaiModel: selectedOpenAIModel }),
         signal
       });
       signal.throwIfAborted();
@@ -414,6 +421,7 @@ export default function App() {
     setVideoUrl(null);
     setVideoFilename('');
     setVideoTitle('');
+    setSelectedImage(null);
     setOcrPreview(null);
     setProgress({ step: 0, total: 5, message: '' });
     setError(null);
@@ -437,8 +445,8 @@ export default function App() {
           {OPENAI_MODEL_OPTIONS.map(model => <option key={model.id} value={model.id}>{model.label}</option>)}
         </select>
         <small className="openai-model-help">{OPENAI_MODEL_OPTIONS.find(model => model.id === openaiModel)?.description}<br/>入力 ${OPENAI_MODEL_OPTIONS.find(model => model.id === openaiModel)?.inputPriceUsdPerM} / 出力 ${OPENAI_MODEL_OPTIONS.find(model => model.id === openaiModel)?.outputPriceUsdPerM} per 1M tokens</small>
-        <p className="openai-model-help">選択: {openaiModel} / 試行: {modelStatus?.attempted.join(' → ') || 'なし'} / 採用: {modelStatus?.adopted || '未採用'}</p>
-        {modelStatus && <p className="openai-model-help">校正の試行: {modelStatus.correctionAttempted.join(' → ') || 'なし'} / 採用: {modelStatus.correctionAdopted || '未採用'}</p>}
+        <p className="openai-model-help">選択: {openaiModel} / 試行: {modelStatus?.attempted?.join(' → ') || 'なし'} / 採用: {modelStatus?.adopted || '未採用'}</p>
+        {modelStatus && <p className="openai-model-help">校正の試行: {modelStatus.correctionAttempted?.join(' → ') || 'なし'} / 採用: {modelStatus.correctionAdopted || '未採用'}</p>}
         <details className="openai-model-help"><summary>Model Chain / 料金</summary><p>画像解析・校正: {fallbackModels(openaiModel).join(' → ')}</p><p>未知の英単語の発音補助: {OPENAI_PRONUNCIATION_MODEL}（単一モデル）。失敗時は辞書のみで続行し、処理ログに表示します。</p><p>入力/出力 USD per 1M tokens。推論トークン・校正回数で総額は変わります。価格確認日: {OPENAI_MODEL_PRICE_SNAPSHOT_DATE}。</p></details>
       </div>}
 
@@ -619,6 +627,7 @@ export default function App() {
               </select>
             </div>
 
+            {selectedImage && <div className="card"><p>保持中の画像: {selectedImage.name}</p><button type="button" className="btn" onClick={() => startGeneration(selectedImage)}>この画像で再実行</button></div>}
             <div
               className={`drop-zone ${dragOver ? 'drop-zone--active' : ''}`}
               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -780,14 +789,7 @@ export default function App() {
               </div>
             )}
 
-            <div style={{ marginTop: '24px', textAlign: 'center' }}>
-              <button 
-                className="btn btn-emergency-stop"
-                onClick={handleCancel}
-              >
-                ⏹ 緊急停止
-              </button>
-            </div>
+
           </div>
         )}
 
