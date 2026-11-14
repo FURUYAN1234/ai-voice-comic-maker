@@ -13,7 +13,7 @@ export function fallbackModels(selected = DEFAULT_OPENAI_MODEL) {
 export function chatOptions(model, legacy = { temperature: 0.3, max_tokens: 8192 }) {
  return /^gpt-(?:6|5\.6)(?:[.-]|$)/.test(model) ? { max_completion_tokens: 32768 } : legacy;
 }
-export async function lookupOpenAIPronunciations(client, prompt) {
+export async function lookupOpenAIPronunciations(client, prompt, options = {}) {
  const response = await client.chat.completions.create({
   model: OPENAI_PRONUNCIATION_MODEL,
   messages: [
@@ -22,7 +22,7 @@ export async function lookupOpenAIPronunciations(client, prompt) {
   ],
   response_format: {type:'json_object'},
   ...chatOptions(OPENAI_PRONUNCIATION_MODEL),
- }, {timeout:120000,maxRetries:0});
+ }, {timeout:120000,maxRetries:0,...options});
  return completedText(response);
 }
 export function completedText(data) {

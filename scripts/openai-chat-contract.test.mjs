@@ -1,3 +1,4 @@
+import { callOpenAI, throwIfSessionCancelled } from '../pipeline-cancellation.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { OPENAI_TEXT_MODELS, OPENAI_MODEL_OPTIONS, OPENAI_MODEL_PRICE_SNAPSHOT_DATE, DEFAULT_OPENAI_MODEL, fallbackModels, chatOptions, completedText, terminalOpenAIError } from '../openai-chat-contract.js';
@@ -62,11 +63,11 @@ test('Vision caller stops after truncated completion without downgrade', async()
  const body=source.slice(start,end);
  const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
  const calls=[];
- const run=new AsyncFunction('modelsToAttempt','openai','completedText','terminalOpenAIError','chatOptions','sessionLog','AI_TIMEOUTS',
-  'let sessionId="test",prompt="sample",dataUrl="data:image/png;base64,fixture",responseText,runtimeModel="gpt-4o",success=false,lastError,selectedOpenAIModel="gpt-6.1-sol",modelStatus={attempted:[]};'+body);
+ const run=new AsyncFunction('modelsToAttempt','openai','completedText','terminalOpenAIError','chatOptions','sessionLog','AI_TIMEOUTS','callOpenAI','throwIfSessionCancelled',
+  'const session={};let sessionId="test",prompt="sample",dataUrl="data:image/png;base64,fixture",responseText,runtimeModel="gpt-4o",success=false,lastError,selectedOpenAIModel="gpt-6.1-sol",modelStatus={attempted:[]};'+body);
  await assert.rejects(()=>run(fallbackModels(),{chat:{completions:{create:async request=>{
   calls.push(request.model);return {choices:[{finish_reason:'length',message:{content:'partial'}}]};
- }}}},completedText,terminalOpenAIError,chatOptions,()=>{}, {vision:120000}),/length/);
+ }}}},completedText,terminalOpenAIError,chatOptions,()=>{}, {vision:120000},callOpenAI,throwIfSessionCancelled),/length/);
  assert.deepEqual(calls,['gpt-6.1-sol']);
 });
 
@@ -80,7 +81,7 @@ test('selection strictly limits fallback to lower models and rejects unknown IDs
 test('analyze request boundary rejects unknown model before a provider call',async()=>{
  const {readFileSync}=await import('node:fs'); const source=readFileSync(new URL('../server.js',import.meta.url),'utf8');
  const start=source.indexOf('  const selectedOpenAIModel = req.body?.openaiModel',source.indexOf("app.post('/api/analyze/"));
- const end=source.indexOf('  const modelStatus =',start);
+ const end=source.indexOf('  const lockToken =',start);
  const run=new Function('req','res','runtimeEngine','fallbackModels','DEFAULT_OPENAI_MODEL',source.slice(start,end)+'return selectedOpenAIModel;');
  let status;let payload; const res={status:code=>{status=code;return res;},json:data=>{payload=data;return data;}};
  run({body:{openaiModel:'unknown'}},res,'openai',fallbackModels,DEFAULT_OPENAI_MODEL);

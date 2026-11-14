@@ -17,7 +17,7 @@ import { localApiFetch } from './local-api.js';
 import { OPENAI_MODEL_OPTIONS, OPENAI_MODEL_PRICE_SNAPSHOT_DATE, OPENAI_PRONUNCIATION_MODEL, DEFAULT_OPENAI_MODEL, fallbackModels } from '../openai-chat-contract.js';
 import React, { useState, useCallback, useEffect } from 'react';
 
-const SYSTEM_VERSION = '1.9.5';
+const SYSTEM_VERSION = '1.9.6';
 const DEBUG_MODE = false;
 
 // タイトルを「」で囲むヘルパー（すでに囲まれていたら二重にしない）
@@ -55,6 +55,7 @@ export default function App() {
   const [ttsEngine, setTtsEngine] = useState('auto'); // auto | voicevox | supertonic
   const [geminiKey, setGeminiKey] = useState('');
   const [geminiKeyValid, setGeminiKeyValid] = useState(false);
+  const [apiChecking,setApiChecking]=useState(false);
   const [openaiModel, setOpenaiModel] = useState(DEFAULT_OPENAI_MODEL);
   const [modelStatus, setModelStatus] = useState(null);
   const [activeEngine, setActiveEngine] = useState('gemini');
@@ -70,6 +71,7 @@ export default function App() {
   const [isCopied, setIsCopied] = useState(false);
   const logEndRef = React.useRef(null);
   const abortControllerRef = React.useRef(null);
+  const sessionIdRef=React.useRef(null);
   const ttsEngineRef = React.useRef('auto');
 
   // ターミナルの自動スクロール
@@ -201,14 +203,17 @@ export default function App() {
   }, [phase, supertonicStatus]);
 
   const handleSetApiKey = async () => {
-    if (!geminiKey.trim()) return;
+    if (!geminiKey.trim() || apiChecking || abortControllerRef.current) return;
+    const controller=new AbortController();abortControllerRef.current=controller;setApiChecking(true);
     try {
       const res = await localApiFetch('/api/apikey', {
+        signal:controller.signal,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ apiKey: geminiKey.trim(), openaiModel }),
       });
       const data = await res.json();
+      controller.signal.throwIfAborted();
       if (data.valid) {
         setGeminiKeyValid(true);
         setActiveEngine(data.engine || 'gemini');
@@ -216,9 +221,9 @@ export default function App() {
       } else {
         setError('APIキーが無効です。正しいキーを入力してください。');
       }
-    } catch {
-      setError('サーバーに接続できません。');
-    }
+    } catch(error) {
+      if(!controller.signal.aborted)setError('サーバーに接続できません。');
+    } finally {if(abortControllerRef.current===controller){abortControllerRef.current=null;setApiChecking(false);}}
   };
 
   // ── 両方OKならドロップフェーズに遷移 ──
@@ -254,6 +259,7 @@ export default function App() {
 
   // ── 動画生成開始 ──
   const startGeneration = async (imageFile) => {
+    if(abortControllerRef.current)return;
     if (imageFile.size > 20 * 1024 * 1024) {
       setError('画像は20 MiB以下にしてください');
       return;
@@ -262,13 +268,14 @@ export default function App() {
     setError(null);
     setOcrPreview(null);
     setTerminalLogs([]);
-    setCurrentSessionId(null);
+    setCurrentSessionId(null);sessionIdRef.current=null;
     setVideoTitle(imageFile.name.replace(/\.[^.]+$/, ''));
     const selectedTtsEngine = ttsEngineRef.current;
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    const signal = controller.signal;
     try {
-      abortControllerRef.current = new AbortController();
-      const signal = abortControllerRef.current.signal;
 
       const formData = new FormData();
       formData.append('image', imageFile);
@@ -284,6 +291,8 @@ export default function App() {
         ? '画像は20 MiB以下・1ファイルのみアップロードできます'
         : 'アップロードに失敗しました');
       const { sessionId } = await uploadRes.json();
+      signal.throwIfAborted();
+      sessionIdRef.current=sessionId;
       setCurrentSessionId(sessionId);
 
       // Step 2: Gemini OCR で AI解析
@@ -294,12 +303,15 @@ export default function App() {
         body: JSON.stringify({ ttsEngine: selectedTtsEngine, openaiModel }),
         signal
       });
+      signal.throwIfAborted();
       if (!ocrRes.ok) {
         const errData = await ocrRes.json().catch(() => ({}));
+        signal.throwIfAborted();
         setModelStatus(errData.modelStatus || null);
         throw new Error(errData.error || 'AI解析に失敗しました');
       }
       const { metadata, modelStatus: resultModelStatus } = await ocrRes.json();
+      signal.throwIfAborted();
       setModelStatus(resultModelStatus);
       setVideoTitle(metadata.title || imageFile.name.replace(/\.[^.]+$/, ''));
       setOcrPreview(metadata);
@@ -317,56 +329,51 @@ export default function App() {
         body: JSON.stringify({ ttsEngine: selectedTtsEngine }),
         signal
       });
+      signal.throwIfAborted();
       if (!genRes.ok) {
         const errData = await genRes.json().catch(() => ({}));
         throw new Error(errData.error || '動画生成に失敗しました');
       }
 
       // Step 5: 完了
-      setProgress({ step: 5, total: 5, message: '完了！ 🎉' });
-      setVideoUrl(`/api/video/${sessionId}`);
       // サーバーから返された正しいファイル名を保持（voice_comic_JP/EN_タイトル名_YYYYMMDDHHmmss.mp4）
       const genData = await genRes.json();
+      signal.throwIfAborted();
+      setProgress({ step: 5, total: 5, message: '完了！ 🎉' });
+      setVideoUrl(`/api/video/${sessionId}`);
       if (genData.videoFilename) {
         setVideoFilename(genData.videoFilename);
       }
       setPhase(PHASE.COMPLETE);
 
     } catch (err) {
-      if (err.name === 'AbortError' || err.message === 'CanceledByUser') {
+      if (signal.aborted || err.name === 'AbortError' || err.message === 'CanceledByUser') {
         console.log('Generation cancelled by user.');
         // 中断時は handleCancel 側で状態遷移を管理するためここでは何もしない
       } else {
         setError(err.message);
         setPhase(PHASE.DROP);
       }
-    }
+    } finally {if(abortControllerRef.current===controller)abortControllerRef.current=null;}
   };
 
   // ── 生成中断 ──
   const handleCancel = async () => {
+    const controller=abortControllerRef.current;
+    if(phase !== PHASE.CANCELLING && (!controller || controller.signal.aborted))return;
+    controller?.abort();
+    if(apiChecking){setApiChecking(false);setError('API接続確認を中断しました。入力したキーは保持しています。');return;}
     setPhase(PHASE.CANCELLING);
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    if (currentSessionId) {
-      try {
-        await localApiFetch(`/api/cancel/${currentSessionId}`, { method: 'DELETE' });
-      } catch (e) {
-        console.error('Failed to cancel session on server', e);
+    setError(null);
+    try {
+      if(sessionIdRef.current){
+        const response=await localApiFetch(`/api/cancel/${sessionIdRef.current}`,{method:'DELETE'});
+        if(!response.ok)throw new Error('Cancellation confirmation failed');
       }
-    }
-    
-    // 削除完了メッセージを少し見せるために3秒待機
-    setTimeout(() => {
       setPhase(PHASE.DROP);
-      setVideoUrl(null);
-      setVideoFilename('');
-      setVideoTitle('');
-      setOcrPreview(null);
-      setProgress({ step: 0, total: 5, message: '' });
+      setProgress({step:0,total:5,message:'生成を中断しました。'});
       setError(null);
-    }, 3000);
+    } catch(error){setError('中断の確認に失敗しました。バックエンドの状態を確認してから再実行してください。');}
   };
 
   // ── ダウンロード ──
@@ -413,7 +420,7 @@ export default function App() {
   };
 
   return (
-    <div className="app">
+    <div className={`app${geminiKeyValid || apiChecking || phase !== PHASE.SETUP ? ' emergency-stop-ready' : ''}`}>
       {/* ヘッダー */}
       <header className="header">
         <h1 className="header-title">
@@ -422,10 +429,11 @@ export default function App() {
         </h1>
         <p className="header-subtitle">漫画画像をドロップするだけ。AIが全自動でボイスコミック動画を生成</p>
         <nav className="manual-links" aria-label="PDFガイド"><a href={`${import.meta.env.BASE_URL}downloads/short-movie-manual.pdf`} target="_blank" rel="noopener noreferrer">操作マニュアル（PDF）</a><a href={`${import.meta.env.BASE_URL}downloads/short-movie-api-guide.pdf`} target="_blank" rel="noopener noreferrer">API設定ガイド（PDF）</a></nav><p className="manual-help">別タブで開き、PDFビューアーから保存できます。</p>
+        {(geminiKeyValid || apiChecking || phase !== PHASE.SETUP) && <div className="emergency-controls"><button id="emergency-stop" aria-label="緊急停止：通信・生成を中断" title="通信と生成を中断します。API提供元での処理・課金停止は保証しません。" type="button" className="btn btn-emergency-stop" onClick={handleCancel} disabled={!apiChecking && phase !== PHASE.GENERATING}>⏹ 緊急停止</button><p className="manual-help">API接続確認・AI解析・音声・動画処理中だけ有効です。API側の処理・課金停止は保証しません。</p></div>}
       </header>
       {(activeEngine === 'openai' || geminiKey.trim().startsWith('sk-')) && <div className="card openai-model-card">
         <label htmlFor="openai-model">解析・校正モデル <span>OPENAI</span></label>
-        <select id="openai-model" value={openaiModel} onChange={event => { fallbackModels(event.target.value); setOpenaiModel(event.target.value); setModelStatus(null); }} disabled={phase === PHASE.GENERATING || phase === PHASE.CANCELLING}>
+        <select id="openai-model" value={openaiModel} onChange={event => { fallbackModels(event.target.value); setOpenaiModel(event.target.value); setModelStatus(null); }} disabled={apiChecking || phase === PHASE.GENERATING || phase === PHASE.CANCELLING}>
           {OPENAI_MODEL_OPTIONS.map(model => <option key={model.id} value={model.id}>{model.label}</option>)}
         </select>
         <small className="openai-model-help">{OPENAI_MODEL_OPTIONS.find(model => model.id === openaiModel)?.description}<br/>入力 ${OPENAI_MODEL_OPTIONS.find(model => model.id === openaiModel)?.inputPriceUsdPerM} / 出力 ${OPENAI_MODEL_OPTIONS.find(model => model.id === openaiModel)?.outputPriceUsdPerM} per 1M tokens</small>
@@ -483,7 +491,7 @@ export default function App() {
                           onChange={(e) => setGeminiKey(e.target.value)}
                           autoComplete="off"
                         />
-                        <button className="btn btn-set-key" type="submit">設定</button>
+                        <button className="btn btn-set-key" type="submit" disabled={apiChecking}>{apiChecking?"接続確認中…":"設定"}</button>
                       </form>
                     </div>
                   )}
@@ -774,11 +782,10 @@ export default function App() {
 
             <div style={{ marginTop: '24px', textAlign: 'center' }}>
               <button 
-                className="btn btn-change-key" 
+                className="btn btn-emergency-stop"
                 onClick={handleCancel}
-                style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#fca5a5', border: '1px solid rgba(239, 68, 68, 0.3)' }}
               >
-                ⏹️ 生成を中断する
+                ⏹ 緊急停止
               </button>
             </div>
           </div>
@@ -787,6 +794,7 @@ export default function App() {
         {/* ──────── Phase: CANCELLING (中断処理中) ──────── */}
         {phase === PHASE.CANCELLING && (
           <div className="card generating-card" style={{ textAlign: 'center', padding: '60px 20px' }}>
+            {error && <div className="error-banner" role="alert">{error}<button type="button" className="btn btn-retry" onClick={handleCancel}>停止状態を再確認</button></div>}
             <div className="card-icon" style={{ fontSize: '48px', marginBottom: '16px' }}>🛑</div>
             <h2 style={{ color: '#fca5a5' }}>生成を中断しました</h2>
             <p style={{ color: '#94a3b8', marginTop: '16px', lineHeight: '1.6', fontSize: '15px' }}>

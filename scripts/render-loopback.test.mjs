@@ -128,6 +128,11 @@ test('real application renders a synthetic image/audio MP4 and closes listeners 
   }), /FixtureCancelled/);
   await assertClosed(cancelledListeners);
   console.log('Cancelled render settled; cancelled render listeners closed');
+  const signalCancelledListeners=[],controller=new AbortController();
+  await assert.rejects(renderLocalVideo({...options,signal:controller.signal,
+    onListener:address=>{signalCancelledListeners.push(address);controller.abort(new DOMException('FixtureSignalCancelled','AbortError'));},
+  }),/FixtureSignalCancelled/);
+  await assertClosed(signalCancelledListeners);
   const activeCancelledListeners = [];
   await assert.rejects(renderLocalVideo({ ...options, outputPath: path.join(dir, 'cancelled.mp4'),
     scriptData: { ...scriptData, totalDurationInFrames: 30, dialogues: [{ ...scriptData.dialogues[0], durationInFrames: 30 }] },

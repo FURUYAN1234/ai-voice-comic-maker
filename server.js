@@ -1,3 +1,4 @@
+import { sessionSignal, cancelSession, throwIfSessionCancelled, runCancellableAi, runCancellableProcess, callOpenAI, bindRequestCancellation, acquireOwnedLock, releaseOwnedLock } from './pipeline-cancellation.js';
 import { filterSpeechMetadata } from './ocr-speech-boundary.js';
 /**
  * AI Voice Comic Maker - バックエンドサーバー
@@ -26,7 +27,6 @@ import { RUNTIME_DIR } from './runtime-paths.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { execFileSync } from 'child_process';
 import dotenv from 'dotenv';
 import sharp from 'sharp';
 import { bundle } from '@remotion/bundler';
@@ -1232,6 +1232,8 @@ const aiPronunciationCache = new Map(); // sessionId -> Map<word, katakana>
  * @returns {string} 英単語がカタカナに置換されたテキスト
  */
 async function resolveUnknownEnglishWords(text, sessionId = null) {
+  const session=sessions.get(sessionId)||{};
+  throwIfSessionCancelled(session);
   // APIキーが未設定の場合はスキップ（辞書のみで運用）
   const apiKey = runtimeApiKey || process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY || '';
   if (!apiKey) return text;
@@ -1284,7 +1286,7 @@ async function resolveUnknownEnglishWords(text, sessionId = null) {
     if (runtimeEngine === 'openai') {
       const OpenAI = (await import('openai')).default;
       const openai = new OpenAI({ apiKey });
-      responseText = await lookupOpenAIPronunciations(openai, aiPrompt);
+      responseText = await runCancellableAi(session,signal=>lookupOpenAIPronunciations(openai, aiPrompt,{signal}),AI_TIMEOUTS.pronunciation||10000);
     } else {
       // Gemini (Flashモデルでコスト最小化)
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
@@ -1295,12 +1297,10 @@ async function resolveUnknownEnglishWords(text, sessionId = null) {
       for (const modelName of pronunciationModels) {
         try {
           const model = genAI.getGenerativeModel({ model: modelName });
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('AI pronunciation lookup timed out')), 10000)
-          );
-          aiResult = await Promise.race([model.generateContent(aiPrompt), timeoutPromise]);
+          aiResult = await runCancellableAi(session,signal=>model.generateContent(aiPrompt,{signal}),10000);
           break;
         } catch (e) {
+          throwIfSessionCancelled(session);
           // 次のモデルを試行
           continue;
         }
@@ -1332,6 +1332,7 @@ async function resolveUnknownEnglishWords(text, sessionId = null) {
       return result;
     }
   } catch (err) {
+    throwIfSessionCancelled(session);
     // AI読み推定に失敗しても処理を止めない（辞書適用済みのテキストをそのまま返す）
     if (sessionId) {
       sessionLog(sessionId, `   ⚠️ [AI Pronunciation] AI読み推定失敗 (辞書のみで続行): ${err.message}`);
@@ -1441,7 +1442,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 3000) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { ...options, signal: controller.signal });
+    return await fetch(url, { ...options, signal: options.signal ? AbortSignal.any([options.signal,controller.signal]) : controller.signal });
   } finally {
     clearTimeout(timeout);
   }
@@ -1524,7 +1525,9 @@ function assignEdgeTtsVoice(speaker, gender, usedVoices) {
 // MP3で生成後にffmpegで正規のPCM WAVに変換する
 const FFMPEG_PATH = path.join(__dirname, 'node_modules', '@remotion', 'compositor-win32-x64-msvc', 'ffmpeg.exe');
 
-function normalizeFinalVideoAudio(videoPath, sessionId) {
+async function normalizeFinalVideoAudio(videoPath, sessionId) {
+  const session=sessions.get(sessionId)||{};
+  throwIfSessionCancelled(session);
   const tmpPath = videoPath.replace(/\.mp4$/i, '.audio-normalized.tmp.mp4');
   try {
     if (!fs.existsSync(FFMPEG_PATH)) {
@@ -1533,7 +1536,7 @@ function normalizeFinalVideoAudio(videoPath, sessionId) {
     }
     if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
     sessionLog(sessionId, '🔊 [Audio Normalize] 最終MP4の音量を正規化中...');
-    execFileSync(FFMPEG_PATH, [
+    await runCancellableProcess(session, FFMPEG_PATH, [
       '-y',
       '-hide_banner',
       '-loglevel',
@@ -1565,21 +1568,29 @@ function normalizeFinalVideoAudio(videoPath, sessionId) {
     return true;
   } catch (err) {
     if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
+    throwIfSessionCancelled(session);
     sessionLog(sessionId, `⚠️ [Audio Normalize] 失敗: ${err.message}`);
     return false;
   }
 }
 
 async function synthesizeWithEdgeTts(text, voiceName, outputPath, sessionId) {
+  const session=sessions.get(sessionId)||{};
+  throwIfSessionCancelled(session);
   const tts = new MsEdgeTTS();
-  await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+  let readable;
+  const stop=()=>{readable?.audioStream.destroy(sessionSignal(session).reason);tts.close();};
+  sessionSignal(session).addEventListener("abort",stop,{once:true});
+  try {
+  await runCancellableAi(session,()=>tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3),30000);
 
   // MP3として生成し、バッファを取得
-  const readable = tts.toStream(text);
+  readable = tts.toStream(text);
   const chunks = [];
   for await (const chunk of readable.audioStream) {
     chunks.push(chunk);
   }
+  throwIfSessionCancelled(session);
   const mp3Buffer = Buffer.concat(chunks);
 
   // MP3を一時ファイルに書き出し
@@ -1588,7 +1599,7 @@ async function synthesizeWithEdgeTts(text, voiceName, outputPath, sessionId) {
 
   try {
     // ffmpegでMP3→PCM WAV変換（24kHz, 16bit, モノラル）
-    execFileSync(FFMPEG_PATH, [
+    await runCancellableProcess(session, FFMPEG_PATH, [
       '-y',               // 上書き許可
       '-i', tempMp3Path,  // 入力: MP3
       '-ar', '24000',     // サンプルレート 24kHz
@@ -1612,15 +1623,19 @@ async function synthesizeWithEdgeTts(text, voiceName, outputPath, sessionId) {
     sessionLog(sessionId, `   🔊 [Edge-TTS] ${voiceName} → ${path.basename(outputPath)} (${duration.toFixed(2)}s)`);
   }
   return duration;
+  } finally {sessionSignal(session).removeEventListener("abort",stop);tts.close();}
 }
 
 async function synthesizeWithSupertonic(text, voiceName, lang, emotion, outputPath, sessionId) {
+  const session=sessions.get(sessionId)||{};
+  throwIfSessionCancelled(session);
   const emotionConfig = SUPERTONIC_EMOTION_TAGS[emotion] || {};
   let taggedText = text;
   if (emotionConfig.prefix) taggedText = emotionConfig.prefix + taggedText;
   if (emotionConfig.suffix) taggedText += emotionConfig.suffix;
 
   const response = await fetchWithTimeout(`${SUPERTONIC_API_BASE}/v1/tts`, {
+    signal:sessionSignal(session),
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
@@ -1634,11 +1649,12 @@ async function synthesizeWithSupertonic(text, voiceName, lang, emotion, outputPa
 
   if (!response.ok) throw new Error(`Supertonic synthesis failed: ${response.status}`);
   const wavBuffer44k = Buffer.from(await response.arrayBuffer());
+  throwIfSessionCancelled(session);
   const temp44kPath = outputPath.replace(/\.wav$/i, '.tmp44k.wav');
   fs.writeFileSync(temp44kPath, wavBuffer44k);
 
   try {
-    execFileSync(FFMPEG_PATH, [
+    await runCancellableProcess(session, FFMPEG_PATH, [
       '-y', '-i', temp44kPath,
       '-ar', '24000', '-ac', '1', '-sample_fmt', 's16', '-f', 'wav',
       outputPath,
@@ -1669,23 +1685,8 @@ const sessions = new Map();
 // ── パイプラインロック制御 (二重起動防止) ──
 const LOCK_FILE = path.join(__dirname, '.pipeline_lock');
 
-function acquireLock() {
-  if (fs.existsSync(LOCK_FILE)) {
-    return false;
-  }
-  fs.writeFileSync(LOCK_FILE, String(Date.now()), 'utf8');
-  return true;
-}
-
-function releaseLock() {
-  try {
-    if (fs.existsSync(LOCK_FILE)) {
-      fs.unlinkSync(LOCK_FILE);
-    }
-  } catch (e) {
-    console.error('Failed to release lock file:', e);
-  }
-}
+function acquireLock(owner) { return acquireOwnedLock(LOCK_FILE, owner); }
+function releaseLock(token) { return releaseOwnedLock(LOCK_FILE, token); }
 
 // ── ガベージコレクション (古い一時ファイルの自動削除) ──
 const CLEANUP_DIRS = [
@@ -1854,6 +1855,8 @@ app.post('/api/apikey', async (req, res) => {
     return res.status(400).json({ valid: false, error: 'APIキーが空です' });
   }
 
+  const session = {};
+  const finishOperation = bindRequestCancellation(req,res,session);
   const key = apiKey.trim();
   let engine = 'gemini';
   if (key.startsWith('sk-')) {
@@ -1871,7 +1874,7 @@ app.post('/api/apikey', async (req, res) => {
 
       for (const modelName of modelsToTry) {
         try {
-          await openai.chat.completions.create({
+          await callOpenAI(session,openai,{
             model: modelName,
             messages: [{ role: "user", content: "test" }],
             ...chatOptions(modelName, { max_tokens: 5 })
@@ -1881,6 +1884,7 @@ app.post('/api/apikey', async (req, res) => {
           workingModel = modelName;
           break;
         } catch (e) {
+          throwIfSessionCancelled(session);
           if (terminalOpenAIError(e)) throw e;
           lastError = e;
           const errorMsg = e && e.message ? e.message.split('\n')[0] : String(e);
@@ -1892,6 +1896,7 @@ app.post('/api/apikey', async (req, res) => {
         throw lastError || new Error("利用可能なOpenAIモデルが見つかりませんでした");
       }
 
+      throwIfSessionCancelled(session);
       runtimeApiKey = key;
       runtimeModel = workingModel;
       runtimeEngine = 'openai';
@@ -1910,15 +1915,12 @@ app.post('/api/apikey', async (req, res) => {
         try {
           const model = genAI.getGenerativeModel({ model: modelName });
           
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error(`Gemini API call timed out after ${AI_TIMEOUTS.keyCheck / 1000} seconds`)), AI_TIMEOUTS.keyCheck)
-          );
-          const apiCallPromise = model.generateContent('test');
-          await Promise.race([apiCallPromise, timeoutPromise]);
+          await runCancellableAi(session,signal=>model.generateContent('test',{signal}),AI_TIMEOUTS.keyCheck);
           
           workingModel = modelName;
           break; // 成功したらループを抜ける
         } catch (e) {
+          throwIfSessionCancelled(session);
           lastError = e;
           const errorMsg = e && e.message ? e.message.split('\n')[0] : String(e);
           console.log(`    ℹ️ ${modelName} は利用不可: ${errorMsg}`);
@@ -1929,6 +1931,7 @@ app.post('/api/apikey', async (req, res) => {
         throw lastError || new Error("利用可能なモデルが見つかりませんでした");
       }
       
+      throwIfSessionCancelled(session);
       runtimeApiKey = key;
       runtimeModel = workingModel;
       runtimeEngine = 'gemini';
@@ -1936,9 +1939,10 @@ app.post('/api/apikey', async (req, res) => {
       res.json({ valid: true, engine: 'gemini' });
     }
   } catch (err) {
+    if (session.cancelled) { if(!res.destroyed)res.status(499).json({valid:false,error:'CanceledByUser',cancelled:true});return; }
     console.error(`❌ ${engine === 'openai' ? 'OpenAI' : 'Gemini'} API Key 検証失敗:`, err.message);
     res.json({ valid: false, error: 'APIキーが無効、または利用可能なモデルがありません' });
-  }
+  } finally { finishOperation(); }
 });
 
 // ──────────────────────────────────────
@@ -2015,34 +2019,20 @@ app.get('/api/voicevox/speakers', async (req, res) => {
 // ──────────────────────────────────────
 // API: 生成中断＆ゴミファイル削除
 // ──────────────────────────────────────
-app.delete('/api/cancel/:sessionId', (req, res) => {
+app.delete('/api/cancel/:sessionId', async (req, res) => {
   const { sessionId } = req.params;
   const session = sessions.get(sessionId);
   if (session) {
-    session.cancelled = true;
-    sessionLog(sessionId, `🛑 [Cancel] ユーザーにより生成が中断されました。関連ファイルを削除します。`);
-    
-    try {
-      // テンポラリディレクトリ（アップロード画像など）の削除
-      const tempDir = path.join(__dirname, 'temp', sessionId);
-      if (fs.existsSync(tempDir)) {
-        fs.rmSync(tempDir, { recursive: true, force: true });
-      }
-      
-      // 音声ディレクトリの削除
-      const voiceDir = path.join(RUNTIME_DIR, 'voiceover', sessionId);
-      if (fs.existsSync(voiceDir)) {
-        fs.rmSync(voiceDir, { recursive: true, force: true });
-      }
-      
-      // 中断時も5分後にインメモリデータを安全にクリーンアップ
-      scheduleLogCleanup(sessionId);
-    } catch (e) {
-      console.error('Cancel cleanup error:', e);
-    } finally {
-      // 中断されたら即座にロックファイルを解放
-      releaseLock();
+    cancelSession(session);
+    sessionLog(sessionId, '🛑 [Cancel] ユーザーにより生成を中断しました。通信・実行の終了を待っています。');
+    if (session.operationDone) await session.operationDone;
+    // No work can use these files after the active route settles.
+    for (const base of [path.join(__dirname,'temp'),path.join(RUNTIME_DIR,'voiceover')]) {
+      const directory=path.resolve(base,sessionId);
+      if (!directory.startsWith(path.resolve(base)+path.sep)) continue;
+      try { fs.rmSync(directory,{recursive:true,force:true}); } catch(error) { console.error('Cancel cleanup error:',error.message); }
     }
+    scheduleLogCleanup(sessionId);
   }
   res.json({ success: true });
 });
@@ -2086,14 +2076,19 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
     return res.status(404).json({ error: 'セッションが見つかりません' });
   }
 
-  if (!acquireLock()) {
+  if (session.cancelled) return res.status(409).json({error:'CanceledByUser',cancelled:true});
+  const selectedOpenAIModel = req.body?.openaiModel === undefined ? DEFAULT_OPENAI_MODEL : req.body.openaiModel;
+  if (runtimeEngine === 'openai') {
+    try { fallbackModels(selectedOpenAIModel); } catch (error) {
+      return res.status(400).json({error:error.message,code:'INVALID_OPENAI_MODEL'}); }
+  }
+
+  const lockToken = acquireLock(sessionId);
+  if (!lockToken) {
     return res.status(409).json({ error: '現在、別の動画生成パイプラインが実行中です。しばらくお待ちください。' });
   }
 
-  const selectedOpenAIModel = req.body?.openaiModel === undefined ? DEFAULT_OPENAI_MODEL : req.body.openaiModel;
-  if (runtimeEngine === 'openai') {
-    try { fallbackModels(selectedOpenAIModel); } catch (error) { return res.status(400).json({error:error.message,code:'INVALID_OPENAI_MODEL'}); }
-  }
+  const finishOperation = bindRequestCancellation(req,res,session);
   const modelStatus = { selected: selectedOpenAIModel, attempted: [], adopted: null, correctionAttempted: [], correctionAdopted: null };
   try {
     sessionLog(sessionId, `🔍 [Analyze] AI Vision OCR 開始 (${runtimeEngine} / ${runtimeEngine === 'openai' ? selectedOpenAIModel : runtimeModel})...`);
@@ -2213,7 +2208,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
             modelStatus.attempted.push(modelName);
             sessionLog(sessionId, `[Model] Selected: ${selectedOpenAIModel} / Tried: ${modelStatus.attempted.join(' → ')}`);
             sessionLog(sessionId, `⏳ OpenAI API リクエスト送信中 (モデル: ${modelName})...`);
-            const response = await openai.chat.completions.create({
+            const response = await callOpenAI(session,openai,{
               model: modelName,
               messages: [
                 { role: "system", content: "あなたは優秀な漫画解析AIです。必ず指定されたJSONフォーマットで出力してください。" },
@@ -2237,6 +2232,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
             success = true;
             break;
           } catch (err) {
+      throwIfSessionCancelled(session);
             if (terminalOpenAIError(err)) throw err;
             lastError = err;
             sessionLog(sessionId, `⚠️ [Fallback] OpenAIモデル ${modelName} でエラー発生: ${err.message}`);
@@ -2259,14 +2255,10 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
               },
             });
 
-            const timeoutPromise = new Promise((_, reject) =>
-              setTimeout(() => reject(new Error(`Gemini API call timed out after ${AI_TIMEOUTS.vision / 1000} seconds`)), AI_TIMEOUTS.vision)
-            );
-            const apiCallPromise = model.generateContent([
+            const result = await runCancellableAi(session,signal=>model.generateContent([
               prompt,
               { inlineData: { mimeType, data: base64Image } },
-            ]);
-            const result = await Promise.race([apiCallPromise, timeoutPromise]);
+            ],{signal}),AI_TIMEOUTS.vision);
 
             responseText = result.response.text();
             sessionLog(sessionId, `📝 Gemini レスポンス受信 (${responseText.length}文字)`);
@@ -2274,6 +2266,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
             success = true;
             break;
           } catch (err) {
+      throwIfSessionCancelled(session);
             lastError = err;
             sessionLog(sessionId, `⚠️ [Fallback] Geminiモデル ${modelName} でエラー発生: ${err.message}`);
           }
@@ -2306,6 +2299,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
       try {
         metadata = JSON.parse(cleaned);
       } catch (parseErr1) {
+      throwIfSessionCancelled(session);
         sessionLog(sessionId, `⚠️ [Parser] 1次パース失敗: ${parseErr1.message}`);
         console.error(`[Parser Error] 1次パース失敗。生レスポンス:\n${responseText}\n---`);
         // フォールバック: JSON部分だけを抽出して再トライ
@@ -2314,6 +2308,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
           try {
             metadata = JSON.parse(sanitizeJson(jsonMatch[0]));
           } catch (parseErr2) {
+      throwIfSessionCancelled(session);
             sessionLog(sessionId, `❌ [Parser] 2次パースも失敗: ${parseErr2.message}`);
             console.error(`[Parser Error] 2次パースも失敗。抽出試行JSON:\n${jsonMatch[0]}\n---`);
             throw new Error('AIの応答からメタデータを抽出できませんでした。再度お試しください。');
@@ -2413,7 +2408,7 @@ ${JSON.stringify(correctionInput, null, 2)}`;
             try {
               modelStatus.correctionAttempted.push(modelName);
               sessionLog(sessionId, `[OpenAI 2-Pass Correction] Requesting model: ${modelName}`);
-              const response = await openai.chat.completions.create({
+              const response = await callOpenAI(session,openai,{
                 model: modelName,
                 messages: [
                   { role: "system", content: "You are a helpful assistant." },
@@ -2429,6 +2424,7 @@ ${JSON.stringify(correctionInput, null, 2)}`;
               correctionSuccess = true;
               break;
             } catch (err) {
+      throwIfSessionCancelled(session);
               if (terminalOpenAIError(err)) throw err;
               lastCorrectionError = err;
               sessionLog(sessionId, `[Fallback] OpenAI 2-Pass correction failed on ${modelName}: ${err.message}`);
@@ -2455,15 +2451,12 @@ ${JSON.stringify(correctionInput, null, 2)}`;
                 },
               });
 
-              const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error(`Gemini API call timed out after ${AI_TIMEOUTS.correction / 1000} seconds`)), AI_TIMEOUTS.correction)
-              );
-              const apiCallPromise = model.generateContent([correctionPrompt]);
-              const result = await Promise.race([apiCallPromise, timeoutPromise]);
+              const result = await runCancellableAi(session,signal=>model.generateContent([correctionPrompt],{signal}),AI_TIMEOUTS.correction);
               correctedText = result.response.text();
               correctionSuccess = true;
               break;
             } catch (err) {
+      throwIfSessionCancelled(session);
               lastCorrectionError = err;
               sessionLog(sessionId, `[Fallback] Gemini 2-Pass correction failed on ${modelName}: ${err.message}`);
             }
@@ -2520,6 +2513,7 @@ ${JSON.stringify(correctionInput, null, 2)}`;
           }
         }
       } catch (err) {
+      throwIfSessionCancelled(session);
         sessionLog(sessionId, `⚠️ [OCR Correction] 2-Pass校正処理中にエラー（スキップします）: ${err.message}`);
         console.error('OCR Correction Error:', err);
       }
@@ -2825,13 +2819,13 @@ ${JSON.stringify(correctionInput, null, 2)}`;
     }
 
     // セッションにメタデータを保存
+    throwIfSessionCancelled(session);
     session.metadata = metadata;
     session.status = 'analyzed';
 
     let bgmAudioPath = `audio/bgm.wav`; // デフォルトフォールバック
     // 感情に基づくBGMの動的生成（プロシージャル作曲エンジン）
     try {
-      const { execSync } = await import('child_process');
       const emotionCounts = { happy: 0, excited: 0, sad: 0, worried: 0, angry: 0, neutral: 0, surprised: 0 };
       for (const panel of metadata.panels) {
         for (const d of panel.dialogues) {
@@ -2844,7 +2838,7 @@ ${JSON.stringify(correctionInput, null, 2)}`;
       sessionLog(sessionId, `🎵 [BGM Engine] Dominant Emotion: ${dominantEmotion} (Seed: ${bgmSeed})`);
       
       const bgmFilename = `${sessionId}_bgm.wav`;
-      const stdout = execSync(`node generate_bgm.js ${dominantEmotion} ${bgmSeed} ${bgmFilename}`, { cwd: process.cwd() });
+      const {stdout} = await runCancellableProcess(session,process.execPath,[path.join(__dirname,'generate_bgm.js'),dominantEmotion,String(bgmSeed),bgmFilename],{cwd:__dirname});
       const bgmLogs = stdout.toString().split('\n').filter(line => line.trim());
       bgmLogs.forEach(log => sessionLog(sessionId, log));
 
@@ -2853,6 +2847,7 @@ ${JSON.stringify(correctionInput, null, 2)}`;
         bgmAudioPath = `audio/${bgmFilename}`;
       }
     } catch (e) {
+      throwIfSessionCancelled(session);
       console.error('BGMの生成に失敗しました:', e);
       sessionLog(sessionId, `⚠️ [BGM Engine] BGM生成に失敗したため、デフォルトBGMを使用します: ${e.message}`);
     }
@@ -2866,14 +2861,16 @@ ${JSON.stringify(correctionInput, null, 2)}`;
     sessionLog(sessionId, `コマ数: ${metadata.panels.length}, セリフ数: ${totalDialogues}`);
     sessionLog(sessionId, `話者: ${speakers.join(', ')}`);
 
+    throwIfSessionCancelled(session);
     res.json({ metadata, modelStatus: runtimeEngine === 'openai' ? modelStatus : null });
 
   } catch (err) {
+      if(session.cancelled){session.status='cancelled';if(!res.destroyed)res.status(499).json({error:'CanceledByUser',cancelled:true});return;}
     console.error('❌ Analyze error:', err);
     session.status = 'error';
     res.status(500).json({ error: err.message, modelStatus: runtimeEngine === 'openai' ? modelStatus : null });
   } finally {
-    releaseLock();
+    try { releaseLock(lockToken); } finally { finishOperation(); }
   }
 });
 
@@ -2892,10 +2889,13 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     return res.status(400).json({ error: 'まずAI解析を実行してください' });
   }
 
-  if (!acquireLock()) {
+  if (session.cancelled) return res.status(409).json({error:'CanceledByUser',cancelled:true});
+  const lockToken = acquireLock(sessionId);
+  if (!lockToken) {
     return res.status(409).json({ error: '現在、別の動画生成パイプラインが実行中です。しばらくお待ちください。' });
   }
 
+  const finishOperation = bindRequestCancellation(req,res,session);
   try {
     sessionLog(sessionId, `🎬 [Generate] 動画生成を開始...`);
     session.status = 'generating';
@@ -2903,6 +2903,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
 
     const speech = filterSpeechMetadata(session.metadata);
     const metadata = speech.metadata;
+    throwIfSessionCancelled(session);
     session.metadata = metadata;
     if (speech.excluded) sessionLog(sessionId, `[Speech Boundary] Page credits excluded before synthesis: ${speech.excluded}`);
     const title = metadata.title;
@@ -3095,6 +3096,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
           audioFiles.push({ filename, publicPath: `voiceover/${sessionId}/${filename}`, durationSec, dialogue: d });
           sessionLog(sessionId, `  OK ${durationSec.toFixed(2)}s -> ${filename}`);
         } catch (err) {
+      throwIfSessionCancelled(session);
           console.error(`      Supertonic synthesis failed: ${err.message}`);
           sessionLog(sessionId, `      Supertonic synthesis failed: ${err.message}`);
           audioFiles.push({ filename, publicPath: null, durationSec: 3, dialogue: d });
@@ -3111,6 +3113,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
           audioFiles.push({ filename, publicPath: `voiceover/${sessionId}/${filename}`, durationSec, dialogue: d });
           sessionLog(sessionId, `  ✅ ${durationSec.toFixed(2)}s → ${filename}`);
         } catch (err) {
+      throwIfSessionCancelled(session);
           console.error(`      ❌ Edge-TTS音声生成失敗: ${err.message}`);
           sessionLog(sessionId, `      ❌ Edge-TTS音声生成失敗: ${err.message}`);
           audioFiles.push({ filename, publicPath: null, durationSec: 3, dialogue: d });
@@ -3132,7 +3135,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
             `http://127.0.0.1:50021/audio_query?text=${encodeURIComponent(voiceText)}&speaker=${speakerId}`,
             { 
               method: 'POST',
-              signal: queryController.signal
+              signal: AbortSignal.any([queryController.signal,sessionSignal(session)])
             }
           );
           clearTimeout(queryTimeout);
@@ -3185,7 +3188,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(query),
-              signal: synthController.signal
+              signal: AbortSignal.any([synthController.signal,sessionSignal(session)])
             }
           );
           clearTimeout(synthTimeout);
@@ -3199,6 +3202,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
           audioFiles.push({ filename, publicPath: `voiceover/${sessionId}/${filename}`, durationSec, dialogue: d });
           sessionLog(sessionId, `  ✅ ${durationSec.toFixed(2)}s → ${filename}`);
         } catch (err) {
+      throwIfSessionCancelled(session);
           console.error(`      ❌ 音声生成失敗: ${err.message}`);
           audioFiles.push({ filename, publicPath: null, durationSec: 3, dialogue: d });
         }
@@ -3235,6 +3239,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
         titleDurationFrames = Math.ceil(durationSec * 30) + 15;
         sessionLog(sessionId, `OK title call generated (${durationSec.toFixed(2)}s)`);
       } catch (err) {
+      throwIfSessionCancelled(session);
         console.log(`    Supertonic title call skipped: ${err.message}`);
         sessionLog(sessionId, `    Supertonic title call skipped: ${err.message}`);
       }
@@ -3247,6 +3252,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
         titleDurationFrames = Math.ceil(durationSec * 30) + 15;
         sessionLog(sessionId, `✅ タイトルコール音声生成完了 (${durationSec.toFixed(2)}s)`);
       } catch (err) {
+      throwIfSessionCancelled(session);
         console.log(`    ⚠️ タイトルコール生成スキップ: ${err.message}`);
         sessionLog(sessionId, `    ⚠️ タイトルコール生成スキップ: ${err.message}`);
       }
@@ -3262,7 +3268,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
           `http://127.0.0.1:50021/audio_query?text=${encodeURIComponent(titleVoiceText)}&speaker=3`,
           { 
             method: 'POST',
-            signal: titleQueryController.signal
+            signal: AbortSignal.any([titleQueryController.signal,sessionSignal(session)])
           }
         );
         clearTimeout(titleQueryTimeout);
@@ -3281,7 +3287,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(titleQuery),
-            signal: titleSynthController.signal
+            signal: AbortSignal.any([titleSynthController.signal,sessionSignal(session)])
           }
         );
         clearTimeout(titleSynthTimeout);
@@ -3294,6 +3300,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
         titleDurationFrames = Math.ceil(titleDurationSec * 30) + 15;
         sessionLog(sessionId, `✅ タイトルコール音声生成完了 (${titleDurationSec.toFixed(2)}s)`);
       } catch (err) {
+      throwIfSessionCancelled(session);
         console.log(`    ⚠️ タイトルコール生成スキップ: ${err.message}`);
       }
     }
@@ -3394,6 +3401,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
       compositionId,
       scriptData,
       outputPath,
+      signal:sessionSignal(session),
       onComposition: (composition) => {
         if (session.cancelled) throw new Error('CanceledByUser');
         totalRenderFrames = composition.durationInFrames;
@@ -3411,7 +3419,8 @@ app.post('/api/generate/:sessionId', async (req, res) => {
       },
     });
 
-    normalizeFinalVideoAudio(outputPath, sessionId);
+    throwIfSessionCancelled(session);
+    await normalizeFinalVideoAudio(outputPath, sessionId);
 
     session.status = 'complete';
     session.videoPath = outputPath;
@@ -3428,12 +3437,13 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     res.json({ videoPath: outputPath, videoFilename: filename, scriptData });
 
   } catch (err) {
+      if(session.cancelled){session.status='cancelled';if(!res.destroyed)res.status(499).json({error:'CanceledByUser',cancelled:true});return;}
     console.error('❌ Generation error:', err);
     session.status = 'error';
     scheduleLogCleanup(sessionId);
     res.status(500).json({ error: err.message });
   } finally {
-    releaseLock();
+    try { releaseLock(lockToken); } finally { finishOperation(); }
   }
 });
 
