@@ -39,7 +39,7 @@ def build(kind):
     if typ=='link':c.linkURL(b[2],(M,y-h,M+CW,y),relative=0,thickness=0)
     y-=h+(9 if typ=='link' else 15)
   assert y>=62,(title,i,y)
-  c.setFillColor(INK);c.setFont('JP',8);c.drawString(M,31,'v'+DATA['version']+'対応 | 2026年11月14日 | A4 日本語版');c.drawRightString(W-M,31,f'{i:02d} / {len(pages):02d}');layout.append({'page':i,'bottom_y':y});c.showPage()
+  c.setFillColor(INK);c.setFont('JP',8);c.drawString(M,31,'v'+DATA['version']+'対応 | 2026年11月18日 | A4 日本語版');c.drawRightString(W-M,31,f'{i:02d} / {len(pages):02d}');layout.append({'page':i,'bottom_y':y});c.showPage()
  c.save();return p,layout
 def verify(p,layout):
  r=PdfReader(p);assert len(r.pages)==len(layout);text='\n'.join(pg.extract_text() for pg in r.pages);assert DATA['version'] in text

@@ -1,5 +1,9 @@
 [![Manual / 操作マニュアル PDF](https://img.shields.io/badge/PDF-Manual%20%2F%20操作マニュアル-087c86)](https://furuyan1234.github.io/ai-voice-comic-maker/downloads/short-movie-manual.pdf) [![API setup / API設定 PDF](https://img.shields.io/badge/PDF-API%20setup%20%2F%20API設定-087c86)](https://furuyan1234.github.io/ai-voice-comic-maker/downloads/short-movie-api-guide.pdf)
 
+OpenAI comic analysis and script revision now offers **GPT-6.2 Sol** and **GPT-6.2 Astra**. The initial selection is **GPT-6 Luna**. / OpenAIによる漫画の解析・台本の校正に **GPT-6.2 Sol** と **GPT-6.2 Astra** を追加しました。初期選択は **GPT-6 Luna** です。
+
+Standard input / output per million tokens: GPT-6 Luna $0.10 / $0.50, GPT-6.2 Sol $2 / $10, GPT-6.2 Astra $8 / $40 (November 18, 2026). / 100万トークン当たりの通常入力／出力単価はGPT-6 Luna $0.10／$0.50、GPT-6.2 Sol $2／$10、GPT-6.2 Astra $8／$40です（2026年11月18日確認）。
+
 [![Read the application manual PDF / 操作マニュアルPDFを読む](docs/assets/manual-pdf-banner.png)](https://furuyan1234.github.io/ai-voice-comic-maker/downloads/short-movie-manual.pdf)
 
 Operation guide / 操作ガイド: Open the PDF to review the application workflow and controls. / PDFで制作の流れと操作方法を確認できます。
@@ -11,7 +15,7 @@ Read the Japanese A4 guides from the app header; each opens in a separate tab an
 **Gemini model route / Geminiモデル候補**: `gemini-3.8-flash` → `gemini-3.6-flash` → `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite`. Explicit stable IDs avoid the December 1, 2026 redirects; image-generation models keep their dedicated routes. / 2026年12月1日の旧モデル自動転送に依存しないよう、現行GAモデルを明示します。画像生成は専用のモデル経路を使います。
 
 Pronunciation assistance uses `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite`. / 発音補助は `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite` の順です。
-  <img src="https://img.shields.io/badge/version-1.9.7-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.9.8-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-FURU%20Terms-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Remotion-4.0-blue.svg" alt="Remotion">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2F%20OpenAI-orange.svg" alt="AI">
@@ -29,7 +33,7 @@ This app renders video on your PC; GitHub Pages is a guide, not the running appl
 
 > **MIT License; your outputs remain yours.** You may use, modify, redistribute and sell the app, including in paid products and services, without individual permission from FURU. Retain the copyright and MIT license notices in copies or substantial portions of the software. External API fees and third-party terms are separate. / **アプリはMITライセンス。成果物の権利は従来どおり利用者に帰属します。** アプリの利用・改変・再配布・販売、有料商品やサービスへの組み込みに、FURUへの個別許可は不要です。ソフトウェアの複製または重要な部分には著作権表示とMITの許諾表示を残してください。外部API料金と第三者の条件は別です。
 
-v1.9.7 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
+v1.9.8 — AI-driven 4-koma manga voiceover and video generation tool using Dual API Engine (Gemini & OpenAI) / Dual API Engine (Gemini & OpenAI) を使用したAI駆動の4コマ漫画フルボイス動画自動生成ツール
 
 [!['ChatGPT Image 2026年6月25日 22_19_30'](https://github.com/user-attachments/assets/d850ac7f-aa1c-40cc-a378-b8c6673c726c)](https://youtu.be/pqYVxUUg0Cs?si=27g1I3tO2EuZkOuxJ)
 
@@ -41,10 +45,10 @@ The generated voice comic videos provide overwhelming immersion for TikTok, Shor
 Exclude page-footer and margin production credits from narration; preserve story dialogue, narration, signs, URLs and SFX. Validate text role and page region before/after correction and before speech. Missing classification stops synthesis without automatic paid retries. / ページ下部・余白のアプリ名、生成元、制作クレジットを読み上げ対象から除外します。OCRの文字役割とページ領域を検証し、校正前後・音声直前にも同じチェックを適用します。物語内の台詞、ナレーション、看板、必要なURL、擬音は下部にあっても保持します。分類が欠落した解析結果は、勝手に再課金せず音声生成を停止します。
 
 
-Select from all 7 models, with Astra highest and 6.1 Sol default. Fallback starts at the selected model and only moves downward; selection, attempts and adoption are shown. Unknown IDs are rejected before API calls. / 全7モデルを選択できます。GPT-6 Astraを最上位、GPT-6.1 Solを既定とし、選択モデルから下位のみ試行します。選択・試行・採用を表示し、未知IDはAPI呼び出し前に拒否します。価格は入力/出力USD per 1M tokensで表示し、推論トークンや処理回数で実費が変わります。
+Select from all 7 models, with Astra highest and GPT-6 Luna default. Fallback starts at the selected model and only moves downward; selection, attempts and adoption are shown. Unknown IDs are rejected before API calls. / 全7モデルを選択できます。GPT-6 Astraを最上位、GPT-6 Lunaを既定とし、選択モデルから下位のみ試行します。選択・試行・採用を表示し、未知IDはAPI呼び出し前に拒否します。価格は入力/出力USD per 1M tokensで表示し、推論トークンや処理回数で実費が変わります。
 
 
-OpenAI fallback: `gpt-6-astra` → `gpt-6.1-sol` → `gpt-6.1-terra` → `gpt-6-sol` → `gpt-5.6-sol` → `gpt-5.6-terra` → `gpt-6-luna` → `gpt-5.6-luna`. GPT-6.1 Sol and Terra use a 32,768-token completion budget. Incomplete, refused and empty responses are rejected; output-budget exhaustion, authentication, billing/quota and policy failures stop retries. / 途中終了・拒否・空応答を成功扱いせず、出力上限到達・認証・残高不足・ポリシー拒否は連続試行を停止します。画像生成モデルは維持し、軽量発音推定には下記の現行モデルを使用します。
+OpenAI fallback: `gpt-6.2-astra` → `gpt-6-astra` → `gpt-6.2-sol` → `gpt-6.1-sol` → `gpt-6.1-terra` → `gpt-6-sol` → `gpt-5.6-sol` → `gpt-5.6-terra` → `gpt-6-luna` → `gpt-5.6-luna`. GPT-6.1 Sol and Terra use a 32,768-token completion budget. Incomplete, refused and empty responses are rejected; output-budget exhaustion, authentication, billing/quota and policy failures stop retries. / 途中終了・拒否・空応答を成功扱いせず、出力上限到達・認証・残高不足・ポリシー拒否は連続試行を停止します。画像生成モデルは維持し、軽量発音推定には下記の現行モデルを使用します。
 
 
 Pronunciation assistance for unknown English words uses `gpt-6-luna` with compatible completion parameters and no automatic retry. A failure is reported in the processing log and retains the dictionary fallback. Model Chain shows this helper separately from OCR/correction. / 辞書にない英単語の発音補助は`gpt-6-luna`を使用します。互換のある出力上限を設定し、自動再試行はしません。失敗時はログに示して辞書のみで続行します。Model Chainでは画像解析・校正と発音補助を分けて表示します。
@@ -68,7 +72,7 @@ The current release is **v1.9.6**. It is a local production tool composed of a V
 * **Ports / ポート**: The UI uses `http://127.0.0.1:5174/`; the backend API uses `http://127.0.0.1:3001/`. / UI は `http://127.0.0.1:5174/`、バックエンドAPIは `http://127.0.0.1:3001/` を使用します。
 * **Japanese TTS routing / 日本語TTSルーティング**: Auto mode prefers VOICEVOX on `localhost:50021` and falls back to Supertonic 3 on `localhost:7789` when VOICEVOX is unavailable. Manual VOICEVOX / Supertonic 3 selection is also preserved through analysis and rendering. / Autoモードでは `localhost:50021` のVOICEVOXを優先し、使えない場合は `localhost:7789` のSupertonic 3へフォールバックします。手動選択したVOICEVOX / Supertonic 3も解析からレンダリングまで保持します。
 * **Status checks / 状態確認**: The backend exposes health checks for local engines such as `/api/voicevox/status` and `/api/supertonic/status`, then writes the selected engine into the Remotion render payload. / バックエンドは `/api/voicevox/status` や `/api/supertonic/status` でローカル音声エンジンを確認し、選択されたエンジンをRemotionレンダリング用データへ渡します。
-* **AI fallback / AIフォールバック**: Gemini text/vision uses the `gemini-3.8-flash` family fallback chain, while OpenAI uses `gpt-6-astra` → `gpt-6.1-sol` → `gpt-6.1-terra` → `gpt-6-sol` → `gpt-5.6-sol` → `gpt-5.6-terra` → `gpt-6-luna` → `gpt-5.6-luna`. / Geminiのテキスト/画像解析は `gemini-3.8-flash` 系のフォールバックチェーンを使い、OpenAIは `gpt-6-astra` → `gpt-6.1-sol` → `gpt-6.1-terra` → `gpt-6-sol` → `gpt-5.6-sol` → `gpt-5.6-terra` → `gpt-6-luna` → `gpt-5.6-luna` の順に切り替えます。
+* **AI fallback / AIフォールバック**: Gemini text/vision uses the `gemini-3.8-flash` family fallback chain, while OpenAI uses `gpt-6.2-astra` → `gpt-6-astra` → `gpt-6.2-sol` → `gpt-6.1-sol` → `gpt-6.1-terra` → `gpt-6-sol` → `gpt-5.6-sol` → `gpt-5.6-terra` → `gpt-6-luna` → `gpt-5.6-luna`. / Geminiのテキスト/画像解析は `gemini-3.8-flash` 系のフォールバックチェーンを使い、OpenAIは `gpt-6.2-astra` → `gpt-6-astra` → `gpt-6.2-sol` → `gpt-6.1-sol` → `gpt-6.1-terra` → `gpt-6-sol` → `gpt-5.6-sol` → `gpt-5.6-terra` → `gpt-6-luna` → `gpt-5.6-luna` の順に切り替えます。
 
 ## ✨ Features / 機能
 
@@ -132,14 +136,16 @@ All model lists are centralized in `AI_MODELS` in `server.js` and `openai-chat-c
 ### OpenAI API Fallback Pipeline (画像解析 / Vision Analysis):
 | Rank / 順位 | Model / モデル | Input/output USD per MTok / 入力/出力 USD per MTok |
 |---|---|---|
-| 1 | `gpt-6-astra` | $10/$50 |
-| 2 (default) / 2 (既定) | `gpt-6.1-sol` | $2/$10 |
-| 3 | `gpt-6.1-terra` | $1/$5 |
-| 4 | `gpt-6-sol` | $2/$10 |
-| 5 | `gpt-5.6-sol` | $4/$20 |
-| 6 | `gpt-5.6-terra` | $2/$12 |
-| 7 | `gpt-6-luna` | $0.1/$0.5 |
-| 8 | `gpt-5.6-luna` | $0.2/$1.2 |
+| 1 | `gpt-6.2-astra` | $8/$40 |
+| 2 | `gpt-6-astra` | $10/$50 |
+| 3 | `gpt-6.2-sol` | $2/$10 |
+| 4 | `gpt-6.1-sol` | $2/$10 |
+| 5 | `gpt-6.1-terra` | $1/$5 |
+| 6 | `gpt-6-sol` | $2/$10 |
+| 7 | `gpt-5.6-sol` | $4/$20 |
+| 8 | `gpt-5.6-terra` | $2/$12 |
+| 9 (default) / 9 (既定) | `gpt-6-luna` | $0.10/$0.50 |
+| 10 | `gpt-5.6-luna` | $0.20/$1.20 |
 
 ### Gemini API Fallback Pipeline (テキスト生成 / Text Generation):
 | Priority / 優先度 | Model / モデル | Use / 用途 |
@@ -152,14 +158,16 @@ All model lists are centralized in `AI_MODELS` in `server.js` and `openai-chat-c
 ### OpenAI API Fallback Pipeline (テキスト生成 / Text Generation):
 | Rank / 順位 | Model / モデル | Input/output USD per MTok / 入力/出力 USD per MTok |
 |---|---|---|
-| 1 | `gpt-6-astra` | $10/$50 |
-| 2 (default) / 2 (既定) | `gpt-6.1-sol` | $2/$10 |
-| 3 | `gpt-6.1-terra` | $1/$5 |
-| 4 | `gpt-6-sol` | $2/$10 |
-| 5 | `gpt-5.6-sol` | $4/$20 |
-| 6 | `gpt-5.6-terra` | $2/$12 |
-| 7 | `gpt-6-luna` | $0.1/$0.5 |
-| 8 | `gpt-5.6-luna` | $0.2/$1.2 |
+| 1 | `gpt-6.2-astra` | $8/$40 |
+| 2 | `gpt-6-astra` | $10/$50 |
+| 3 | `gpt-6.2-sol` | $2/$10 |
+| 4 | `gpt-6.1-sol` | $2/$10 |
+| 5 | `gpt-6.1-terra` | $1/$5 |
+| 6 | `gpt-6-sol` | $2/$10 |
+| 7 | `gpt-5.6-sol` | $4/$20 |
+| 8 | `gpt-5.6-terra` | $2/$12 |
+| 9 (default) / 9 (既定) | `gpt-6-luna` | $0.10/$0.50 |
+| 10 | `gpt-5.6-luna` | $0.20/$1.20 |
 
 ## 📝 Setup & Launch / セットアップと起動
 

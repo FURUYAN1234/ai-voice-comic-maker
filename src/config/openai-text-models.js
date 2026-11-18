@@ -1,8 +1,17 @@
 // Snapshot of maintained model options for standalone releases.
 export default {
-  "priceSnapshotDate": "2026-10-27",
-  "priceSnapshotSource": "OpenAI official model pricing",
+  "priceSnapshotDate": "2026-11-18",
+  "priceSnapshotSource": "https://developers.openai.com/api/docs/pricing",
   "models": [
+    {
+      "id": "gpt-6.2-astra",
+      "label": "GPT-6.2 Astra",
+      "group": "GPT-6.2",
+      "description": "複雑な指示や多段の判断を重視",
+      "inputPriceUsdPerM": 8,
+      "outputPriceUsdPerM": 40,
+      "comparisonNote": "旧GPT-6 Astraより通常の入力・出力単価が20%低いモデルです。"
+    },
     {
       "id": "gpt-6-astra",
       "label": "GPT-6 Astra",
@@ -10,23 +19,30 @@ export default {
       "description": "複雑な制約・演出を重視したシナリオ",
       "inputPriceUsdPerM": 10,
       "outputPriceUsdPerM": 50,
-      "comparisonNote": "最も難しい題材や複数の制約を優先。通常の4コマには過剰になり得ます。"
+      "comparisonNote": "従来のAstraです。GPT-6.2 Astraと価格・出力を比較できます。"
+    },
+    {
+      "id": "gpt-6.2-sol",
+      "label": "GPT-6.2 Sol",
+      "group": "GPT-6.2",
+      "description": "複数の条件がある処理と料金のバランス",
+      "inputPriceUsdPerM": 2,
+      "outputPriceUsdPerM": 10,
+      "comparisonNote": "通常の入力・出力単価はGPT-6.1 Solと同じです。"
     },
     {
       "id": "gpt-6.1-sol",
       "label": "GPT-6.1 Sol",
       "group": "GPT-6.1",
-      "priceSnapshotDate": "2026-09-30",
       "description": "新しいSol・構成品質と料金のバランス",
       "inputPriceUsdPerM": 2,
       "outputPriceUsdPerM": 10,
-      "comparisonNote": "公開版の初期モデル。通常の入力・出力単価はAstraの5分の1。題材ごとの生成結果を確認してください。"
+      "comparisonNote": "通常の入力・出力単価はAstraの5分の1。題材ごとの生成結果を確認してください。"
     },
     {
       "id": "gpt-6.1-terra",
       "label": "GPT-6.1 Terra",
       "group": "GPT-6.1",
-      "priceSnapshotDate": "2026-10-27",
       "description": "画像の理解と文章作成を素早く低コストで処理",
       "inputPriceUsdPerM": 1,
       "outputPriceUsdPerM": 5,

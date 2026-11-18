@@ -18,7 +18,7 @@ import { modelStatusFromLogs } from './model-status.js';
 import { OPENAI_MODEL_OPTIONS, OPENAI_MODEL_PRICE_SNAPSHOT_DATE, OPENAI_PRONUNCIATION_MODEL, DEFAULT_OPENAI_MODEL, fallbackModels } from '../openai-chat-contract.js';
 import React, { useState, useEffect } from 'react';
 
-const SYSTEM_VERSION = '1.9.7';
+const SYSTEM_VERSION = '1.9.8';
 const DEBUG_MODE = false;
 
 // タイトルを「」で囲むヘルパー（すでに囲まれていたら二重にしない）
