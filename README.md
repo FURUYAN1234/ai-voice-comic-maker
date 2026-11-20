@@ -39,6 +39,10 @@ v1.9.9 — AI-driven 4-koma manga voiceover and video generation tool using Dual
 
 [!['ChatGPT Image 2026年6月25日 22_19_30'](https://github.com/user-attachments/assets/d850ac7f-aa1c-40cc-a378-b8c6673c726c)](https://youtu.be/pqYVxUUg0Cs?si=27g1I3tO2EuZkOuxJ)
 
+## Introduction video / 紹介動画
+
+[![Watch the AI Voice Comic Maker introduction / AI Voice Comic Makerの紹介動画を見る](https://i.ytimg.com/vi/tvRorkgMPao/hqdefault.jpg)](https://youtu.be/tvRorkgMPao)
+
 **[Super FURU AI 4-koma System](https://github.com/FURUYAN1234/nano-banana-pro)** Integration / 連携対応
 The generated voice comic videos provide overwhelming immersion for TikTok, Shorts, and social media platforms. / 生成された声付き動画は、TikTokやYouTube Shorts向けの動画素材として圧倒的な没入感を提供します。
 
