@@ -32,7 +32,7 @@ for(const stage of ['upload','ocr-error','result'])test(`ordinary UI ignores lat
 });
 
 test('failed cancellation acknowledgement keeps restart locked and offers an explicit safe retry',async()=>{
- const a=source.indexOf('  const handleCancel = async'),b=source.indexOf('  // ── ダウンロード',a);
+ const a=source.indexOf('  const handleCancel = async'),b=source.indexOf('\n  };',a)+5;
  const controller=new AbortController(),env={phase:'generating',apiChecking:false,abortControllerRef:{current:controller},sessionIdRef:{current:'own-session'},PHASE:{CANCELLING:'cancelling',DROP:'drop'}};
  let requests=0,fail=true;
  env.setPhase=value=>{env.phase=value;};env.setError=value=>{env.error=value;};env.setProgress=()=>{};

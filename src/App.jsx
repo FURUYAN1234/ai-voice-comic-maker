@@ -1,11 +1,13 @@
 import { localApiFetch } from './local-api.js';
+import { connectFuruMcp, mcpAppError } from './mcp-connection.js';
 import { modelStatusFromLogs } from './model-status.js';
+import { GEMINI_TITLE_VOICE, GEMINI_VOICES, getGeminiVoiceAssignments, isGeminiPageText } from './gemini-voices.js';
 /**
  * AI Voice Comic Maker - メインアプリケーション
  * 
  * 正式仕様:
  * 漫画画像をドロップするだけ → Gemini/OpenAI Vision OCR で全自動解析
- * → VOICEVOX / Supertonic 3 / Edge-TTS 音声合成 → Remotion動画レンダリング
+ * → VOICEVOX / Supertonic 3 / Edge-TTS / Gemini TTS 音声合成 → Remotion動画レンダリング
  * 
  * JSONは一切不要。全てAIが判断する。
  * 
@@ -18,7 +20,7 @@ import { modelStatusFromLogs } from './model-status.js';
 import { OPENAI_MODEL_OPTIONS, OPENAI_MODEL_PRICE_SNAPSHOT_DATE, OPENAI_PRONUNCIATION_MODEL, DEFAULT_OPENAI_MODEL, fallbackModels } from '../openai-chat-contract.js';
 import React, { useState, useEffect } from 'react';
 
-const SYSTEM_VERSION = '1.9.8';
+const SYSTEM_VERSION = '1.9.9';
 const DEBUG_MODE = false;
 
 // タイトルを「」で囲むヘルパー（すでに囲まれていたら二重にしない）
@@ -34,6 +36,8 @@ const getTtsEngineLabel = (engine) => {
       return 'Supertonic 3';
     case 'voicevox':
       return 'VOICEVOX';
+    case 'gemini':
+      return 'Gemini 3.8 Flash TTS';
     default:
       return 'Auto';
   }
@@ -43,6 +47,7 @@ const getTtsEngineLabel = (engine) => {
 const PHASE = {
   SETUP: 'setup',       // APIキー入力 + VOICEVOX接続確認
   DROP: 'drop',         // 画像ドロップ待ち
+  CASTING: 'casting',
   GENERATING: 'generating', // AI解析 → 音声合成 → 動画生成
   CANCELLING: 'cancelling', // 中断処理中
   COMPLETE: 'complete', // 完成 → プレーヤー＆ダウンロード
@@ -53,7 +58,8 @@ export default function App() {
   const [voicevoxStatus, setVoicevoxStatus] = useState('checking'); // checking | connected | error
   const [edgettsStatus, setEdgettsStatus] = useState('checking'); // checking | connected | error
   const [supertonicStatus, setSupertonicStatus] = useState('checking'); // checking | connected | error
-  const [ttsEngine, setTtsEngine] = useState('auto'); // auto | voicevox | supertonic
+  const [ttsEngine, setTtsEngine] = useState('auto');
+  const [geminiCast, setGeminiCast] = useState(null);
   const [geminiKey, setGeminiKey] = useState('');
   const [geminiKeyValid, setGeminiKeyValid] = useState(false);
   const [apiChecking,setApiChecking]=useState(false);
@@ -74,7 +80,35 @@ export default function App() {
   const logEndRef = React.useRef(null);
   const abortControllerRef = React.useRef(null);
   const sessionIdRef=React.useRef(null);
+  const pendingGeminiCast = React.useRef(null);
   const ttsEngineRef = React.useRef('auto');
+  const mcpMount = React.useRef(null);
+  const mcpControlMount = React.useRef(null);
+  const mcpStatusMount = React.useRef(null);
+  const mcpSession = React.useRef(false);
+  const mcpImage = React.useRef(null);
+  const mcpActions = React.useRef(null);
+  const [mcpConnected, setMcpConnected] = useState(false);
+  const apiInputRef = React.useRef(null);
+  const focusApiInput = React.useRef(false);
+
+  useEffect(() => {
+    if (!focusApiInput.current || phase !== PHASE.SETUP || geminiKeyValid) return;
+    apiInputRef.current?.focus();
+    focusApiInput.current = false;
+  }, [phase, geminiKeyValid]);
+
+  const openApiSetup = () => {
+    if (apiChecking || phase === PHASE.GENERATING || phase === PHASE.CASTING || phase === PHASE.CANCELLING) return;
+    if (phase === PHASE.SETUP && !geminiKeyValid) {
+      apiInputRef.current?.focus();
+      return;
+    }
+    focusApiInput.current = true;
+    setGeminiKey('');
+    setGeminiKeyValid(false);
+    setPhase(PHASE.SETUP);
+  };
 
   // ターミナルの自動スクロール
   useEffect(() => {
@@ -88,9 +122,10 @@ export default function App() {
   }, [ttsEngine]);
 
   useEffect(() => {
-    if (ttsEngine === 'voicevox' && voicevoxStatus !== 'connected') setTtsEngine('auto');
+    if (ttsEngine === 'voicevox' && voicevoxStatus === 'error') setTtsEngine('auto');
     if (ttsEngine === 'supertonic' && supertonicStatus !== 'connected') setTtsEngine('auto');
-  }, [ttsEngine, voicevoxStatus, supertonicStatus]);
+    if (ttsEngine === 'gemini' && activeEngine !== 'gemini') setTtsEngine('auto');
+  }, [ttsEngine, voicevoxStatus, supertonicStatus, activeEngine]);
 
   // ── リアルタイムバックエンドログのポーリング ──
   useEffect(() => {
@@ -146,13 +181,18 @@ export default function App() {
     try {
       const res = await localApiFetch('/api/apistatus');
       const data = await res.json();
-      if (data.configured) {
-        setGeminiKeyValid(true);
-        setActiveEngine(data.engine || 'gemini');
-      }
+      if (data.configured) applyApiConnection(data.engine);
     } catch {
       // サーバー未起動時は無視
     }
+  };
+
+  const applyApiConnection = (engine = 'gemini') => {
+    const defaultTts = engine === 'gemini' ? 'gemini' : voicevoxStatus === 'error' ? 'auto' : 'voicevox';
+    ttsEngineRef.current = defaultTts;
+    setTtsEngine(defaultTts);
+    setActiveEngine(engine);
+    setGeminiKeyValid(true);
   };
 
   // ── VOICEVOX 接続チェック ──
@@ -219,8 +259,7 @@ export default function App() {
       const data = await res.json();
       controller.signal.throwIfAborted();
       if (data.valid) {
-        setGeminiKeyValid(true);
-        setActiveEngine(data.engine || 'gemini');
+        applyApiConnection(data.engine);
         setError(null);
       } else {
         setError('APIキーが無効です。正しいキーを入力してください。');
@@ -231,7 +270,7 @@ export default function App() {
   };
 
   // ── 両方OKならドロップフェーズに遷移 ──
-  const canProceed = (voicevoxStatus === 'connected' || supertonicStatus === 'connected') && geminiKeyValid;
+  const canProceed = geminiKeyValid && (activeEngine === 'gemini' || voicevoxStatus === 'connected' || supertonicStatus === 'connected');
   useEffect(() => {
     if (canProceed && phase === PHASE.SETUP) {
       setPhase(PHASE.DROP);
@@ -247,7 +286,7 @@ export default function App() {
     const imageFile = droppedFiles.find(f => /\.(png|jpg|jpeg|webp)$/i.test(f.name));
 
     if (imageFile) {
-      startGeneration(imageFile);
+      selectComicImage(imageFile);
     } else {
       setError('⚠️ 漫画画像 (.png/.jpg/.webp) をドロップしてください');
     }
@@ -257,12 +296,42 @@ export default function App() {
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
     if (file && /\.(png|jpg|jpeg|webp)$/i.test(file.name)) {
-      startGeneration(file);
+      selectComicImage(file);
     }
   };
 
   // ── 動画生成開始 ──
-  const startGeneration = async (imageFile) => {
+  const selectComicImage = (file) => {
+    if (!mcpSession.current) return startGeneration(file);
+    if (file.size > 20 * 1024 * 1024) {
+      mcpImage.current = null;
+      setSelectedImage(null);
+      setError('画像は20 MiB以下にしてください');
+      return;
+    }
+    setError(null);
+    mcpImage.current = file;
+    setSelectedImage(file);
+  };
+
+  const waitForGeminiCast = (metadata, signal) => {
+    setGeminiCast({ voices: getGeminiVoiceAssignments(metadata, true), title: GEMINI_TITLE_VOICE, includePageText: false });
+    setPhase(PHASE.CASTING);
+    return new Promise((resolve, reject) => {
+      const onAbort = () => {
+        pendingGeminiCast.current = null;
+        reject(signal.reason);
+      };
+      signal.addEventListener('abort', onAbort, { once: true });
+      pendingGeminiCast.current = selection => {
+        signal.removeEventListener('abort', onAbort);
+        pendingGeminiCast.current = null;
+        resolve(selection);
+      };
+    });
+  };
+
+  const startGeneration = async (imageFile, forMcp = false, casting = {}) => {
     if(abortControllerRef.current)return;
     if (imageFile.size > 20 * 1024 * 1024) {
       setError('画像は20 MiB以下にしてください');
@@ -323,6 +392,20 @@ export default function App() {
       setVideoTitle(metadata.title || imageFile.name.replace(/\.[^.]+$/, ''));
       setOcrPreview(metadata);
 
+      const selection = selectedTtsEngine === 'gemini' && !forMcp
+        ? await waitForGeminiCast(metadata, signal)
+        : { voices: casting.geminiVoices, title: casting.geminiTitleVoice, includePageText: casting.geminiIncludePageText };
+      signal.throwIfAborted();
+      if (selectedTtsEngine === 'gemini') {
+        const bySpeaker = new Map((selection.voices ?? []).map(({speaker, voice}) => [speaker, voice]));
+        setOcrPreview({...metadata, panels: metadata.panels.map(panel => ({...panel,
+          dialogues: (panel.dialogues ?? []).filter(line => selection.includePageText || !isGeminiPageText(line)).map(line => ({...line,
+            geminiVoiceId: bySpeaker.get(line.speaker) ?? line.geminiVoiceId,
+          })),
+        }))});
+      }
+      setPhase(PHASE.GENERATING);
+
       // Step 3: 音声合成
       setProgress({ step: 3, total: 5, message: `${getTtsEngineLabel(selectedTtsEngine)} で音声合成中... 🎙️` });
 
@@ -333,12 +416,15 @@ export default function App() {
       const genRes = await localApiFetch(`/api/generate/${sessionId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ttsEngine: selectedTtsEngine }),
+        body: JSON.stringify({ ttsEngine: selectedTtsEngine, geminiVoices: selection.voices,
+          geminiTitleVoice: selection.title, geminiIncludePageText: selection.includePageText }),
         signal
       });
       signal.throwIfAborted();
       if (!genRes.ok) {
         const errData = await genRes.json().catch(() => ({}));
+        signal.throwIfAborted();
+        if (forMcp && errData.code === 'INVALID_GEMINI_CAST') throw mcpAppError(errData.code);
         throw new Error(errData.error || '動画生成に失敗しました');
       }
 
@@ -352,6 +438,11 @@ export default function App() {
         setVideoFilename(genData.videoFilename);
       }
       setPhase(PHASE.COMPLETE);
+      if (forMcp) return {
+        title: metadata.title || imageFile.name.replace(/\.[^.]+$/, ''),
+        videoPath: genData.videoPath,
+        videoFilename: genData.videoFilename,
+      };
 
     } catch (err) {
       if (signal.aborted || err.name === 'AbortError' || err.message === 'CanceledByUser') {
@@ -361,11 +452,12 @@ export default function App() {
         setError(err.message);
         setPhase(PHASE.DROP);
       }
+      if (forMcp) throw err;
     } finally {if(abortControllerRef.current===controller)abortControllerRef.current=null;}
   };
 
   // ── 生成中断 ──
-  const handleCancel = async () => {
+  const handleCancel = async (forMcp = false) => {
     const controller=abortControllerRef.current;
     if(phase !== PHASE.CANCELLING && (!controller || controller.signal.aborted))return;
     controller?.abort();
@@ -380,8 +472,41 @@ export default function App() {
       setPhase(PHASE.DROP);
       setProgress({step:0,total:5,message:'生成を中断しました。'});
       setError(null);
-    } catch(error){setError('中断の確認に失敗しました。バックエンドの状態を確認してから再実行してください。');}
+    } catch (error) {
+      setError('中断の確認に失敗しました。バックエンドの状態を確認してから再実行してください。');
+      if (forMcp === true) throw error;
+    }
   };
+
+  useEffect(() => {
+    mcpActions.current = {
+      readiness: () => geminiKeyValid,
+      stop: () => handleCancel(true),
+      async execute(action, input) {
+        if (action !== 'render_page') throw mcpAppError('OUTPUT_INVALID');
+        if (!geminiKeyValid) throw mcpAppError('API_REQUIRED');
+        if (apiChecking || abortControllerRef.current || phase === PHASE.CANCELLING) throw mcpAppError('APP_BUSY');
+        if (!mcpImage.current) throw mcpAppError('INPUT_REQUIRED');
+        if ((input.geminiVoices || input.geminiTitleVoice || input.geminiIncludePageText !== undefined)
+          && ttsEngineRef.current !== 'gemini') throw mcpAppError('GEMINI_TTS_REQUIRED');
+        return startGeneration(mcpImage.current, true, input);
+      },
+    };
+  });
+  useEffect(() => connectFuruMcp({
+    appId: 'ai-voice-comic-maker',
+    mount: mcpMount.current,
+    controlMount: mcpControlMount.current,
+    statusMount: mcpStatusMount.current,
+    readiness: () => mcpActions.current.readiness(),
+    stop: () => mcpActions.current.stop(),
+    execute: (action, input) => mcpActions.current.execute(action, input),
+    onConnection(connected) {
+      mcpSession.current = connected;
+      if (!connected) mcpImage.current = null;
+      setMcpConnected(connected);
+    },
+  }), []);
 
   // ── ダウンロード ──
   const handleDownload = () => {
@@ -427,17 +552,41 @@ export default function App() {
     setError(null);
   };
 
+  const castingSpeakerNames = new Set(phase === PHASE.CASTING
+    ? getGeminiVoiceAssignments(ocrPreview, geminiCast.includePageText).map(row => row.speaker) : []);
+
   return (
-    <div className={`app${geminiKeyValid || apiChecking || phase !== PHASE.SETUP ? ' emergency-stop-ready' : ''}`}>
-      {/* ヘッダー */}
+    <div className="app">
+      <div className="voice-toolbar">
+        <div ref={mcpMount} />
+        <nav className="manual-links" aria-label="PDFガイド">
+          <a href={`${import.meta.env.BASE_URL}downloads/short-movie-manual.pdf`} target="_blank" rel="noopener noreferrer">操作マニュアル（PDF）</a>
+          <a href={`${import.meta.env.BASE_URL}downloads/short-movie-api-guide.pdf`} target="_blank" rel="noopener noreferrer">API設定ガイド（PDF）</a>
+        </nav>
+        <button className="api-settings-button" type="button" onClick={openApiSetup} disabled={apiChecking || phase === PHASE.GENERATING || phase === PHASE.CASTING || phase === PHASE.CANCELLING}>
+          API設定・切替（Gemini / OpenAI）
+        </button>
+        <div className="voice-toolbar-stop">
+          <div className="voice-toolbar-status" ref={mcpStatusMount} />
+          <div ref={mcpControlMount} />
+          {!mcpConnected && (geminiKeyValid || apiChecking || phase !== PHASE.SETUP) && (
+            <button id="emergency-stop" aria-label="緊急停止：通信・生成を中断" aria-describedby="emergency-stop-help"
+              title="通信と生成を中断します。API提供元での処理・課金停止は保証しません。"
+              type="button" className="btn btn-emergency-stop" onClick={handleCancel}
+              disabled={!apiChecking && phase !== PHASE.GENERATING}>⏹ 緊急停止</button>
+          )}
+        </div>
+      </div>
       <header className="header">
         <h1 className="header-title">
           <span className="header-icon">🎬</span>
           AI Voice Comic Maker <span style={{ fontSize: '16px', color: '#9090b8', WebkitTextFillColor: 'initial', fontWeight: 'normal', marginLeft: '8px', verticalAlign: 'middle' }}>v{SYSTEM_VERSION}</span>
         </h1>
         <p className="header-subtitle">漫画画像をドロップするだけ。AIが全自動でボイスコミック動画を生成</p>
-        <nav className="manual-links" aria-label="PDFガイド"><a href={`${import.meta.env.BASE_URL}downloads/short-movie-manual.pdf`} target="_blank" rel="noopener noreferrer">操作マニュアル（PDF）</a><a href={`${import.meta.env.BASE_URL}downloads/short-movie-api-guide.pdf`} target="_blank" rel="noopener noreferrer">API設定ガイド（PDF）</a></nav><p className="manual-help">別タブで開き、PDFビューアーから保存できます。</p>
-        {(geminiKeyValid || apiChecking || phase !== PHASE.SETUP) && <div className="emergency-controls"><button id="emergency-stop" aria-label="緊急停止：通信・生成を中断" title="通信と生成を中断します。API提供元での処理・課金停止は保証しません。" type="button" className="btn btn-emergency-stop" onClick={handleCancel} disabled={!apiChecking && phase !== PHASE.GENERATING}>⏹ 緊急停止</button><p className="manual-help">API接続確認・AI解析・音声・動画処理中だけ有効です。API側の処理・課金停止は保証しません。</p></div>}
+        {(geminiKeyValid || apiChecking || phase !== PHASE.SETUP) && <p id="emergency-stop-help" className="manual-help">緊急停止はAPI接続確認・AI解析・音声・動画処理中に使えます。API側の処理や課金が止まらない場合があります。</p>}
+        {mcpConnected && phase === PHASE.DROP && <p role="status" className="manual-help">
+          {mcpImage.current ? 'MCPに渡す画像: ' + selectedImage?.name : 'MCPで処理する漫画画像を選択してください。'}
+        </p>}
       </header>
       {(activeEngine === 'openai' || geminiKey.trim().startsWith('sk-')) && <div className="card openai-model-card">
         <label htmlFor="openai-model">解析・校正モデル <span>OPENAI</span></label>
@@ -469,7 +618,7 @@ export default function App() {
                   {geminiKeyValid ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
                       <p className="setup-hint success" style={{ margin: 0 }}>設定済み ({activeEngine === 'openai' ? 'OpenAI' : 'Gemini (推奨/高精度)'})</p>
-                      <button className="btn-change-key" onClick={() => { setGeminiKey(''); setGeminiKeyValid(false); }}>🔄 API切替（Gemini / OpenAI）</button>
+                      <button className="btn-change-key" onClick={openApiSetup}>🔄 API切替（Gemini / OpenAI）</button>
                     </div>
                   ) : (
                     <div className="api-key-form">
@@ -493,6 +642,8 @@ export default function App() {
                       >
                         <input
                           type="password"
+                          ref={apiInputRef}
+                          aria-label="AI API Key"
                           className="api-key-input"
                           placeholder="AIza... または sk-..."
                           value={geminiKey}
@@ -594,18 +745,6 @@ export default function App() {
                 <span className={`badge-dot ${activeEngine === 'openai' ? 'badge-dot--openai' : 'badge-dot--gemini'}`} style={activeEngine === 'openai' ? { backgroundColor: '#10a37f', boxShadow: '0 0 8px #10a37f' } : {}} />
                 {activeEngine === 'openai' ? 'OpenAI 準備完了' : 'Gemini AI 準備完了'}
               </div>
-              <button 
-                className="btn-change-key" 
-                onClick={() => {
-                  setGeminiKey('');
-                  setGeminiKeyValid(false);
-                  setPhase(PHASE.SETUP);
-                }}
-                style={{ height: '32px', display: 'flex', alignItems: 'center', alignSelf: 'center' }}
-                title="APIキーを変更する"
-              >
-                🔄 API切替（Gemini / OpenAI）
-              </button>
               <select
                 value={ttsEngine}
                 onChange={(e) => setTtsEngine(e.target.value)}
@@ -624,10 +763,20 @@ export default function App() {
                 <option value="auto">Auto (VOICEVOX priority)</option>
                 <option value="voicevox" disabled={voicevoxStatus !== 'connected'}>VOICEVOX</option>
                 <option value="supertonic" disabled={supertonicStatus !== 'connected'}>Supertonic 3</option>
+                {activeEngine === 'gemini' && <option value="gemini">Gemini 3.8 Flash TTS</option>}
               </select>
             </div>
 
-            {selectedImage && <div className="card"><p>保持中の画像: {selectedImage.name}</p><button type="button" className="btn" onClick={() => startGeneration(selectedImage)}>この画像で再実行</button></div>}
+            {ttsEngine === 'auto' && activeEngine === 'gemini' && voicevoxStatus === 'error' && supertonicStatus === 'error' && (
+              <p className="manual-help">ローカル音声エンジンが未接続です。日本語の合成にはGemini 3.8 Flash TTSを選べます。</p>
+            )}
+
+            {selectedImage && (
+              <div className="card retained-image-card">
+                <p>保持中の画像: {selectedImage.name}</p>
+                <button type="button" className="btn" onClick={() => startGeneration(selectedImage)}>この画像で再実行</button>
+              </div>
+            )}
             <div
               className={`drop-zone ${dragOver ? 'drop-zone--active' : ''}`}
               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -665,6 +814,51 @@ export default function App() {
               <div className="error-banner">{error}</div>
             )}
           </div>
+        )}
+
+        {phase === PHASE.CASTING && (
+          <section className="card casting-card" aria-labelledby="casting-heading">
+            <h2 id="casting-heading">Gemini TTSの配役</h2>
+            <p className="setup-hint">{videoTitle}。同じ話者にはすべてのコマで同じ声を使います。</p>
+            <form onSubmit={event => {
+              event.preventDefault();
+              pendingGeminiCast.current?.({ ...geminiCast, voices: geminiCast.voices.filter(row => castingSpeakerNames.has(row.speaker)) });
+            }}>
+              <div className="casting-voices">
+                {geminiCast.voices.map(({speaker, voice}, index) => (
+                  castingSpeakerNames.has(speaker) && <label key={speaker}>{speaker}
+                    <select value={voice} onChange={event => {
+                      const nextVoice = event.target.value;
+                      setGeminiCast(cast => ({ ...cast, voices: cast.voices.map((row, rowIndex) =>
+                        rowIndex === index ? { ...row, voice: nextVoice } : row) }));
+                    }}>
+                      {GEMINI_VOICES.map(name => <option key={name}>{name}</option>)}
+                    </select>
+                  </label>
+                ))}
+                <label>タイトルコール
+                  <select value={geminiCast.title} onChange={event => {
+                    const title = event.target.value;
+                    setGeminiCast(cast => ({ ...cast, title }));
+                  }}>
+                    {GEMINI_VOICES.map(name => <option key={name}>{name}</option>)}
+                  </select>
+                </label>
+              </div>
+              {geminiCast.voices.length !== getGeminiVoiceAssignments(ocrPreview).length && (
+                <label className="casting-page-text">
+                  <input type="checkbox" checked={geminiCast.includePageText} onChange={event => {
+                    const includePageText = event.target.checked;
+                    setGeminiCast(cast => ({ ...cast, includePageText }));
+                  }} /> 書類・看板・擬音なども読み上げる
+                </label>
+              )}
+              <div className="casting-actions">
+                <button type="button" className="btn btn-change-key" onClick={() => void handleCancel()}>画像の選択に戻る</button>
+                <button type="submit" className="btn btn-primary">この配役で動画を生成</button>
+              </div>
+            </form>
+          </section>
         )}
 
         {/* ──────── Phase: GENERATING (AI解析 → 生成中) ──────── */}
@@ -750,7 +944,7 @@ export default function App() {
                     {Array.from(new Set(
                       ocrPreview.panels.flatMap(p => (p.dialogues || []).map(d => JSON.stringify({
                         name: d.speaker,
-                        voice: ttsEngine === 'supertonic' ? d.supertonicVoiceId : d.voiceId,
+                        voice: ttsEngine === 'gemini' ? d.geminiVoiceId : ttsEngine === 'supertonic' ? d.supertonicVoiceId : d.voiceId,
                         gender: d.gender
                       })))
                     )).map((str, i) => {

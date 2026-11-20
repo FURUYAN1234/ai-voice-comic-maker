@@ -5,9 +5,9 @@ import {execFileSync} from 'node:child_process';
 import {modelStatusFromLogs} from '../src/model-status.js';
 const source=fs.readFileSync(new URL('../src/App.jsx',import.meta.url),'utf8');
 function exerciseHandlers(text){
- const handlers=text.slice(text.indexOf('  const handleDrop ='),text.indexOf('  // ── 動画生成開始'));
+ const handlers=text.slice(text.indexOf('  const handleDrop ='),text.indexOf('  const startGeneration = async'));
  const cached=[];let cursor=0;const calls=[];
- const render=model=>{cursor=0;const env={useCallback:fn=>{const i=cursor++;return cached[i]||(cached[i]=fn);},setDragOver:()=>{},setError:()=>{},startGeneration:file=>calls.push([model,file.name])};return new Function('env',`with(env){${handlers};return {handleDrop,handleFileSelect};}`)(env);};
+ const render=model=>{cursor=0;const env={useCallback:fn=>{const i=cursor++;return cached[i]||(cached[i]=fn);},mcpSession:{current:false},setDragOver:()=>{},setError:()=>{},startGeneration:file=>calls.push([model,file.name])};return new Function('env',`with(env){${handlers};return {handleDrop,handleFileSelect};}`)(env);};
  render('gpt-6.1-sol');const latest=render('gpt-6-luna');
  latest.handleFileSelect({target:{files:[{name:'known.png'}]}});
  latest.handleDrop({preventDefault(){},dataTransfer:{files:[{name:'known.png'}]}});
@@ -30,7 +30,24 @@ test('existing lower-model fallback events remain accurate, unrelated logs canno
  assert.equal(modelStatusFromLogs(null,['OpenAI リクエスト送信中','success']),null);
 });
 
-test('ordinary setup/work/progress/stopped views contain only the upper-right emergency control',async t=>{
+test('provider connection initializes the engine and the value captured for the next render',()=>{
+ const from=source.indexOf('  const applyApiConnection =');
+ const to=source.indexOf('\n  };',from)+5;
+ for(const [engine,voicevoxStatus,expected] of [
+  ['gemini','connected','gemini'],['openai','checking','voicevox'],
+  ['openai','connected','voicevox'],['openai','error','auto'],
+ ]){
+  const state={};
+  const env={voicevoxStatus,ttsEngineRef:{current:null},setTtsEngine:value=>{state.tts=value;},
+   setActiveEngine:value=>{state.engine=value;},setGeminiKeyValid:value=>{state.ready=value;}};
+  const connect=new Function('env',`with(env){${source.slice(from,to)};return applyApiConnection;}`)(env);
+  connect(engine);
+  assert.deepEqual(state,{tts:expected,engine,ready:true});
+  assert.equal(env.ttsEngineRef.current,expected);
+ }
+});
+
+test('ordinary setup/work/progress/stopped views contain at most one emergency control in the top toolbar',async t=>{
  const React=(await import('react')).default;const {createServer}=await import('vite');
  const server=await createServer({appType:'custom',logLevel:'silent',server:{middlewareMode:true,hmr:false}});
  try {
@@ -44,7 +61,12 @@ test('ordinary setup/work/progress/stopped views contain only the upper-right em
   for(phase of ['setup','drop','generating','cancelling','complete']){
    index=0;const nodes=walk(App());const buttons=nodes.filter(n=>n.type==='button'&&String(n.props.className).split(' ').includes('btn-emergency-stop'));
    assert.equal(buttons.length,phase==='setup'?0:1,phase+' emergency control count');
-   if(buttons.length){assert.equal(buttons[0].props.id,'emergency-stop');assert.equal(buttons[0].props.disabled,phase!=='generating');}
+   if(buttons.length){
+    const toolbar=nodes.find(n=>n.props?.className==='voice-toolbar');
+    assert.ok(walk(toolbar).includes(buttons[0]));
+    assert.equal(buttons[0].props.id,'emergency-stop');
+    assert.equal(buttons[0].props.disabled,phase!=='generating');
+   }
   }
  } finally {await server.close();}
 });
@@ -61,5 +83,6 @@ test('disabled emergency stop is neutral gray and readable while active stays re
  const lum=gray.map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((v,c,i)=>v+c*[.2126,.7152,.0722][i],0);
  assert.ok(1.05/(lum+.05)>=4.5,'white disabled text contrast');
  assert.match(disabled,/color:\s*#fff/);assert.match(disabled,/opacity:\s*1(?:;|$)/);assert.match(disabled,/cursor:\s*not-allowed/);
- assert.match(css,/#emergency-stop\s*\{[^}]*top:20px;[^}]*right:12px;/);
+ assert.match(css,/\.voice-toolbar\s*\{[^}]*position:sticky;top:0/);
+ assert.doesNotMatch(css,/\.emergency-controls::before/);
 });

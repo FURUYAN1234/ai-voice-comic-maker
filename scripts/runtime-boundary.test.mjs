@@ -34,10 +34,15 @@ function fixture(t) {
 
 test('production build excludes new and legacy private assets without deleting originals', async t => {
   const dir = fixture(t);
+  for (const file of ['package.json', 'package-lock.json', 'vite.config.js', 'public/downloads/ai-voice-comic-maker-mcp-guide.html']) {
+    fs.copyFileSync(path.join(root, file), path.join(dir, file));
+  }
+  fs.mkdirSync(path.join(dir, 'src'));
+  fs.cpSync(path.join(root, 'mcp/skills'), path.join(dir, 'mcp/skills'), { recursive: true });
   const config = configFactory({ command: 'build' });
   await build({ ...config, root: dir, configFile: false, logLevel: 'silent' });
-  assert.deepEqual(fs.readdirSync(path.join(dir, 'dist')).sort(), ['.nojekyll', 'LICENSE.txt', 'downloads', 'index.html']);
-  assert.deepEqual(fs.readdirSync(path.join(dir, 'dist/downloads')).sort(), ['short-movie-api-guide.pdf', 'short-movie-manual.pdf']);
+  assert.deepEqual(fs.readdirSync(path.join(dir, 'dist')).sort(), ['.nojekyll', 'LICENSE.txt', 'downloads', 'furu-mcp-build.json', 'index.html']);
+  assert.deepEqual(fs.readdirSync(path.join(dir, 'dist/downloads')).sort(), ['ai-voice-comic-maker-mcp-guide.html', 'ai-voice-comic-maker-mcp-skill.zip', 'short-movie-api-guide.pdf', 'short-movie-manual.pdf']);
   assert.equal(fs.readFileSync(path.join(dir, 'dist/downloads/short-movie-manual.pdf'), 'utf8'), '%PDF-1.7 manual fixture');
   assert.equal(fs.readFileSync(path.join(dir, 'dist/LICENSE.txt'), 'utf8'), 'Public license fixture');
   assert.match(fs.readFileSync(path.join(dir, 'dist/index.html'), 'utf8'), /http-equiv="Content-Security-Policy"/);

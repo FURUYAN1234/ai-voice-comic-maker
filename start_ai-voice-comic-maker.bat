@@ -131,53 +131,15 @@ REM ========================================================
 REM   Launch Application
 REM ========================================================
 :LAUNCH_APP
-REM --- Supertonic 3 TTS Engine Check ---
+REM Use the same local speech setup for manual and MCP launches.
 echo [INFO] Checking Supertonic 3 TTS Engine...
-
-where python >nul 2>nul
-if errorlevel 1 (
-    echo [WARN] Python is not installed. Supertonic 3 will not be available.
-    echo [WARN] VOICEVOX will be used as the primary local Japanese TTS engine.
-    goto RUN_APP
-)
-
-python -c "import supertonic" >nul 2>nul
-if errorlevel 1 (
-    echo [INFO] Supertonic 3 not found. Installing via pip...
-    python -m pip install "supertonic[serve]"
-    if errorlevel 1 (
-        echo [WARN] Failed to install Supertonic 3. Continuing without it.
-        goto RUN_APP
-    )
-)
-
-curl -s -o nul -w "%%{http_code}" http://127.0.0.1:7789/v1/health > "%TEMP%\st_status.txt" 2>nul
-set /p STSTATUS=<"%TEMP%\st_status.txt"
-del "%TEMP%\st_status.txt" 2>nul
-if "!STSTATUS!"=="200" (
-    echo [OK] Supertonic 3 serve is already running.
-    goto RUN_APP
-)
-
-echo [INFO] Starting Supertonic 3 serve on port 7789...
-start /B supertonic serve --host 127.0.0.1 --port 7789
-
-set ST_ATTEMPTS=0
-:WAIT_ST
-set /a ST_ATTEMPTS+=1
-echo [INFO] Waiting for Supertonic 3 to respond...
-timeout /t 3 /nobreak >nul
-curl -s -o nul -w "%%{http_code}" http://127.0.0.1:7789/v1/health > "%TEMP%\st_status.txt" 2>nul
-set /p ST_RECHECK=<"%TEMP%\st_status.txt"
-del "%TEMP%\st_status.txt" 2>nul
-if "!ST_RECHECK!"=="200" (
-    echo [OK] Supertonic 3 is ready.
-    goto RUN_APP
-)
-if !ST_ATTEMPTS! LSS 5 goto WAIT_ST
-echo [WARN] Supertonic 3 did not start. Continuing with VOICEVOX only.
-
+node "%~dp0scripts\local-tts.mjs" --install
+if errorlevel 1 echo [WARN] Supertonic 3 is unavailable. Check supertonic.log or use VOICEVOX.
 :RUN_APP
+if /I "%~1"=="--mcp" (
+    call "%~dp0Launch-MCP.cmd" -Action Start
+    exit /b !errorlevel!
+)
 echo [INFO] Launching frontend + backend server...
 call npm run dev
 

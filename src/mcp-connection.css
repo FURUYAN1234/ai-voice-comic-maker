@@ -1,0 +1,56 @@
+.furu-mcp-connection {
+  margin-inline-start: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  max-width: 100%;
+  padding: 8px 12px;
+  color: #f8fafc;
+  background: #16293d;
+  border: 1px solid #7095bd;
+  border-radius: 8px;
+  font: 14px / 1.5 system-ui, sans-serif;
+}
+
+.furu-mcp-connection button {
+  color: #182132;
+  background: #ffd286;
+  border: 0;
+  border-radius: 4px;
+  padding: 5px 9px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.furu-mcp-resources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.furu-mcp-resources a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 3px 11px;
+  border: 1px solid #779ec8;
+  border-radius: 6px;
+  color: #eaf3ff;
+  background: #18324e;
+  font: 600 13px / 1.4 system-ui, sans-serif;
+  text-decoration: none;
+}
+
+.furu-mcp-resources a:hover,
+.furu-mcp-resources a:focus-visible {
+  background: #244d77;
+  text-decoration: underline;
+}
+
+/* A connected app uses the single MCP stop control in the upper toolbar. */
+.furu-mcp-active :is(#btn-ai-disconnect, #ai-emergency-stop, #stop-ai) {
+  visibility: hidden;
+}

@@ -860,23 +860,48 @@ body::before {
 .openai-model-card details p { margin-top: 8px; }
 @media (max-width: 480px) { .openai-model-card { width: calc(100% - 24px); padding: 16px; } }
 
-.manual-links { display:flex; justify-content:center; flex-wrap:wrap; gap:8px; margin-top:16px; }
-.manual-links a { display:inline-flex; border:1px solid var(--text-muted); border-radius:8px; padding:8px 12px; color:var(--text-secondary); text-decoration:none; font-size:12px; line-height:1.5; }
-.manual-links a:hover { color:var(--text-primary); background:var(--bg-card-hover); }
-.manual-links a:focus-visible { outline:2px solid var(--accent-cyan); outline-offset:3px; }
+.voice-toolbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;padding:12px 20px;background:var(--bg-primary);border-bottom:1px solid var(--border-color)}
+.voice-toolbar .furu-mcp-resources{padding:0}
+.voice-toolbar .furu-mcp-connection{gap:8px;margin:0;padding:0;border:0;background:transparent;color:var(--text-secondary);font-size:12px}
+.voice-toolbar-stop{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-inline-start:auto;max-width:100%}
+.voice-toolbar-stop > :empty,.voice-toolbar-stop:not(:has(.furu-mcp-connection,#emergency-stop)){display:none}
+.voice-toolbar-status{min-width:0;max-width:min(18em,100%);color:var(--text-secondary);font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.manual-links { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.voice-toolbar :is(.manual-links a,.api-settings-button,.furu-mcp-resources a,.furu-mcp-connection button,#emergency-stop){
+  display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:5px 11px;border-radius:6px;
+  font:600 13px/1.35 var(--font-body,system-ui);text-align:center;
+}
+.voice-toolbar :is(.manual-links a, .api-settings-button) { border:1px solid var(--text-muted); color:var(--text-secondary); text-decoration:none; }
+.api-settings-button { background:transparent; cursor:pointer; }
+.api-settings-button:disabled { opacity:.5; cursor:not-allowed; }
+.manual-links :is(a, button):hover { color:var(--text-primary); background:var(--bg-card-hover); }
+.manual-links :is(a, button):focus-visible { outline:2px solid var(--accent-cyan); outline-offset:3px; }
 .manual-help { color:var(--text-muted); font-size:11px; margin-top:8px; }
+.casting-card{text-align:left}
+.casting-voices{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr));gap:12px;margin:16px 0}
+.casting-voices label{display:grid;gap:6px;min-width:0;overflow-wrap:anywhere;color:var(--text-secondary);font-size:13px}
+.casting-voices select{width:100%;min-height:40px;padding:6px 8px;color:var(--text-primary);background:var(--bg-card);border:1px solid var(--border-color);border-radius:6px}
+.casting-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px}
+.casting-page-text{display:flex;align-items:center;gap:8px;margin-bottom:16px;color:var(--text-secondary);font-size:13px}
 
-@media (max-width: 360px) { .manual-links { width:100%; flex-direction:column; align-items:stretch; } .manual-links a { width:100%; justify-content:center; } }
+.retained-image-card {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
 
-.emergency-controls{display:grid;justify-items:center;gap:8px;margin-top:16px}
+.retained-image-card p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 360px) { .manual-links { width:100%; flex-direction:column; align-items:stretch; } .manual-links :is(a, button) { width:100%; justify-content:center; } }
+
 .btn.btn-emergency-stop{background:#b91c1c;color:#fff;border:2px solid #fca5a5;font-weight:800}
 .btn.btn-emergency-stop:not(:disabled):hover{background:#dc2626;color:#fff}
 .btn.btn-emergency-stop:disabled{background:#4b5563;color:#fff;border-color:#9ca3af;opacity:1;cursor:not-allowed;transform:none}
 .btn.btn-emergency-stop:focus-visible{outline:3px solid #fde047;outline-offset:3px}
 
-/* Screen-corner emergency dock reserves a separate band above the page header. */
-.emergency-stop-ready .header{padding-top:92px}
-.emergency-controls::before{content:"";position:fixed;inset:0 0 auto;height:76px;background:var(--bg-primary);z-index:10000}
-#emergency-stop{position:fixed;top:20px;right:12px;z-index:10001;min-height:44px;max-width:calc(100vw - 24px);white-space:nowrap;box-sizing:border-box}
 .openai-model-card{min-width:0;box-sizing:border-box}
 .openai-model-card .openai-model-help{font-size:12px;line-height:1.6;white-space:normal;overflow-wrap:anywhere}

@@ -1,0 +1,3 @@
+interface:
+  display_name: "AI音声コミックメーカー"
+  short_description: "漫画の話者と読み順を照合し、音声付き動画の声と映像を確認"

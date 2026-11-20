@@ -1,3 +1,4 @@
+import { furuMcpBuild } from './mcp/build.mjs';
 import { webSecurity } from './scripts/web-security.mjs';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -12,16 +13,16 @@ function publicBuildAllowlist() {
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const pathname = (req.url || '').split('?')[0];
-        if (!['/downloads/short-movie-manual.pdf', '/downloads/short-movie-api-guide.pdf'].includes(pathname)) return next();
+        if (!['/downloads/short-movie-manual.pdf', '/downloads/short-movie-api-guide.pdf', '/downloads/ai-voice-comic-maker-mcp-guide.html'].includes(pathname)) return next();
         const file = path.join(projectRoot, 'public', pathname.slice(1));
         if (!fs.existsSync(file)) { res.statusCode = 404; res.end('Manual not found'); return; }
-        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Type', pathname.endsWith('.pdf') ? 'application/pdf' : 'text/html; charset=utf-8');
         res.setHeader('X-Content-Type-Options', 'nosniff');
         fs.createReadStream(file).pipe(res);
       });
     },
     generateBundle() {
-      for (const name of ['short-movie-manual.pdf', 'short-movie-api-guide.pdf']) {
+      for (const name of ['short-movie-manual.pdf', 'short-movie-api-guide.pdf', 'ai-voice-comic-maker-mcp-guide.html']) {
         this.emitFile({ type: 'asset', fileName: 'downloads/' + name, source: fs.readFileSync(path.join(projectRoot, 'public', 'downloads', name)) });
       }
       this.emitFile({ type: 'asset', fileName: '.nojekyll', source: '' });
@@ -33,11 +34,11 @@ function publicBuildAllowlist() {
   };
 }
 
-export default defineConfig(({ command }) => ({
-  plugins: [webSecurity({ connectSources: [] }), react(), publicBuildAllowlist()],
+export default defineConfig(({ command, isPreview }) => ({
+  plugins: [webSecurity({ connectSources: [] }), furuMcpBuild("ai-voice-comic-maker", 45935), react(), publicBuildAllowlist()],
   // Legacy public runtime files stay on disk, but are never served or copied.
   publicDir: false,
-  base: command === 'build' ? '/ai-voice-comic-maker/' : '/',
+  base: command === 'build' || isPreview ? '/ai-voice-comic-maker/' : '/',
   server: {
     host: '127.0.0.1',
     port: 5174,

@@ -31,6 +31,8 @@ import dotenv from 'dotenv';
 import sharp from 'sharp';
 import { bundle } from '@remotion/bundler';
 import { renderLocalVideo } from './local-render.js';
+import { GEMINI_TTS_MODEL, createGeminiVoiceCasting, synthesizeGeminiTts } from './server/gemini-tts.mjs';
+import { GEMINI_TITLE_VOICE, GEMINI_VOICES, isGeminiPageText, validateGeminiVoiceAssignments } from './src/gemini-voices.js';
 import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
 
 dotenv.config();
@@ -1397,7 +1399,7 @@ const EDGE_TTS_VOICES = {
 
 // Edge-TTS キャスティング: キャラクター名と性別からユニークな声を割り当てる
 const SUPERTONIC_API_BASE = 'http://127.0.0.1:7789';
-const VALID_TTS_ENGINES = new Set(['auto', 'voicevox', 'supertonic']);
+const VALID_TTS_ENGINES = new Set(['auto', 'voicevox', 'supertonic', 'gemini']);
 
 // Supertonic 3 voice pools (personality x gender mapping).
 const SUPERTONIC_VOICE_POOLS = {
@@ -1673,10 +1675,11 @@ async function synthesizeWithSupertonic(text, voiceName, lang, emotion, outputPa
 }
 
 const app = express();
-const PORT = API_PORT;
+const mcpLaunch = process.argv.includes('--furu-mcp-backend') && typeof process.send === 'function';
+const PORT = mcpLaunch ? 45938 : API_PORT;
 
 // ミドルウェア
-installLocalSecurity(app);
+installLocalSecurity(app, mcpLaunch ? { apiPort: PORT, uiPort: 45935 } : undefined);
 app.use(express.json({ limit: '64kb' }));
 
 // セッション管理用（インメモリ）
@@ -2107,6 +2110,10 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
         code: 'API_KEY_REQUIRED',
       });
     }
+    if (requestedTtsEngine === 'gemini' && runtimeEngine !== 'gemini') {
+      session.status = 'uploaded';
+      return res.status(400).json({ error: 'Gemini TTSを使用するにはGemini APIキーで接続してください。', code: 'GEMINI_API_KEY_REQUIRED' });
+    }
 
     let metadata;
     {
@@ -2519,12 +2526,14 @@ ${JSON.stringify(correctionInput, null, 2)}`;
       }
     }
 
-    const analysisCastingEngine = isEnglish
+    const analysisCastingEngine = requestedTtsEngine === 'gemini' ? 'gemini' : isEnglish
       ? (requestedTtsEngine === 'supertonic' ? 'supertonic' : 'edge')
       : requestedTtsEngine;
 
     if (isEnglish) {
-      if (analysisCastingEngine === 'supertonic') {
+      if (analysisCastingEngine === 'gemini') {
+        sessionLog(sessionId, '🌐 [Language] 漫画言語判定: 英語 → Gemini TTS');
+      } else if (analysisCastingEngine === 'supertonic') {
         sessionLog(sessionId, `🌐 [Language] 漫画言語判定: 英語 (English) → Supertonic 3 用にキャスティングを行います`);
       } else {
         sessionLog(sessionId, `🌐 [Language] 漫画言語判定: 英語 (English) → Edge-TTS 用にキャスティングを行います`);
@@ -2549,6 +2558,8 @@ ${JSON.stringify(correctionInput, null, 2)}`;
         sessionLog(sessionId, `   ↳ 英語の原題に復元しました: "${englishTitleCandidate}"`);
         metadata.title = englishTitleCandidate;
       }
+    } else if (analysisCastingEngine === 'gemini') {
+      sessionLog(sessionId, '🌐 [Language] 漫画言語判定: 日本語 → Gemini TTS');
     } else if (analysisCastingEngine === 'supertonic') {
       sessionLog(sessionId, `🌐 [Language] 漫画言語判定: 日本語 (Japanese) → Supertonic 3 用にキャスティングを行います`);
     } else if (analysisCastingEngine === 'voicevox') {
@@ -2562,6 +2573,7 @@ ${JSON.stringify(correctionInput, null, 2)}`;
 
     // 構造を正規化しつつ、キャラごとの声の重複を防ぐ（性格ベースキャスティング v2）
     const characterVoiceMap = new Map();
+    const castGeminiVoice = createGeminiVoiceCasting();
     const characterSupertonicVoiceMap = new Map();
     const usedVoiceIds = new Set();
     const usedSupertonicVoiceIds = new Set();
@@ -2694,7 +2706,11 @@ ${JSON.stringify(correctionInput, null, 2)}`;
           }
 
           let voiceId;
-          if (analysisCastingEngine === 'supertonic') {
+          let geminiVoiceId;
+          if (analysisCastingEngine === 'gemini') {
+            geminiVoiceId = castGeminiVoice({ speaker, gender });
+            sessionLog(sessionId, `[Gemini TTS Casting] ${speaker} → ${geminiVoiceId}`);
+          } else if (analysisCastingEngine === 'supertonic') {
             if (didAssignSupertonicVoice) {
               sessionLog(sessionId, `🎭 [Casting Supertonic] 検出話者: ${speaker} (${gender}, ${age}, ${personality})`);
               sessionLog(sessionId, `   ↳ 性格プロファイル "${personality}" からSupertonic 3ボイスプールを選択`);
@@ -2751,7 +2767,8 @@ ${JSON.stringify(correctionInput, null, 2)}`;
             text: d.text || '',
             emotion: d.emotion || 'neutral',
             voiceId,
-            supertonicVoiceId
+            supertonicVoiceId,
+            geminiVoiceId,
           };
         })
       }))
@@ -2774,6 +2791,7 @@ ${JSON.stringify(correctionInput, null, 2)}`;
         sessionLog(sessionId, `   ↳ ${after}`);
       }
     }
+
 
     // ── コマ跨ぎ重複セリフの自動除去 (Dedup Engine) ──
     // Geminiが同じセリフを複数コマに重複出力するケースへの対策
@@ -2900,6 +2918,11 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     sessionLog(sessionId, `🎬 [Generate] 動画生成を開始...`);
     session.status = 'generating';
     const requestedTtsEngine = normalizeTtsEngine(req.body?.ttsEngine || session.requestedTtsEngine || 'auto');
+    const geminiTtsKey = runtimeEngine === 'gemini' ? runtimeApiKey || process.env.GEMINI_API_KEY : '';
+    if (requestedTtsEngine === 'gemini' && (!geminiTtsKey || geminiTtsKey === 'your_gemini_api_key_here')) {
+      session.status = 'analyzed';
+      return res.status(400).json({ error: 'Gemini TTSを使用するにはGemini APIキーで接続してください。', code: 'GEMINI_API_KEY_REQUIRED' });
+    }
 
     const speech = filterSpeechMetadata(session.metadata);
     const metadata = speech.metadata;
@@ -2909,9 +2932,11 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     const title = metadata.title;
     const bgmAudioPath = session.bgmAudio || `audio/bgm.wav`; // セッションからBGMパスを復元
     const dialogues = [];
+    const includeGeminiPageText = req.body?.geminiIncludePageText === true;
 
     for (const panel of metadata.panels) {
       for (const d of panel.dialogues || []) {
+        if (requestedTtsEngine === 'gemini' && !includeGeminiPageText && isGeminiPageText(d)) continue;
         dialogues.push({
           speaker: d.speaker,
           gender: d.gender,
@@ -2919,12 +2944,30 @@ app.post('/api/generate/:sessionId', async (req, res) => {
           personality: d.personality,
           voiceId: d.voiceId,
           supertonicVoiceId: d.supertonicVoiceId,
+          geminiVoiceId: d.geminiVoiceId,
           bubblePosition: d.bubblePosition || 'center',
           text: d.text,
           emotion: d.emotion,
           panelIndex: (panel.panelNumber || 1) - 1,
         });
       }
+    }
+
+    const titleVoice = req.body?.geminiTitleVoice ?? GEMINI_TITLE_VOICE;
+    let explicitVoices;
+    try {
+      if (requestedTtsEngine !== 'gemini' && (req.body?.geminiVoices !== undefined || req.body?.geminiTitleVoice !== undefined
+        || req.body?.geminiIncludePageText !== undefined)) {
+        throw new Error('Geminiの配役を使うにはGemini TTSを選択してください。');
+      }
+      if (req.body?.geminiIncludePageText !== undefined && typeof req.body.geminiIncludePageText !== 'boolean') {
+        throw new Error('作品内テキストの読み上げ有無を指定してください。');
+      }
+      if (!GEMINI_VOICES.includes(titleVoice)) throw new Error('タイトルコールには標準音声を指定してください。');
+      explicitVoices = validateGeminiVoiceAssignments(req.body?.geminiVoices ?? [], dialogues.map(line => line.speaker));
+    } catch (error) {
+      session.status = 'analyzed';
+      return res.status(400).json({ error: error.message, code: 'INVALID_GEMINI_CAST' });
     }
 
     sessionLog(sessionId, `📖 タイトル: ${title}`);
@@ -3019,7 +3062,9 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     // ── 音声合成 ──
     const isEnglish = metadata.isEnglish || false;
     let activeTtsEngine;
-    if (requestedTtsEngine === 'supertonic') {
+    if (requestedTtsEngine === 'gemini') {
+      activeTtsEngine = 'gemini';
+    } else if (requestedTtsEngine === 'supertonic') {
       activeTtsEngine = 'supertonic';
       if (!(await isSupertonicAvailable(3000))) {
         throw new Error('Supertonic 3 is selected but the local server is not available.');
@@ -3036,7 +3081,9 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     }
     session.ttsEngine = activeTtsEngine;
     sessionLog(sessionId, `[TTS Selection] requested=${requestedTtsEngine} effective=${activeTtsEngine}`);
-    if (activeTtsEngine === 'supertonic') {
+    if (activeTtsEngine === 'gemini') {
+      sessionLog(sessionId, `[Gemini TTS] ${GEMINI_TTS_MODEL} / ${dialogues.length}セリフ + タイトルコール`);
+    } else if (activeTtsEngine === 'supertonic') {
       sessionLog(sessionId, '[Supertonic] TTS pipeline starting...');
       sessionLog(sessionId, `   -> Target: ${dialogues.length} dialogue lines + title call`);
     } else if (isEnglish) {
@@ -3070,6 +3117,15 @@ app.post('/api/generate/:sessionId', async (req, res) => {
       return runtimeSupertonicVoiceMap.get(speaker);
     };
 
+    const castGeminiVoice = createGeminiVoiceCasting();
+    const writeGeminiSpeech = async (text, file, voice, emotion) => {
+      const { bytes, durationSec } = await synthesizeGeminiTts({
+        key: geminiTtsKey, text, voice, emotion, isEnglish, signal: sessionSignal(session),
+      });
+      throwIfSessionCancelled(session);
+      fs.writeFileSync(file, bytes);
+      return durationSec;
+    };
     const audioFiles = [];
     for (let i = 0; i < dialogues.length; i++) {
       if (session.cancelled) throw new Error('CanceledByUser');
@@ -3079,7 +3135,13 @@ app.post('/api/generate/:sessionId', async (req, res) => {
 
       const displayText = d.text.length > 25 ? d.text.substring(0, 25) + '...' : d.text;
 
-      if (activeTtsEngine === 'supertonic') {
+      if (activeTtsEngine === 'gemini') {
+        const voice = explicitVoices.get(d.speaker) ?? d.geminiVoiceId ?? castGeminiVoice(d);
+        sessionLog(sessionId, `[Gemini TTS] ${d.speaker} → ${voice} / ${i + 1}/${dialogues.length}`);
+        const durationSec = await writeGeminiSpeech(d.text, filepath, voice, d.emotion);
+        audioFiles.push({ filename, publicPath: `voiceover/${sessionId}/${filename}`, durationSec, dialogue: d });
+        sessionLog(sessionId, `[Gemini TTS] ${durationSec.toFixed(2)}s → ${filename}`);
+      } else if (activeTtsEngine === 'supertonic') {
         const voiceName = getSupertonicVoiceName(d);
         sessionLog(sessionId, `[Supertonic Casting] ${d.speaker} -> Voice: ${voiceName}`);
         sessionLog(sessionId, `  [${i + 1}/${dialogues.length}] "${displayText}"`);
@@ -3210,7 +3272,9 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     }
 
     const totalAudioSec = audioFiles.reduce((s, a) => s + a.durationSec, 0);
-    if (activeTtsEngine === 'supertonic') {
+    if (activeTtsEngine === 'gemini') {
+      sessionLog(sessionId, `[Gemini TTS] 合成完了: ${audioFiles.length}本 / ${totalAudioSec.toFixed(1)}秒`);
+    } else if (activeTtsEngine === 'supertonic') {
       sessionLog(sessionId, `[Supertonic] Dialogue synthesis complete: ${audioFiles.length} files / ${totalAudioSec.toFixed(1)} sec`);
     } else if (isEnglish) {
       sessionLog(sessionId, `✅ [Edge-TTS] セリフ音声合成完了: ${audioFiles.length}本 / 合計 ${totalAudioSec.toFixed(1)}秒`);
@@ -3223,7 +3287,12 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     let titleAudioPublicPath = null;
     let titleDurationFrames = 90; // デフォルト
 
-    if (activeTtsEngine === 'supertonic') {
+    if (activeTtsEngine === 'gemini') {
+      const durationSec = await writeGeminiSpeech(title, titleAudioPath, titleVoice);
+      titleAudioPublicPath = `voiceover/${sessionId}/title_call.wav`;
+      titleDurationFrames = Math.ceil(durationSec * 30) + 15;
+      sessionLog(sessionId, `[Gemini TTS] タイトルコール完了: ${durationSec.toFixed(2)}秒`);
+    } else if (activeTtsEngine === 'supertonic') {
       sessionLog(sessionId, '[Title Call] Supertonic 3 title call synthesis starting...');
       try {
         const titleVoiceName = isEnglish ? 'F1' : 'F3';
@@ -3514,6 +3583,7 @@ function getWavDuration(wavBuffer) {
 // サーバー起動
 // ──────────────────────────────────────
 const server = app.listen(PORT, LOCAL_HOST, () => {
+  if (mcpLaunch) process.send({ type: "voice-comic-ready", port: PORT });
   console.log('');
   console.log('================================================');
   console.log(`  🚀 AI Voice Comic Maker Backend`);
@@ -3525,6 +3595,7 @@ const server = app.listen(PORT, LOCAL_HOST, () => {
 
 // ポート衝突(EADDRINUSE)エラー時の安全ガード
 server.on('error', (e) => {
+  if (mcpLaunch) process.exit(1);
   if (e.code === 'EADDRINUSE') {
     console.error('');
     console.error('================================================');
