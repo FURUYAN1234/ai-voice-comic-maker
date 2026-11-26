@@ -641,3 +641,9 @@ Initial empty API setup hides the emergency control and its reserved space; acti
 
 - [model-selection] File selection and drag/drop use the currently selected OpenAI model. Live route labels follow explicit server trial/adoption events; existing fallback rules are unchanged. / ファイル選択・ドロップで現在のOpenAI選択モデルを送信します。実行中の試行・採用はサーバーの明示イベントへ対応し、既存フォールバックは維持します。
 - [input-preservation] Keep the selected image for explicit retry after stopping, and show only one upper-right emergency-stop button while preserving progress. / 停止後も選択画像を保持して明示的に再実行でき、進捗を残して右上の緊急停止を1つに統一します。
+
+## CLIP Drop / 習作・ベータ版
+
+クリスタの .clip を SVG・PSD・PNG に変換するWindows用の習作です。 / An experimental Windows converter for Clip Studio Paint files.
+
+- [GitHub](https://github.com/FURUYAN1234/clip-drop) · [note](https://note.com/happy_duck780/n/n8a38199a75db)
