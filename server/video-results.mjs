@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { isVideoSessionId } from '../video-session.js';
+import { isVideoSessionId } from '../src/video-session.js';
 
 const videoFilenamePattern = /^voice_comic_(?:JP|EN)_[^<>:"/\\|?*\x00-\x1f]*_\d{14}\.mp4$/u;
 const resultPath = (root, sessionId) => path.join(root, 'temp', sessionId, 'video-result.json');

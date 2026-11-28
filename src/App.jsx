@@ -1,7 +1,7 @@
 import { localApiFetch } from './local-api.js';
 import { connectFuruMcp, mcpAppError } from './mcp-connection.js';
 import { modelStatusFromLogs } from './model-status.js';
-import { isVideoSessionId } from '../video-session.js';
+import { isVideoSessionId } from './video-session.js';
 import { readVideoInfo, startVideoDownload } from './video-download.js';
 import { GEMINI_TITLE_VOICE, GEMINI_VOICES, getGeminiVoiceAssignments, isGeminiPageText } from './gemini-voices.js';
 /**
