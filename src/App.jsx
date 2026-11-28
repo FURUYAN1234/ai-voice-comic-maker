@@ -20,7 +20,7 @@ import { GEMINI_TITLE_VOICE, GEMINI_VOICES, getGeminiVoiceAssignments, isGeminiP
 import { OPENAI_MODEL_OPTIONS, OPENAI_MODEL_PRICE_SNAPSHOT_DATE, OPENAI_PRONUNCIATION_MODEL, DEFAULT_OPENAI_MODEL, fallbackModels } from '../openai-chat-contract.js';
 import React, { useState, useEffect } from 'react';
 
-const SYSTEM_VERSION = '1.9.9';
+const SYSTEM_VERSION = '2.0.0';
 const DEBUG_MODE = false;
 
 // タイトルを「」で囲むヘルパー（すでに囲まれていたら二重にしない）

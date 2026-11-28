@@ -20,3 +20,16 @@ test('existing real generation retains all 11 story lines and removes the 2 visu
  const annotated=data.dialogues;
  const result=filterSpeechMetadata(metadata(annotated));assert.equal(result.excluded,2);assert.equal(result.metadata.panels[0].dialogues.length,11);
 });
+test('a printed page title is spoken only in the title call, even when a character says the same words', () => {
+  const printedTitle = { ...line('story_text', 'panel', '「月の地図」'), speaker: 'タイトル文字' };
+  const characterDialogue = { ...line('dialogue', 'panel', '月の地図'), speaker: 'ミナ' };
+  const sign = { ...line('story_text', 'panel', '月の地図'), speaker: '看板' };
+  const differentHeading = { ...line('story_text', 'panel', '次章の扉'), speaker: 'タイトル文字' };
+  const input = { ...metadata([printedTitle, characterDialogue, sign, differentHeading]), title: '月の地図' };
+
+  const result = filterSpeechMetadata(input);
+
+  assert.equal(result.metadata.title, input.title);
+  assert.equal(result.excluded, 1);
+  assert.deepEqual(result.metadata.panels[0].dialogues, [characterDialogue, sign, differentHeading]);
+});

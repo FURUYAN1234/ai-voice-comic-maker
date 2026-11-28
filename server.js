@@ -2151,6 +2151,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
 6. 1つのコマに複数のセリフがある場合、出力するJSONの配列内の順序は任意（順不同）です。バックエンドで自動的に物理的な位置（bubblePosition）に基づいて「右 ➔ 中央 ➔ 左」の順にソートされるため、順序を意識するあまり bubblePosition の左右判定を誤魔化したり捻じ曲げたりしないようにしてください。
 7. 漫画全体のタイトルを決定する:
    - 画像内にタイトルテキストが存在する場合 → そのテキストを抽出し、さらに前後の文脈や全体のテーマからOCRの誤読がないか自己検証（文脈補完）した上でタイトルとして設定する。
+   - 作品全体の題字は title にだけ入れる。冒頭で読み上げるため、題字をコマの dialogues に重ねて入れない。登場人物が同じ文言を実際に話す吹き出しは、その人物の台詞として含める。
    - 画像内にタイトルがない場合 → 漫画の内容・オチ・テーマから、SNS投稿に適した魅力的で簡潔な日本語タイトルを創作する（例: 「お弁当の秘密」「猫と掃除機」等）
 
 ## 出力形式
@@ -2329,7 +2330,7 @@ app.post('/api/analyze/:sessionId', async (req, res) => {
 
     const initialSpeech = filterSpeechMetadata(metadata);
     metadata = initialSpeech.metadata;
-    if (initialSpeech.excluded) sessionLog(sessionId, `[Speech Boundary] Page credits excluded: ${initialSpeech.excluded}`);
+    if (initialSpeech.excluded) sessionLog(sessionId, `[Speech Boundary] Duplicate page titles or page credits excluded: ${initialSpeech.excluded}`);
 
     // すべての dialogues を収集して仮の言語判定を行う（2-Pass校正の前に判定）
     const tempDialoguesForLang = [];
@@ -2928,7 +2929,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     const metadata = speech.metadata;
     throwIfSessionCancelled(session);
     session.metadata = metadata;
-    if (speech.excluded) sessionLog(sessionId, `[Speech Boundary] Page credits excluded before synthesis: ${speech.excluded}`);
+    if (speech.excluded) sessionLog(sessionId, `[Speech Boundary] Duplicate page titles or page credits excluded before synthesis: ${speech.excluded}`);
     const title = metadata.title;
     const bgmAudioPath = session.bgmAudio || `audio/bgm.wav`; // セッションからBGMパスを復元
     const dialogues = [];
