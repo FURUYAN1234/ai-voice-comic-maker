@@ -32,6 +32,7 @@ import sharp from 'sharp';
 import { bundle } from '@remotion/bundler';
 import { renderLocalVideo } from './local-render.js';
 import { GEMINI_TTS_MODEL, createGeminiVoiceCasting, synthesizeGeminiTts } from './server/gemini-tts.mjs';
+import { createVideoDelivery, recordCompletedVideo } from './server/video-results.mjs';
 import { GEMINI_TITLE_VOICE, GEMINI_VOICES, isGeminiPageText, validateGeminiVoiceAssignments } from './src/gemini-voices.js';
 import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
 
@@ -3430,7 +3431,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
     const langCode = isEnglish ? 'EN' : 'JP';
 
     // 2. タイトルのサニタイズ（OSで使えない文字の置換と文字数制限）
-    const safeTitle = title.trim().replace(/[\\/:*?"<>|]/g, '_').substring(0, 30);
+    const safeTitle = Array.from(title.trim().toWellFormed().replace(/[\\/:*?"<>|\x00-\x1f]/g, '_')).slice(0, 30).join('');
 
     // 3. ローカル時間での年月日時分秒 (YYYYMMDDHHmmss) の生成
     const now = new Date();
@@ -3491,6 +3492,8 @@ app.post('/api/generate/:sessionId', async (req, res) => {
 
     throwIfSessionCancelled(session);
     await normalizeFinalVideoAudio(outputPath, sessionId);
+    throwIfSessionCancelled(session);
+    recordCompletedVideo(__dirname, { sessionId, filename, title });
 
     session.status = 'complete';
     session.videoPath = outputPath;
@@ -3520,17 +3523,7 @@ app.post('/api/generate/:sessionId', async (req, res) => {
 // ──────────────────────────────────────
 // API: 生成済み動画の配信
 // ──────────────────────────────────────
-app.get('/api/video/:sessionId', (req, res) => {
-  const session = sessions.get(req.params.sessionId);
-  if (!session?.videoPath || !fs.existsSync(session.videoPath)) {
-    return res.status(404).json({ error: '動画が見つかりません' });
-  }
-  // ダウンロード時に正しいファイル名（voice_comic_JP/EN_タイトル名_YYYYMMDDHHmmss.mp4）を返す
-  if (session.videoFilename) {
-    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(session.videoFilename)}"`);
-  }
-  res.sendFile(session.videoPath);
-});
+app.get('/api/video/:sessionId', createVideoDelivery(__dirname));
 
 // ──────────────────────────────────────
 // ヘルパー関数

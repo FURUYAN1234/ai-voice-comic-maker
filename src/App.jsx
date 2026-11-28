@@ -1,6 +1,8 @@
 import { localApiFetch } from './local-api.js';
 import { connectFuruMcp, mcpAppError } from './mcp-connection.js';
 import { modelStatusFromLogs } from './model-status.js';
+import { isVideoSessionId } from '../video-session.js';
+import { readVideoInfo, startVideoDownload } from './video-download.js';
 import { GEMINI_TITLE_VOICE, GEMINI_VOICES, getGeminiVoiceAssignments, isGeminiPageText } from './gemini-voices.js';
 /**
  * AI Voice Comic Maker - メインアプリケーション
@@ -70,8 +72,9 @@ export default function App() {
   const [dragOver, setDragOver] = useState(false);
   const [progress, setProgress] = useState({ step: 0, total: 5, message: '' });
   const [videoUrl, setVideoUrl] = useState(null);
-  const [videoFilename, setVideoFilename] = useState(''); // サーバーから返されるファイル名
+  const [videoFilename, setVideoFilename] = useState('');
   const [videoTitle, setVideoTitle] = useState('');
+  const [downloadStatus, setDownloadStatus] = useState(null);
   const [ocrPreview, setOcrPreview] = useState(null);
   const [error, setError] = useState(null);
   const [terminalLogs, setTerminalLogs] = useState([]);
@@ -277,6 +280,34 @@ export default function App() {
     }
   }, [canProceed, phase]);
 
+  useEffect(() => {
+    if (!['localhost', '127.0.0.1'].includes(window.location.hostname)) return;
+    const id = new URL(window.location.href).searchParams.get('completed');
+    if (!isVideoSessionId(id)) return;
+
+    const controller = new AbortController();
+    const url = `/api/video/${id}`;
+    readVideoInfo(url, controller.signal).then(({ filename, title }) => {
+      if (controller.signal.aborted) return;
+      setVideoUrl(url);
+      setVideoFilename(filename);
+      setVideoTitle(title);
+      setPhase(PHASE.COMPLETE);
+    }).catch(error => {
+      if (!controller.signal.aborted) setError(error.message);
+    });
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    if (phase !== PHASE.COMPLETE || !videoUrl) return;
+    const id = videoUrl.split('/').at(-1);
+    if (!isVideoSessionId(id)) return;
+    const current = new URL(window.location.href);
+    current.searchParams.set('completed', id);
+    window.history.replaceState(window.history.state, '', current);
+  }, [phase, videoUrl]);
+
   // ── ファイルドロップ処理（画像のみ！JSONは不要！） ──
   const handleDrop = (e) => {
     e.preventDefault();
@@ -434,9 +465,7 @@ export default function App() {
       signal.throwIfAborted();
       setProgress({ step: 5, total: 5, message: '完了！ 🎉' });
       setVideoUrl(`/api/video/${sessionId}`);
-      if (genData.videoFilename) {
-        setVideoFilename(genData.videoFilename);
-      }
+      if (genData.videoFilename) setVideoFilename(genData.videoFilename);
       setPhase(PHASE.COMPLETE);
       if (forMcp) return {
         title: metadata.title || imageFile.name.replace(/\.[^.]+$/, ''),
@@ -509,13 +538,15 @@ export default function App() {
   }), []);
 
   // ── ダウンロード ──
-  const handleDownload = () => {
-    if (!videoUrl) return;
-    const a = document.createElement('a');
-    a.href = videoUrl;
-    // サーバーから返された正しいファイル名を使用（voice_comic_JP/EN_タイトル名_YYYYMMDDHHmmss.mp4）
-    a.download = videoFilename || `voice_comic_${new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14)}.mp4`;
-    a.click();
+  const handleDownload = async () => {
+    if (!videoUrl || downloadStatus?.busy) return;
+    setDownloadStatus({ busy: true, message: '動画を確認しています。' });
+    try {
+      await startVideoDownload(videoUrl, videoFilename);
+      setDownloadStatus({ message: 'ダウンロードを開始しました。' });
+    } catch (error) {
+      setDownloadStatus({ failed: true, message: error.message });
+    }
   };
 
   // ── SNS共有 ──
@@ -542,10 +573,15 @@ export default function App() {
 
   // ── もう一度作る ──
   const handleReset = () => {
-    setPhase(PHASE.DROP);
+    if (downloadStatus?.busy) return;
+    const current = new URL(window.location.href);
+    current.searchParams.delete('completed');
+    window.history.replaceState(window.history.state, '', current);
+    setPhase(canProceed ? PHASE.DROP : PHASE.SETUP);
     setVideoUrl(null);
     setVideoFilename('');
     setVideoTitle('');
+    setDownloadStatus(null);
     setSelectedImage(null);
     setOcrPreview(null);
     setProgress({ step: 0, total: 5, message: '' });
@@ -1028,6 +1064,9 @@ export default function App() {
                 controls
                 playsInline
                 preload="auto"
+                onError={() => setDownloadStatus(previous => previous ?? {
+                  failed: true, message: '動画を再生できませんでした。ダウンロードをお試しください。',
+                })}
                 onLoadedMetadata={(e) => {
                   e.currentTarget.muted = false;
                   e.currentTarget.volume = 1;
@@ -1037,14 +1076,19 @@ export default function App() {
 
             {/* アクションボタン */}
             <div className="action-buttons">
-              <button className="btn btn-download" onClick={handleDownload}>
-                📥 ダウンロード
+              <button type="button" className="btn btn-download" onClick={handleDownload} disabled={downloadStatus?.busy}>
+                {downloadStatus?.busy ? '確認中…' : '📥 ダウンロード'}
               </button>
 
-              <button className="btn btn-reset" onClick={handleReset}>
+              <button type="button" className="btn btn-reset" onClick={handleReset} disabled={downloadStatus?.busy}>
                 🔄 もう一つ作る
               </button>
             </div>
+            {downloadStatus?.message && (
+              <p className={downloadStatus.failed ? 'error-banner' : 'manual-help'} role={downloadStatus.failed ? 'alert' : 'status'}>
+                {downloadStatus.message}
+              </p>
+            )}
           </div>
         )}
       </main>
